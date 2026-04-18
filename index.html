@@ -718,10 +718,8 @@ function buildMoovitData(date,v){
 }
 function openMoovit(data){
   if(!data)return;
-  var native="moovit://directions?orig_lat="+data.origLat+"&orig_lon="+data.origLon+"&orig_name="+encodeURIComponent(data.origName)+"&dest_lat="+data.lat+"&dest_lon="+data.lon+"&dest_name="+encodeURIComponent(data.name)+"&date="+encodeURIComponent(data.isoDate)+"&auto_run=true&partner_id=turnismart";
   var web="https://moovitapp.com/index/it/trasporto_pubblico-directions?origLat="+data.origLat+"&origLon="+data.origLon+"&origName="+encodeURIComponent(data.origName)+"&destLat="+data.lat+"&destLon="+data.lon+"&destName="+encodeURIComponent(data.name)+"&date="+encodeURIComponent(data.isoDate);
-  var start=Date.now();window.location.href=native;
-  setTimeout(function(){if(Date.now()-start<2500)window.location.href=web;},1500);
+  window.open(web,"_blank");
 }
 
 /* ===== GTT LIVE ===== */
@@ -1100,7 +1098,11 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   function doAlarm(e) {
     if(e)e.stopPropagation();
     if(v.t!=="turno"||!v.i)return;
-    if(isIOS){window.location.href="clock-alarm://";}
+    if(isIOS){
+      // Prova a aprire l'app Orologio su iOS
+      // clock:// è lo schema corretto per iOS Orologio
+      window.location.href="clock://";
+    }
     else{window.open(gcalUrl,"_blank","noopener");}
     DB.set("ts_alarm_"+iso,{ts:Date.now(),label:"Turno "+v.l+" "+v.n,set:true});
     setAlarmSet(true);
