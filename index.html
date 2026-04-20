@@ -1052,7 +1052,11 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const [showPaste, setShowPaste] = useState(false);
   const [pasteTxt, setPasteTxt] = useState("");
   const [localV, setLocalV] = useState(null);
-  const [nVett, setNVett] = useState("");
+  // Vettura per segmento: {seg_idx: "numero"}, persistito in localStorage
+  const loadVett = () => DB.get("ts_vett_"+toIso(date)) || {};
+  const [vettMap, setVettMap] = useState(loadVett);
+  // Draft mentre si scrive (non salvato finché non si conferma)
+  const [vettDraft, setVettDraft] = useState({});
   const [alarmSet, setAlarmSet] = useState(function(){
     const a = DB.get("ts_alarm_"+toIso(date)); return a && a.set ? true : false;
   });
@@ -1098,12 +1102,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   function doAlarm(e) {
     if(e)e.stopPropagation();
     if(v.t!=="turno"||!v.i)return;
-    if(isIOS){
-      // Prova a aprire l'app Orologio su iOS
-      // clock:// è lo schema corretto per iOS Orologio
-      window.location.href="clock://";
-    }
-    else{window.open(gcalUrl,"_blank","noopener");}
+    window.open(gcalUrl,"_blank","noopener");
     DB.set("ts_alarm_"+iso,{ts:Date.now(),label:"Turno "+v.l+" "+v.n,set:true});
     setAlarmSet(true);
   }
@@ -1141,7 +1140,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         {isMorning && v.t==="turno" && (
           <button onClick={e=>{e.stopPropagation();doAlarm();}}
             style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:10,border:"none",background:alarmSet?"#fff9e6":"#ffd100",color:"#003366",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-            {alarmSet?"⏰ Riapri Orologio":"⏰ Sveglia "+p2(Math.max(0,parseInt(v.i.slice(0,2))-1))+":"+v.i.slice(2)+" (1h prima)"}
+            {alarmSet?"⏰ Rivedi su Google Calendar":"⏰ Sveglia "+p2(Math.max(0,parseInt(v.i.slice(0,2))-1))+":"+v.i.slice(2)+" — Aggiungi a GCal"}
           </button>
         )}
         {moovitData && (
@@ -1156,11 +1155,61 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             Arrivi linea {parseInt(v.l)} a {v.li}
           </button>
         )}
-        {v.t==="turno" && (
-          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10}} onClick={e=>e.stopPropagation()}>
-            <span style={{fontSize:11,color:"#8a9ab0"}}>N. Vettura:</span>
-            <input value={nVett} onChange={e=>setNVett(e.target.value)} placeholder={firstVett||"—"}
-              style={{width:70,padding:"4px 8px",borderRadius:6,border:"1px solid #dce1e8",background:"#f4f6f9",color:"#003366",fontSize:13,fontWeight:700,outline:"none"}}/>
+        {v.t==="turno" && devSegs.length > 0 && (
+          <div style={{marginTop:14,borderTop:"2px solid #e8ecf2",paddingTop:12}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8a9ab0",marginBottom:8,letterSpacing:"0.05em",textTransform:"uppercase"}}>🚌 Numero vettura</div>
+            {devSegs.map((seg, si) => {
+              const segKey = si;
+              const saved = vettMap[segKey] || "";
+              const draft = vettDraft[segKey] !== undefined ? vettDraft[segKey] : saved;
+              const isDirty = draft !== saved;
+              return (
+                <div key={si} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  {devSegs.length > 1 && (
+                    <span style={{fontSize:11,fontWeight:700,color:"#fff",background:"#003366",borderRadius:6,padding:"3px 8px",minWidth:20,textAlign:"center"}}>
+                      {si+1}
+                    </span>
+                  )}
+                  <span style={{fontSize:11,color:"#8a9ab0",minWidth:60}}>
+                    {seg.start} → {seg.end}
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={draft}
+                    placeholder={seg.vett||"vet."}
+                    onChange={e=>{
+                      const v2={...vettDraft,[segKey]:e.target.value};
+                      setVettDraft(v2);
+                    }}
+                    style={{
+                      flex:1,padding:"8px 12px",borderRadius:8,
+                      border:isDirty?"2px solid #ffd100":"2px solid #003366",
+                      background:isDirty?"#fffde7":"#f0f4ff",
+                      color:"#003366",fontSize:16,fontWeight:800,
+                      outline:"none",textAlign:"center"
+                    }}
+                  />
+                  <button
+                    disabled={!isDirty}
+                    onClick={()=>{
+                      const newMap={...vettMap,[segKey]:draft};
+                      setVettMap(newMap);
+                      setVettDraft(d=>{const nd={...d};delete nd[segKey];return nd;});
+                      DB.set("ts_vett_"+toIso(date),newMap);
+                    }}
+                    style={{
+                      padding:"8px 14px",borderRadius:8,border:"none",
+                      background:isDirty?"#003366":"#e0e5ec",
+                      color:isDirty?"#ffd100":"#aaa",
+                      fontSize:13,fontWeight:800,cursor:isDirty?"pointer":"default",
+                      whiteSpace:"nowrap"
+                    }}>
+                    ✓ Salva
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
