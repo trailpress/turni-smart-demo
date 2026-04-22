@@ -34,6 +34,28 @@ select option { background: #ffffff; color: #1a1a2e; }
 }
 .flip-shrink { animation: flipShrink 0.2s ease-in forwards; }
 .flip-grow   { animation: flipGrow 0.2s ease-out forwards; }
+
+@keyframes vettSaveCheck {
+  0%   { transform: scale(0.7); opacity: 0; }
+  50%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes vettSavePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(27, 122, 61, 0.5); }
+  60%  { box-shadow: 0 0 0 10px rgba(27, 122, 61, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(27, 122, 61, 0); }
+}
+.vett-saved {
+  animation: vettSavePulse 0.7s ease-out forwards !important;
+  background: #1b7a3d !important;
+  color: #fff !important;
+}
+.vett-save-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  animation: vettSaveCheck 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
 </style>
 
 </head>
@@ -1056,6 +1078,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const loadVett = () => DB.get("ts_vett_"+toIso(date)) || {};
   const [vettMap, setVettMap] = useState(loadVett);
   const vettRefs = React.useRef({});
+  const [vettSaved, setVettSaved] = useState(false);
   const [alarmSet, setAlarmSet] = useState(function(){
     const a = DB.get("ts_alarm_"+toIso(date)); return a && a.set ? true : false;
   });
@@ -1215,13 +1238,21 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                 });
                 setVettMap(newMap);
                 DB.set("ts_vett_"+toIso(date),newMap);
+                setVettSaved(true);
+                setTimeout(()=>setVettSaved(false), 2200);
               }}
+              className={vettSaved?"vett-saved":""}
               style={{
                 width:"100%",marginTop:10,padding:"12px 0",borderRadius:10,border:"none",
-                background:"#003366",color:"#ffd100",
-                fontSize:16,fontWeight:800,cursor:"pointer"
+                background:vettSaved?"#1b7a3d":"#003366",
+                color:vettSaved?"#fff":"#ffd100",
+                fontSize:16,fontWeight:800,cursor:"pointer",
+                transition:"background 0.3s, color 0.3s"
               }}>
-              {<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>} Salva numeri vettura
+              {vettSaved
+                ? <><span className="vett-save-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Salvato!</>
+                : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salva numeri vettura</>
+              }
             </button>
           </div>
         )}
