@@ -985,7 +985,7 @@ function Timeline({v}) {
   const night = isNotturno(v);
   return (
     <div style={{marginTop:10}}>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:G.t3,fontFamily:"monospace",marginBottom:3,padding:"0 1px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:G.t3,fontFamily:"monospace",marginBottom:3,padding:"0 1px"}}>
         <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
       </div>
       <div style={{position:"relative",height:6,background:"#ffffff",borderRadius:3,overflow:"hidden"}}>
@@ -996,7 +996,7 @@ function Timeline({v}) {
 }
 
 function Tag({bg, color, children}) {
-  return <span style={{display:"inline-block",fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,marginLeft:6,background:bg,color:color}}>{children}</span>;
+  return <span style={{display:"inline-block",fontSize:13,fontWeight:600,padding:"3px 10px",borderRadius:20,marginLeft:6,background:bg,color:color}}>{children}</span>;
 }
 
 /* ===== SEGMENT LIST ===== */
@@ -1011,7 +1011,7 @@ function SegmentList({segs, showGaps=true, showLive=true}) {
           if (gap > 0 && gap < 720) gapEl = (
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"5px 0"}}>
               <div style={{flex:1,height:1,background:"#dce1e8"}}/>
-              <span style={{fontSize:11,fontWeight:600,color:G.orange,background:G.orangeBg,padding:"2px 10px",borderRadius:12,whiteSpace:"nowrap"}}>Pausa {fmtGap(gap)}</span>
+              <span style={{fontSize:13,fontWeight:600,color:G.orange,background:G.orangeBg,padding:"2px 10px",borderRadius:12,whiteSpace:"nowrap"}}>Pausa {fmtGap(gap)}</span>
               <div style={{flex:1,height:1,background:"#dce1e8"}}/>
             </div>
           );
@@ -1019,17 +1019,17 @@ function SegmentList({segs, showGaps=true, showLive=true}) {
         const liveUrl = showLive ? buildLiveUrl(s) : null;
         return (
           <div key={idx}>
-            <div style={{background:"#f0f4f8",borderLeft:"3px solid "+bc,borderRadius:"0 8px 8px 0",padding:"8px 12px",margin:"4px 0",fontSize:13}}>
-              <span style={{color:G.t3,fontSize:10,marginRight:6}}>{idx+1}.</span>
-              {s.vett && <span style={{color:"#003366",fontSize:13,fontWeight:700,marginRight:6,background:"#f0f4f8",padding:"2px 8px",borderRadius:5}}>{"vet."+s.vett}</span>}
+            <div style={{background:"#f0f4f8",borderLeft:"3px solid "+bc,borderRadius:"0 8px 8px 0",padding:"8px 12px",margin:"4px 0",fontSize:15}}>
+              <span style={{color:G.t3,fontSize:12,marginRight:6}}>{idx+1}.</span>
+              {s.vett && <span style={{color:"#003366",fontSize:15,fontWeight:700,marginRight:6,background:"#f0f4f8",padding:"2px 8px",borderRadius:5}}>{"vet."+s.vett}</span>}
               <span style={{fontWeight:600,color:G.tw}}>{s.start}</span>
               <span style={{color:G.t2,marginLeft:5}}>{s.loc_s}</span>
-              {s.dir && <span style={{color:s.dir==="A"?G.accent:G.purple,fontSize:10,marginLeft:4,fontWeight:600}}>{s.dir==="A"?"And.":"Rit."}</span>}
+              {s.dir && <span style={{color:s.dir==="A"?G.accent:G.purple,fontSize:12,marginLeft:4,fontWeight:600}}>{s.dir==="A"?"And.":"Rit."}</span>}
               <span style={{color:G.t3,margin:"0 6px"}}>&rarr;</span>
               <span style={{fontWeight:600,color:G.tw}}>{s.end}</span>
               <span style={{color:G.t2,marginLeft:5}}>{s.loc_e}</span>
               {liveUrl && (
-                <button onClick={e=>{e.stopPropagation();openLiveMap(liveUrl);}} style={{display:"flex",alignItems:"center",gap:4,marginTop:6,padding:"5px 10px",borderRadius:6,background:"#003366",color:"#ffe033",fontSize:10,fontWeight:600,border:"none",cursor:"pointer",width:"fit-content"}}>
+                <button onClick={e=>{e.stopPropagation();openLiveMap(liveUrl);}} style={{display:"flex",alignItems:"center",gap:4,marginTop:6,padding:"5px 10px",borderRadius:6,background:"#003366",color:"#ffe033",fontSize:12,fontWeight:600,border:"none",cursor:"pointer",width:"fit-content"}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {(s.ln||"?")+" live - "+s.loc_s+" \u2192 "+s.loc_e}
                 </button>
@@ -1119,56 +1119,69 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         <div style={{display:"flex",gap:6}}>
           <button
             onClick={e=>{e.stopPropagation();doCalendar();}}
-            style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:"#eef3ff",color:"#003366",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:"#eef3ff",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"}}>
             {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Calendario
           </button>
           <button
             onClick={e=>{e.stopPropagation();doCopy();}}
-            style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:copied?"#e8f5e9":"#f4f6f9",color:copied?"#1b7a3d":"#444",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:copied?"#e8f5e9":"#f4f6f9",color:copied?"#1b7a3d":"#444",fontSize:14,fontWeight:700,cursor:"pointer"}}>
             {copied ? <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>} Copiato</> : <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} Copia</>}
           </button>
           <a
             href={"https://api.whatsapp.com/send?text="+encodeURIComponent(summary)}
             target="_blank" rel="noopener noreferrer"
             onClick={e=>e.stopPropagation()}
-            style={{flex:1,padding:"10px 0",borderRadius:10,background:"#25D366",color:"#fff",fontSize:12,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+            style={{flex:1,padding:"10px 0",borderRadius:10,background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             WhatsApp
           </a>
         </div>
         {isMorning && v.t==="turno" && (
           <button onClick={e=>{e.stopPropagation();doAlarm();}}
-            style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:10,border:"none",background:alarmSet?"#fff9e6":"#ffd100",color:"#003366",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:alarmSet?"#fff9e6":"#ffd100",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"}}>
             {alarmSet ? <>{<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><line x1="6.8" y1="3.5" x2="4" y2="6"/><line x1="17.2" y1="3.5" x2="20" y2="6"/></svg>} Rivedi su Google Calendar</> : <>{<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><line x1="6.8" y1="3.5" x2="4" y2="6"/><line x1="17.2" y1="3.5" x2="20" y2="6"/></svg>} Sveglia {p2(Math.max(0,parseInt(v.i.slice(0,2))-1))}:{v.i.slice(2)} — GCal</>}
           </button>
         )}
         {moovitData && (
           <button onClick={e=>{e.stopPropagation();openMoovit(moovitData);}}
-            style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:10,border:"none",background:"#fef2f2",color:"#e53935",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:"#fef2f2",color:"#e53935",fontSize:13,fontWeight:600,cursor:"pointer"}}>
             {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>} Da Gerbido → {moovitData.locCode} entro {moovitData.arrLabel}
           </button>
         )}
         {liveUrl && (
           <button onClick={e=>{e.stopPropagation();openLiveMap(liveUrl);}}
-            style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:"#003366",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
             Arrivi linea {parseInt(v.l)} a {v.li}
           </button>
         )}
         {v.t==="turno" && devSegs.length > 0 && (
           <div style={{marginTop:14,borderTop:"2px solid #e8ecf2",paddingTop:12}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8a9ab0",marginBottom:8,letterSpacing:"0.05em",textTransform:"uppercase"}}>{<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>} Numero vettura</div>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:14,fontWeight:800,color:"#5a6b80",marginBottom:6,letterSpacing:"0.05em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>
+                Numero vettura
+              </div>
+              <div style={{fontSize:15,fontWeight:600,color:"#003366",background:"#eef3ff",border:"1px solid #c5d5f5",borderRadius:8,padding:"8px 12px",lineHeight:1.4}}>
+                Inserisci qui sotto nei campi il numero della vettura assegnata per ciascun segmento del turno
+              </div>
+            </div>
             {devSegs.map((seg, si) => {
               const saved = vettMap[si] || "";
               return (
                 <div key={si} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                  {devSegs.length > 1 && (
-                    <span style={{fontSize:11,fontWeight:700,color:"#fff",background:"#003366",borderRadius:6,padding:"3px 7px",minWidth:18,textAlign:"center"}}>
-                      {si+1}
-                    </span>
-                  )}
-                  <span style={{fontSize:11,color:"#8a9ab0",whiteSpace:"nowrap"}}>
-                    {seg.start}→{seg.end}
-                  </span>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,minWidth:40}}>
+                    {devSegs.length > 1 && (
+                      <span style={{fontSize:15,fontWeight:700,color:"#fff",background:"#003366",borderRadius:6,padding:"4px 8px",minWidth:22,textAlign:"center"}}>
+                        {si+1}
+                      </span>
+                    )}
+                    {seg.vett && (
+                      <span style={{fontSize:13,fontWeight:800,color:"#e65100",background:"#fff3e0",border:"1px solid #ffcc80",borderRadius:5,padding:"3px 6px",whiteSpace:"nowrap"}}>
+                        T.{seg.vett}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{fontSize:15,fontWeight:600,color:"#5a6b80",whiteSpace:"nowrap",minWidth:80}}>{seg.start}→{seg.end}</span>
                   <input
                     key={iso+"-"+si}
                     type="text"
@@ -1179,10 +1192,10 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                     placeholder={seg.vett||"-"}
                     ref={el=>vettRefs.current[si]=el}
                     style={{
-                      width:72,padding:"8px 6px",borderRadius:8,
+                      width:80,padding:"10px 6px",borderRadius:8,
                       border:"2px solid #003366",
                       background:"#f0f4ff",
-                      color:"#003366",fontSize:18,fontWeight:800,
+                      color:"#003366",fontSize:22,fontWeight:800,
                       outline:"none",textAlign:"center"
                     }}
                   />
@@ -1204,9 +1217,9 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                 DB.set("ts_vett_"+toIso(date),newMap);
               }}
               style={{
-                width:"100%",marginTop:6,padding:"9px 0",borderRadius:8,border:"none",
+                width:"100%",marginTop:10,padding:"12px 0",borderRadius:10,border:"none",
                 background:"#003366",color:"#ffd100",
-                fontSize:13,fontWeight:800,cursor:"pointer"
+                fontSize:16,fontWeight:800,cursor:"pointer"
               }}>
               {<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>} Salva numeri vettura
             </button>
@@ -1221,22 +1234,22 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
     const info = TL[v.t] || ["Sconosciuto","","#666"];
     return (
       <div style={Object.assign({},cardBase,{marginBottom:10})}>
-        <div style={{fontSize:12,color:"#8a9ab0",marginBottom:6}}>{toWd(date)} {toFmt(date)}</div>
+        <div style={{fontSize:14,color:"#8a9ab0",marginBottom:6}}>{toWd(date)} {toFmt(date)}</div>
         <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <span style={{background:info[2],color:v.t==="RIS"?"#fff":"#003366",fontSize:13,fontWeight:700,padding:"5px 16px",borderRadius:20}}>{info[0]}</span>
-          {v.t==="RIS" && v.ball && <span style={{fontFamily:"monospace",fontWeight:700,fontSize:14,color:"#003366"}}>{v.ball} — {BALL_CODES[v.ball]||"da assegnare"}</span>}
+          <span style={{background:info[2],color:v.t==="RIS"?"#fff":"#003366",fontSize:15,fontWeight:700,padding:"5px 16px",borderRadius:20}}>{info[0]}</span>
+          {v.t==="RIS" && v.ball && <span style={{fontFamily:"monospace",fontWeight:700,fontSize:16,color:"#003366"}}>{v.ball} — {BALL_CODES[v.ball]||"da assegnare"}</span>}
         </div>
-        {v.t!=="RIS" && info[1] && <div style={{color:"#5a6b80",marginTop:8,fontSize:13}}>{info[1]}</div>}
+        {v.t!=="RIS" && info[1] && <div style={{color:"#5a6b80",marginTop:8,fontSize:15}}>{info[1]}</div>}
         {v.t==="RIS" && onPaste && (
           <div style={{marginTop:12}}>
             {!showPaste ? (
               <button onClick={e=>{e.stopPropagation();setShowPaste(true);setPasteErr("");setPasteTxt("");}}
-                style={{width:"100%",padding:"12px 0",borderRadius:10,border:"2px solid #003366",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                style={{width:"100%",padding:"12px 0",borderRadius:10,border:"2px solid #003366",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
                 Incolla turno assegnato
               </button>
             ) : (
               <div onClick={e=>e.stopPropagation()}>
-                <div style={{fontSize:11,color:"#8a9ab0",marginBottom:6}}>Incolla la riga — conferma automatica:</div>
+                <div style={{fontSize:13,color:"#8a9ab0",marginBottom:6}}>Incolla la riga — conferma automatica:</div>
                 <textarea value={pasteTxt} onInput={e=>setPasteTxt(e.target.value)} onChange={e=>setPasteTxt(e.target.value)}
                   onPaste={e=>{
                     let clip="";
@@ -1248,11 +1261,11 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                     else{setPasteTxt(clip);setPasteErr("Formato non riconosciuto.");}
                   }}
                   placeholder="es. N B 44 107 GE 0713 GERB 1307 OMER R 0554"
-                  style={{width:"100%",minHeight:56,padding:"10px 12px",borderRadius:10,border:"2px solid #003366",background:"#fff",color:"#003366",fontSize:13,fontFamily:"monospace",outline:"none",resize:"none",boxSizing:"border-box"}}
+                  style={{width:"100%",minHeight:56,padding:"10px 12px",borderRadius:10,border:"2px solid #003366",background:"#fff",color:"#003366",fontSize:15,fontFamily:"monospace",outline:"none",resize:"none",boxSizing:"border-box"}}
                   autoFocus/>
                 <button onClick={e=>{e.stopPropagation();setShowPaste(false);setPasteErr("");setPasteTxt("");}}
-                  style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:8,border:"1px solid #dce1e8",background:"transparent",color:"#8a9ab0",fontSize:12,cursor:"pointer"}}>Annulla</button>
-                {pasteErr && <div style={{color:"#e53935",fontSize:11,marginTop:4}}>{pasteErr}</div>}
+                  style={{width:"100%",marginTop:6,padding:"9px 0",borderRadius:8,border:"1px solid #dce1e8",background:"transparent",color:"#8a9ab0",fontSize:14,cursor:"pointer"}}>Annulla</button>
+                {pasteErr && <div style={{color:"#e53935",fontSize:13,marginTop:4}}>{pasteErr}</div>}
               </div>
             )}
           </div>
@@ -1267,24 +1280,24 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
     return (
       <div style={Object.assign({},cardBase,{marginBottom:10})}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <span style={{fontSize:12,color:"#8a9ab0",fontWeight:600}}>{toWd(date)} {toFmt(date)}</span>
+          <span style={{fontSize:14,color:"#8a9ab0",fontWeight:600}}>{toWd(date)} {toFmt(date)}</span>
           <div style={{display:"flex",gap:4}}>
             {night && <Tag bg={G.purpleBg} color={G.purple}>Serale</Tag>}
             {rb && <Tag bg={G.redBg} color={G.red}>Rip. breve</Tag>}
           </div>
         </div>
         <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
-          <span style={{fontFamily:"'SF Mono',monospace",fontSize:26,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
-          {firstVett && <span style={{fontSize:13,color:"#8a9ab0"}}>vet. {firstVett}</span>}
-          {v.c && <span style={{fontSize:11,color:"#aab5c2"}}>cod. {v.c}</span>}
+          <span style={{fontFamily:"'SF Mono',monospace",fontSize:28,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
+          <span style={{fontSize:15,color:"#8a9ab0"}}>vet. {vettMap[0]||firstVett||"—"}</span>
+          {v.c && <span style={{fontSize:13,color:"#aab5c2"}}>cod. {v.c}</span>}
         </div>
         <div style={{background:"#f4f6f9",borderRadius:10,padding:"10px 14px"}}>
-          <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{fT(v.i)}</span>
-          <span style={{fontSize:13,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
+          <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.i)}</span>
+          <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
           <span style={{color:"#aab5c2",margin:"0 8px"}}>→</span>
-          <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{fT(v.e)}</span>
-          <span style={{fontSize:13,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
-          {v.d && <span style={{marginLeft:10,fontSize:12,color:"#8a9ab0"}}>{fD(v.d)}</span>}
+          <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.e)}</span>
+          <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
+          {v.d && <span style={{marginLeft:10,fontSize:14,color:"#8a9ab0"}}>{fD(v.d)}</span>}
         </div>
         <ActionButtons stopFlip={false}/>
       </div>
@@ -1299,7 +1312,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
       return (
         <div className={animClass} style={Object.assign({},cardBase,{marginBottom:10})}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontSize:12,color:"#8a9ab0",fontWeight:600}}>{toWd(date)} {toFmt(date)}</span>
+            <span style={{fontSize:14,color:"#8a9ab0",fontWeight:600}}>{toWd(date)} {toFmt(date)}</span>
             <div style={{display:"flex",gap:4}}>
               <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>
               {night && <Tag bg={G.purpleBg} color={G.purple}>Serale</Tag>}
@@ -1307,24 +1320,24 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
-            <span style={{fontFamily:"'SF Mono',monospace",fontSize:26,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
-            {firstVett && <span style={{fontSize:13,color:"#8a9ab0"}}>vet. {firstVett}</span>}
-            {v.c && <span style={{fontSize:11,color:"#aab5c2"}}>cod. {v.c}</span>}
+            <span style={{fontFamily:"'SF Mono',monospace",fontSize:28,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
+            {firstVett && <span style={{fontSize:15,color:"#8a9ab0"}}>vet. {vettMap[0]||firstVett}</span>}
+            {v.c && <span style={{fontSize:13,color:"#aab5c2"}}>cod. {v.c}</span>}
           </div>
           <div style={{background:"#f4f6f9",borderRadius:10,padding:"10px 14px",marginBottom:10}}>
-            <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{fT(v.i)}</span>
-            <span style={{fontSize:13,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
+            <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.i)}</span>
+            <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
             <span style={{color:"#aab5c2",margin:"0 8px"}}>→</span>
-            <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{fT(v.e)}</span>
-            <span style={{fontSize:13,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
-            {v.d && <span style={{marginLeft:10,fontSize:12,color:"#8a9ab0"}}>{fD(v.d)}</span>}
+            <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.e)}</span>
+            <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
+            {v.d && <span style={{marginLeft:10,fontSize:14,color:"#8a9ab0"}}>{fD(v.d)}</span>}
           </div>
           <button
             onClick={()=>{
               setAnimClass("flip-shrink");
               setTimeout(()=>{setFlipped(true);setAnimClass("flip-grow");},200);
             }}
-            style={{width:"100%",padding:"10px 0",borderRadius:10,border:"2px solid #e65100",background:"rgba(230,81,0,0.06)",color:"#e65100",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:10}}>
+            style={{width:"100%",padding:"12px 0",borderRadius:10,border:"2px solid #e65100",background:"rgba(230,81,0,0.06)",color:"#e65100",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10}}>
             {devSegs.length>0 ? <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>Vedi {devSegs.length} segmenti<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span> : <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>Vedi sviluppo<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>}
           </button>
           <ActionButtons stopFlip={false}/>
@@ -1336,16 +1349,16 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         <div className={animClass} style={Object.assign({},cardBase,{marginBottom:10,borderLeft:"4px solid #e65100"})}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div>
-              <span style={{fontSize:12,color:"#8a9ab0"}}>{toWd(date)} {toFmt(date)}</span>
-              <span style={{fontFamily:"monospace",fontSize:16,fontWeight:800,color:"#003366",marginLeft:8}}>{code}</span>
+              <span style={{fontSize:14,color:"#8a9ab0"}}>{toWd(date)} {toFmt(date)}</span>
+              <span style={{fontFamily:"monospace",fontSize:18,fontWeight:800,color:"#003366",marginLeft:8}}>{code}</span>
             </div>
             <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>
           </div>
           {devSegs.length===0 ? (
             <div style={{textAlign:"center",padding:"20px 0"}}>
               <div style={{marginBottom:8}}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
-              <div style={{fontSize:13,fontWeight:700,color:"#003366",marginBottom:4}}>Sviluppo non disponibile</div>
-              <div style={{fontSize:12,color:"#8a9ab0",marginBottom:12,lineHeight:1.5}}>
+              <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:4}}>Sviluppo non disponibile</div>
+              <div style={{fontSize:14,color:"#8a9ab0",marginBottom:12,lineHeight:1.5}}>
                 Carica il PDF Orari Linee GTT per vedere i segmenti
               </div>
             </div>
@@ -1354,16 +1367,26 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             return (
               <div key={idx}>
                 <div style={{background:idx%2===0?"#f4f6f9":"#fff8f0",borderLeft:"3px solid "+(idx%2===0?"#003366":"#e65100"),borderRadius:"0 10px 10px 0",padding:"8px 12px",marginBottom:gap>0?0:6}}>
-                  <span style={{fontWeight:800,fontSize:16,color:"#003366"}}>{s.start}</span>
-                  <span style={{fontSize:12,color:"#5a6b80",marginLeft:5}}>{s.loc_s}</span>
-                  {s.dir && <span style={{fontSize:10,fontWeight:700,marginLeft:4,color:s.dir==="A"?"#003366":"#6a1b9a",background:s.dir==="A"?"#eef3ff":"#f3e5f5",padding:"1px 5px",borderRadius:4}}>{s.dir==="A"?"And.":"Rit."}</span>}
-                  <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
-                  <span style={{fontWeight:800,fontSize:16,color:"#003366"}}>{s.end}</span>
-                  <span style={{fontSize:12,color:"#5a6b80",marginLeft:5}}>{s.loc_e}</span>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{s.start}</span>
+                      <span style={{fontSize:14,color:"#5a6b80",marginLeft:5}}>{s.loc_s}</span>
+                      {s.dir && <span style={{fontSize:12,fontWeight:700,marginLeft:4,color:s.dir==="A"?"#003366":"#6a1b9a",background:s.dir==="A"?"#eef3ff":"#f3e5f5",padding:"1px 5px",borderRadius:4}}>{s.dir==="A"?"And.":"Rit."}</span>}
+                      <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
+                      <span style={{fontWeight:800,fontSize:18,color:"#003366"}}>{s.end}</span>
+                      <span style={{fontSize:14,color:"#5a6b80",marginLeft:5}}>{s.loc_e}</span>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",minWidth:52}}>
+                      <span style={{fontSize:11,color:"#aab5c2",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.04em"}}>Vet.</span>
+                      <span style={{fontSize:17,fontWeight:800,color:vettMap[idx]?"#003366":"#d0d7de",fontFamily:"monospace"}}>
+                        {vettMap[idx] || (s.vett||"—")}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 {gap>0&&gap<720&&(
                   <div style={{textAlign:"center",padding:"4px 0",marginBottom:6}}>
-                    <span style={{fontSize:11,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"2px 10px",borderRadius:10,fontWeight:600}}>
+                    <span style={{fontSize:13,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"2px 10px",borderRadius:10,fontWeight:600}}>
                       {gap>=60?"Cambio":"Pausa"} {fmtGap(gap)}
                     </span>
                   </div>
@@ -1376,7 +1399,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
               setAnimClass("flip-shrink");
               setTimeout(()=>{setFlipped(false);setAnimClass("flip-grow");},200);
             }}
-            style={{width:"100%",marginTop:10,padding:"10px 0",borderRadius:10,border:"1px solid #dce1e8",background:"transparent",color:"#8a9ab0",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:10}}>
+            style={{width:"100%",marginTop:10,padding:"12px 0",borderRadius:10,border:"1px solid #dce1e8",background:"transparent",color:"#8a9ab0",fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:10}}>
             {<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><polyline points="15 18 9 12 15 6"/></svg>} Torna
           </button>
           <ActionButtons stopFlip={false}/>
@@ -1398,7 +1421,7 @@ function Grid({days, yr, mo, riposiSet, onTap}) {
   return (
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
-        {WK.map(w=><div key={w} style={{textAlign:"center",fontSize:10,fontWeight:600,color:G.t3,padding:"5px 0",textTransform:"uppercase"}}>{w}</div>)}
+        {WK.map(w=><div key={w} style={{textAlign:"center",fontSize:12,fontWeight:600,color:G.t3,padding:"5px 0",textTransform:"uppercase"}}>{w}</div>)}
         {cells.map((day,idx)=>{
           if(!day) return <div key={"e"+idx}/>;
           const dt=new Date(yr,mo-1,day),is2=toIso(dt),v=days[is2];
@@ -1411,7 +1434,7 @@ function Grid({days, yr, mo, riposiSet, onTap}) {
           return (
             <div key={idx}
               onClick={()=>{if(v)onTap(dt,v);else if(isProjRest)onTap(dt,{t:"RP",g:"",x:"Riposo previsto"});}}
-              style={{textAlign:"center",fontSize:13,padding:"7px 2px",borderRadius:today?"50%":"8px",color:cl,fontWeight:fw,background:bg,cursor:(v||isProjRest)?"pointer":"default",minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:today?"0 0 0 2px #00897b,0 0 0 4px rgba(0,137,123,0.25)":"none"}}>
+              style={{textAlign:"center",fontSize:15,padding:"7px 2px",borderRadius:today?"50%":"8px",color:cl,fontWeight:fw,background:bg,cursor:(v||isProjRest)?"pointer":"default",minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:today?"0 0 0 2px #00897b,0 0 0 4px rgba(0,137,123,0.25)":"none"}}>
               {day}
             </div>
           );
@@ -1419,7 +1442,7 @@ function Grid({days, yr, mo, riposiSet, onTap}) {
       </div>
       <div style={{display:"flex",justifyContent:"center",gap:12,flexWrap:"wrap",marginTop:8}}>
         {[["#00897b","Oggi","50%"],["#003366","Turno","3px"],["#ffd100","Riposo","3px"],["#c62828","Ballott.","3px"]].map(([bg,label,br])=>(
-          <span key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:9,color:G.t3}}>
+          <span key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:G.t3}}>
             <span style={{width:10,height:10,borderRadius:br,background:bg,display:"inline-block"}}/> {label}
           </span>
         ))}
@@ -1465,12 +1488,12 @@ function LineeBrowser({devs}) {
   }
   function lineLabel(ln){if(/B$/.test(ln))return ln.replace(/B$/,"/");if(/[A-Z]$/.test(ln)&&ln.length>1)return ln.replace(/[A-Z]$/,"/");const n=parseInt(ln);return isNaN(n)?ln:String(n);}
 
-  const selStyle={width:"100%",padding:"12px 14px",borderRadius:12,border:"1px solid "+G.glassBorder,background:"#ffffff",color:G.tw,fontSize:15,outline:"none",appearance:"none",WebkitAppearance:"none"};
+  const selStyle={width:"100%",padding:"12px 14px",borderRadius:12,border:"1px solid "+G.glassBorder,background:"#ffffff",color:G.tw,fontSize:17,outline:"none",appearance:"none",WebkitAppearance:"none"};
 
   return (
     <div>
       <div style={{marginBottom:12}}>
-        <div style={{fontSize:12,color:G.t3,fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.04em"}}>Seleziona linea</div>
+        <div style={{fontSize:14,color:G.t3,fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.04em"}}>Seleziona linea</div>
         <select value={linea} onChange={e=>{setLinea(e.target.value);setTurno("");}} style={selStyle}>
           <option value="">-- Scegli linea --</option>
           {lineNums.map(ln=><option key={ln} value={ln}>Linea {lineLabel(ln)} ({lineMap[ln].length} turni)</option>)}
@@ -1480,7 +1503,7 @@ function LineeBrowser({devs}) {
         <div>
           <div style={{display:"flex",gap:4,marginBottom:12}}>
             {["LV","SAB","FEST","ALL"].map(d=>(
-              <button key={d} onClick={()=>setGt(d)} style={{flex:1,padding:"8px 0",borderRadius:10,border:gt===d?"1px solid "+G.accentBorder:"1px solid "+G.cardBorder,background:gt===d?G.accentGlass:"transparent",color:gt===d?G.accent:G.t2,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+              <button key={d} onClick={()=>setGt(d)} style={{flex:1,padding:"8px 0",borderRadius:10,border:gt===d?"1px solid "+G.accentBorder:"1px solid "+G.cardBorder,background:gt===d?G.accentGlass:"transparent",color:gt===d?G.accent:G.t2,fontSize:14,fontWeight:600,cursor:"pointer"}}>
                 {d==="LV"?"Lun-Ven":d==="SAB"?"Sabato":d==="FEST"?"Festivo":"Tutti"}
               </button>
             ))}
@@ -1500,12 +1523,12 @@ function LineeBrowser({devs}) {
             });
             return (
               <div>
-                {visibleCount>0 && <div style={{fontSize:11,color:G.t2,marginBottom:8,fontWeight:600}}>{visibleCount} turni {gt==="LV"?"feriali":gt==="SAB"?"sabato":gt==="FEST"?"festivi":"totali"}</div>}
+                {visibleCount>0 && <div style={{fontSize:13,color:G.t2,marginBottom:8,fontWeight:600}}>{visibleCount} turni {gt==="LV"?"feriali":gt==="SAB"?"sabato":gt==="FEST"?"festivi":"totali"}</div>}
                 {cards}
                 {visibleCount===0 && (
                   <div style={{textAlign:"center",padding:"20px 0"}}>
-                    <div style={{color:"#c62828",fontSize:13,fontWeight:600}}>Nessun turno per {gt==="LV"?"Lun-Ven":gt==="SAB"?"Sabato":"Festivo"}</div>
-                    <div style={{color:G.t3,fontSize:11,marginTop:6}}>Ricarica il PDF Orari Linee</div>
+                    <div style={{color:"#c62828",fontSize:15,fontWeight:600}}>Nessun turno per {gt==="LV"?"Lun-Ven":gt==="SAB"?"Sabato":"Festivo"}</div>
+                    <div style={{color:G.t3,fontSize:13,marginTop:6}}>Ricarica il PDF Orari Linee</div>
                   </div>
                 )}
               </div>
@@ -1513,7 +1536,7 @@ function LineeBrowser({devs}) {
           })()}
         </div>
       ) : (
-        <div style={{textAlign:"center",padding:"30px 0",color:G.t3,fontSize:13}}>Seleziona una linea per esplorare i turni</div>
+        <div style={{textAlign:"center",padding:"30px 0",color:G.t3,fontSize:15}}>Seleziona una linea per esplorare i turni</div>
       )}
     </div>
   );
@@ -1541,15 +1564,15 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
     return (
       <div style={Object.assign({},glassCard,{padding:"14px 16px",marginBottom:8})}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-          <span style={{fontFamily:"monospace",fontSize:18,fontWeight:700,color:G.tw}}>{code}</span>
-          {s0&&s0.vett&&<span style={{fontSize:12,color:G.t2}}>vet. {s0.vett}</span>}
+          <span style={{fontFamily:"monospace",fontSize:20,fontWeight:700,color:G.tw}}>{code}</span>
+          {s0&&s0.vett&&<span style={{fontSize:14,color:G.t2}}>vet. {s0.vett}</span>}
         </div>
         <div style={{background:"#f4f6f9",borderRadius:8,padding:"8px 12px"}}>
-          <span style={{fontWeight:800,fontSize:16,color:G.tw}}>{s0&&s0.start}</span>
-          <span style={{fontSize:12,color:G.t2,marginLeft:5}}>{s0&&s0.loc_s}</span>
+          <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{s0&&s0.start}</span>
+          <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{s0&&s0.loc_s}</span>
           <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
-          <span style={{fontWeight:800,fontSize:16,color:G.tw}}>{sN&&sN.end}</span>
-          <span style={{fontSize:12,color:G.t2,marginLeft:5}}>{sN&&sN.loc_e}</span>
+          <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{sN&&sN.end}</span>
+          <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{sN&&sN.loc_e}</span>
         </div>
       </div>
     );
@@ -1560,7 +1583,7 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
   const firstSeg = segs[0];
   const lastSeg = segs[segs.length-1];
   const tapHint = (
-    <div style={{marginTop:8,padding:"6px 0",borderTop:"1px solid "+G.cardBorder,textAlign:"center",color:isSpezz?"#e65100":G.t3,fontSize:11,fontWeight:600}}>
+    <div style={{marginTop:8,padding:"6px 0",borderTop:"1px solid "+G.cardBorder,textAlign:"center",color:isSpezz?"#e65100":G.t3,fontSize:13,fontWeight:600}}>
       {flipped ? "← Chiudi sviluppo" : (isSpezz?"Spezzato — tocca per sviluppo →":"Tocca per corse →")}
     </div>
   );
@@ -1568,7 +1591,7 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
   const front = (
     <div className="flip-front" style={Object.assign({},glassCard,{padding:"14px 16px",borderLeft:isSpezz?"4px solid #e65100":undefined})}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <span style={{fontFamily:"monospace",fontSize:18,fontWeight:700,color:G.tw}}>{code}</span>
+        <span style={{fontFamily:"monospace",fontSize:20,fontWeight:700,color:G.tw}}>{code}</span>
         <div style={{display:"flex",gap:4}}>
           {isSpezz && <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>}
           {isMultiCorsa && !isSpezz && <Tag bg={G.glass} color={G.t2}>{corse.length} corse</Tag>}
@@ -1576,11 +1599,11 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
       </div>
       {/* Orario complessivo — non sviluppato */}
       <div style={{background:"#f4f6f9",borderRadius:8,padding:"8px 12px"}}>
-        <span style={{fontWeight:800,fontSize:16,color:G.tw}}>{firstSeg&&firstSeg.start}</span>
-        <span style={{fontSize:12,color:G.t2,marginLeft:5}}>{firstSeg&&firstSeg.loc_s}</span>
+        <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{firstSeg&&firstSeg.start}</span>
+        <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{firstSeg&&firstSeg.loc_s}</span>
         <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
-        <span style={{fontWeight:800,fontSize:16,color:G.tw}}>{lastSeg&&lastSeg.end}</span>
-        <span style={{fontSize:12,color:G.t2,marginLeft:5}}>{lastSeg&&lastSeg.loc_e}</span>
+        <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{lastSeg&&lastSeg.end}</span>
+        <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{lastSeg&&lastSeg.loc_e}</span>
       </div>
       {tapHint}
     </div>
@@ -1590,7 +1613,7 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
   const back = (
     <div className="flip-back" style={Object.assign({},glassCard,{padding:"14px 16px",background:"#ffffff",borderLeft:isSpezz?"4px solid #e65100":undefined})}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <span style={{fontFamily:"monospace",fontSize:16,fontWeight:700,color:G.tw}}>{code}</span>
+        <span style={{fontFamily:"monospace",fontSize:18,fontWeight:700,color:G.tw}}>{code}</span>
         {isSpezz && <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>}
       </div>
       {corse.map(function(corsaKey, idx){
@@ -1599,16 +1622,16 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
         return (
           <div key={corsaKey}>
             <div style={{background:idx%2===0?"#f4f6f9":"#fff8f0",borderLeft:"3px solid "+(idx%2===0?"#003366":"#e65100"),borderRadius:"0 8px 8px 0",padding:"7px 10px",marginBottom:gap>0?0:6}}>
-              {corsaSegs[0].vett && <span style={{fontSize:10,color:G.t2,marginRight:6}}>vet.{corsaSegs[0].vett}</span>}
-              <span style={{fontWeight:800,fontSize:15,color:G.tw}}>{corsaSegs[0].start}</span>
-              <span style={{fontSize:11,color:G.t2,marginLeft:4}}>{corsaSegs[0].loc_s}</span>
+              {corsaSegs[0].vett && <span style={{fontSize:12,color:G.t2,marginRight:6}}>vet.{corsaSegs[0].vett}</span>}
+              <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[0].start}</span>
+              <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[0].loc_s}</span>
               <span style={{color:"#aab5c2",margin:"0 5px"}}>→</span>
-              <span style={{fontWeight:800,fontSize:15,color:G.tw}}>{corsaSegs[corsaSegs.length-1].end}</span>
-              <span style={{fontSize:11,color:G.t2,marginLeft:4}}>{corsaSegs[corsaSegs.length-1].loc_e}</span>
+              <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[corsaSegs.length-1].end}</span>
+              <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[corsaSegs.length-1].loc_e}</span>
             </div>
             {gap>0&&gap<720&&(
               <div style={{textAlign:"center",padding:"3px 0",marginBottom:6}}>
-                <span style={{fontSize:10,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"1px 8px",borderRadius:8,fontWeight:600}}>
+                <span style={{fontSize:12,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"1px 8px",borderRadius:8,fontWeight:600}}>
                   {gap>=60?"Cambio":"Pausa"} {fmtGap(gap)}
                 </span>
               </div>
@@ -1641,8 +1664,8 @@ function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
   const months = [];
   for(let m=1;m<=12;m++){const gk=yr+"-"+p2(m);months.push({month:m,data:groups[gk]||null});}
 
-  const arrowBtn={padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:16,fontWeight:700,cursor:"pointer"};
-  const uploadBtn={width:"100%",padding:"6px 0",borderRadius:6,border:"1px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:10,cursor:"pointer",marginTop:3};
+  const arrowBtn={padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"};
+  const uploadBtn={width:"100%",padding:"6px 0",borderRadius:6,border:"1px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:12,cursor:"pointer",marginTop:3};
 
   return (
     <div>
@@ -1650,7 +1673,7 @@ function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
       <input ref={orariRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadOrari(e.target.files[0],reload);}}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16}}>
         <button onClick={()=>setYr(yr-1)} style={arrowBtn}>&lsaquo;</button>
-        <span style={{fontSize:20,fontWeight:700,color:G.tw,minWidth:60,textAlign:"center"}}>{yr}</span>
+        <span style={{fontSize:22,fontWeight:700,color:G.tw,minWidth:60,textAlign:"center"}}>{yr}</span>
         <button onClick={()=>setYr(yr+1)} style={arrowBtn}>&rsaquo;</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
@@ -1658,26 +1681,26 @@ function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
           const has=item.data,hasPr=has&&has.preco,hasOr=has&&has.orari;
           return (
             <div key={item.month} style={Object.assign({},glassCard,{padding:"12px 10px",borderColor:hasPr?G.accentBorder:G.glassBorder})}>
-              <div style={{fontSize:14,fontWeight:700,color:hasPr?G.tw:G.t2,marginBottom:6,textAlign:"center"}}>{MESI_IT[item.month].slice(0,3)}</div>
+              <div style={{fontSize:16,fontWeight:700,color:hasPr?G.tw:G.t2,marginBottom:6,textAlign:"center"}}>{MESI_IT[item.month].slice(0,3)}</div>
               {hasPr ? (
                 <div style={{marginBottom:4}}>
                   <div style={{display:"flex",gap:3}}>
-                    <button onClick={()=>{const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.accentGlass,color:G.accent,fontSize:10,fontWeight:600,cursor:"pointer"}}>Apri turni</button>
-                    <button onClick={()=>{deleteEntry(has.preco.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:10,cursor:"pointer"}}>&times;</button>
+                    <button onClick={()=>{const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.accentGlass,color:G.accent,fontSize:12,fontWeight:600,cursor:"pointer"}}>Apri turni</button>
+                    <button onClick={()=>{deleteEntry(has.preco.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:12,cursor:"pointer"}}>&times;</button>
                   </div>
                 </div>
               ) : <button onClick={()=>{if(precoRef.current){precoRef.current.value="";precoRef.current.click();}}} style={uploadBtn}>+ Preconoscenza</button>}
               {hasOr ? (
                 <div style={{display:"flex",gap:3}}>
-                  <button onClick={()=>{const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.greenBg,color:G.green,fontSize:10,fontWeight:600,cursor:"pointer"}}>Apri orari</button>
-                  <button onClick={()=>{deleteEntry(has.orari.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:10,cursor:"pointer"}}>&times;</button>
+                  <button onClick={()=>{const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.greenBg,color:G.green,fontSize:12,fontWeight:600,cursor:"pointer"}}>Apri orari</button>
+                  <button onClick={()=>{deleteEntry(has.orari.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:12,cursor:"pointer"}}>&times;</button>
                 </div>
               ) : <button onClick={()=>{if(orariRef.current){orariRef.current.value="";orariRef.current.click();}}} style={uploadBtn}>+ Orari linee</button>}
             </div>
           );
         })}
       </div>
-      <div style={{marginTop:14,textAlign:"center",color:G.t3,fontSize:11}}>I documenti vengono salvati automaticamente nel browser</div>
+      <div style={{marginTop:14,textAlign:"center",color:G.t3,fontSize:13}}>I documenti vengono salvati automaticamente nel browser</div>
     </div>
   );
 }
@@ -1896,9 +1919,9 @@ function App() {
     }));
   }
 
-  const inp={width:"100%",padding:"12px 16px",borderRadius:8,border:"2px solid #d0d7de",background:"#ffd100",color:"#1a1a2e",fontSize:15,outline:"none",boxSizing:"border-box"};
-  const qb={flex:1,padding:"10px 2px",borderRadius:8,border:"1px solid #d0d7de",background:"#ffd100",color:"#003366",fontSize:12,fontWeight:700,cursor:"pointer"};
-  const tbS=n=>({flex:1,padding:"10px 0",textAlign:"center",fontSize:13,fontWeight:700,background:tab===n?"#003366":"#ffffff",color:tab===n?"#ffd100":"#003366",border:"1px solid "+(tab===n?"#003366":"#d0d7de"),borderRadius:8,cursor:"pointer"});
+  const inp={width:"100%",padding:"12px 16px",borderRadius:8,border:"2px solid #d0d7de",background:"#ffd100",color:"#1a1a2e",fontSize:17,outline:"none",boxSizing:"border-box"};
+  const qb={flex:1,padding:"10px 2px",borderRadius:8,border:"1px solid #d0d7de",background:"#ffd100",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"};
+  const tbS=n=>({flex:1,padding:"12px 0",textAlign:"center",fontSize:15,fontWeight:700,background:tab===n?"#003366":"#ffffff",color:tab===n?"#ffd100":"#003366",border:"1px solid "+(tab===n?"#003366":"#d0d7de"),borderRadius:8,cursor:"pointer"});
 
   const ballCount = Object.keys(days).filter(k=>days[k]&&days[k].t==="RIS").length;
 
@@ -1921,10 +1944,10 @@ function App() {
         </svg>
         <div style={{flex:1}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:22,fontWeight:800,color:"#ffffff",letterSpacing:"-0.02em"}}>Turni Smart</span>
-            <span style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:500}}>v5</span>
+            <span style={{fontSize:24,fontWeight:800,color:"#ffffff",letterSpacing:"-0.02em"}}>Turni Smart</span>
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:500}}>v5</span>
           </div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontWeight:500,marginTop:1}}>Gestione turni GTT &mdash; Deposito Gerbido</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.65)",fontWeight:500,marginTop:1}}>Gestione turni GTT &mdash; Deposito Gerbido</div>
         </div>
       </div>
 
@@ -1949,60 +1972,60 @@ function App() {
                 <circle cx="35" cy="21.8" r="1.1" fill="#003366"/>
               </svg>
               <div style={{flex:1}}>
-                <div style={{color:"#003366",fontWeight:800,fontSize:18}}>{data.nome||"Autista"}</div>
-                <div style={{color:"#003366",fontSize:13,fontWeight:700,marginTop:2}}>N. caratteristico {data.matricola||""}</div>
-                {data.dIn&&data.dTe&&<div style={{color:"#5a4500",fontSize:12,marginTop:2}}>{toFmt(data.dIn)} &mdash; {toFmt(data.dTe)}</div>}
+                <div style={{color:"#003366",fontWeight:800,fontSize:20}}>{data.nome||"Autista"}</div>
+                <div style={{color:"#003366",fontSize:15,fontWeight:700,marginTop:2}}>N. caratteristico {data.matricola||""}</div>
+                {data.dIn&&data.dTe&&<div style={{color:"#5a4500",fontSize:14,marginTop:2}}>{toFmt(data.dIn)} &mdash; {toFmt(data.dTe)}</div>}
               </div>
             </div>
           ) : (
             <div>
-              <div style={{fontSize:20,fontWeight:800,color:"#003366"}}>Turni Smart</div>
-              <div style={{fontSize:12,color:"#5a4500",marginTop:2}}>Gestione turni GTT &mdash; Deposito Gerbido</div>
+              <div style={{fontSize:22,fontWeight:800,color:"#003366"}}>Turni Smart</div>
+              <div style={{fontSize:14,color:"#5a4500",marginTop:2}}>Gestione turni GTT &mdash; Deposito Gerbido</div>
             </div>
           )}
         </div>
 
-        {err && <div style={Object.assign({},glassCard,{padding:"12px 16px",marginBottom:10,borderColor:err.startsWith("OK")?"rgba(27,122,61,0.25)":"rgba(239,83,80,0.25)",color:err.startsWith("OK")?G.green:G.red,fontSize:12,whiteSpace:"pre-wrap"})}>{err}</div>}
+        {err && <div style={Object.assign({},glassCard,{padding:"12px 16px",marginBottom:10,borderColor:err.startsWith("OK")?"rgba(27,122,61,0.25)":"rgba(239,83,80,0.25)",color:err.startsWith("OK")?G.green:G.red,fontSize:14,whiteSpace:"pre-wrap"})}>{err}</div>}
 
         {!data ? (
           <div>
             <div onClick={()=>{if(!loading1&&fileRef1.current)fileRef1.current.click();}} style={Object.assign({},glassCard,{padding:"28px 20px",textAlign:"center",cursor:loading1?"wait":"pointer",marginBottom:14})}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={loading1?G.accent:G.tw} strokeWidth="1.5" style={{marginBottom:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
-              <div style={{fontSize:15,fontWeight:600,color:loading1?G.accent:G.tw,marginBottom:3}}>{loading1?"Analisi in corso...":"Carica Preconoscenza"}</div>
-              <div style={{color:G.t3,fontSize:12}}>PDF mensile turni personali</div>
+              <div style={{fontSize:17,fontWeight:600,color:loading1?G.accent:G.tw,marginBottom:3}}>{loading1?"Analisi in corso...":"Carica Preconoscenza"}</div>
+              <div style={{color:G.t3,fontSize:14}}>PDF mensile turni personali</div>
             </div>
             {hasHistory ? (
               <div>
-                <div style={{fontSize:13,fontWeight:600,color:G.tw,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+                <div style={{fontSize:15,fontWeight:600,color:G.tw,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G.accent} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   Storico documenti
                 </div>
                 <Storico onLoadPreco={onLoadPreco} onLoadOrari={onLoadOrari} onUploadPreco={uploadPreco} onUploadOrari={uploadOrari}/>
               </div>
-            ) : <div style={{textAlign:"center",padding:"20px 0",color:G.t3,fontSize:12}}>Carica una preconoscenza per iniziare.</div>}
+            ) : <div style={{textAlign:"center",padding:"20px 0",color:G.t3,fontSize:14}}>Carica una preconoscenza per iniziare.</div>}
           </div>
         ) : (
           <div>
             {/* Banner orari */}
             {nDevs>0 ? (
               <div style={{display:"flex",gap:6,marginBottom:12}}>
-                <div style={Object.assign({},glassCard,{flex:1,padding:"10px 14px",fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center",borderColor:G.greenBorder})}>
+                <div style={Object.assign({},glassCard,{flex:1,padding:"10px 14px",fontSize:15,display:"flex",justifyContent:"space-between",alignItems:"center",borderColor:G.greenBorder})}>
                   <span style={{color:G.green,fontWeight:600}}>Orari GTT: {nDevs} turni</span>
                   <div style={{display:"flex",gap:4}}>
-                    <button onClick={()=>{setDevs({});if(data&&data.dIn){DB.del(orariKey(data.dIn.getFullYear(),data.dIn.getMonth()+1));}if(fileRef2.current){fileRef2.current.value="";fileRef2.current.click();}}} style={{padding:"2px 8px",borderRadius:6,border:"1px solid "+G.accentBorder,background:G.accentGlass,color:G.accent,fontSize:10,fontWeight:600,cursor:"pointer"}}>Ricarica</button>
-                    <button onClick={()=>setDevs({})} style={{padding:"2px 8px",borderRadius:6,border:"1px solid "+G.cardBorder,background:"transparent",color:G.t3,fontSize:10,cursor:"pointer"}}>&times;</button>
+                    <button onClick={()=>{setDevs({});if(data&&data.dIn){DB.del(orariKey(data.dIn.getFullYear(),data.dIn.getMonth()+1));}if(fileRef2.current){fileRef2.current.value="";fileRef2.current.click();}}} style={{padding:"2px 8px",borderRadius:6,border:"1px solid "+G.accentBorder,background:G.accentGlass,color:G.accent,fontSize:12,fontWeight:600,cursor:"pointer"}}>Ricarica</button>
+                    <button onClick={()=>setDevs({})} style={{padding:"2px 8px",borderRadius:6,border:"1px solid "+G.cardBorder,background:"transparent",color:G.t3,fontSize:12,cursor:"pointer"}}>&times;</button>
                   </div>
                 </div>
-                <button onClick={resetAll} style={{padding:"8px 14px",borderRadius:G.rs,border:"1px solid "+G.cardBorder,background:"transparent",color:G.red,fontSize:11,fontWeight:600,cursor:"pointer"}}>Reset</button>
+                <button onClick={resetAll} style={{padding:"8px 14px",borderRadius:G.rs,border:"1px solid "+G.cardBorder,background:"transparent",color:G.red,fontSize:13,fontWeight:600,cursor:"pointer"}}>Reset</button>
               </div>
             ) : (
               <div style={{marginBottom:12}}>
                 <div onClick={()=>{if(!loading2&&fileRef2.current)fileRef2.current.click();}} style={Object.assign({},glassCard,{padding:"24px 20px",textAlign:"center",cursor:loading2?"wait":"pointer",borderStyle:"dashed"})}>
-                  <div style={{fontSize:15,fontWeight:600,color:loading2?G.accent:G.tw,marginBottom:5}}>{loading2?"Analisi in corso...":"Carica Orari Linee GTT"}</div>
-                  <div style={{color:G.t2,fontSize:13}}>PDF con lo sviluppo turni del deposito</div>
+                  <div style={{fontSize:17,fontWeight:600,color:loading2?G.accent:G.tw,marginBottom:5}}>{loading2?"Analisi in corso...":"Carica Orari Linee GTT"}</div>
+                  <div style={{color:G.t2,fontSize:15}}>PDF con lo sviluppo turni del deposito</div>
                 </div>
                 <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
-                  <button onClick={resetAll} style={{padding:"6px 14px",borderRadius:G.rs,border:"1px solid "+G.cardBorder,background:"transparent",color:G.red,fontSize:11,fontWeight:600,cursor:"pointer"}}>Reset</button>
+                  <button onClick={resetAll} style={{padding:"6px 14px",borderRadius:G.rs,border:"1px solid "+G.cardBorder,background:"transparent",color:G.red,fontSize:13,fontWeight:600,cursor:"pointer"}}>Reset</button>
                 </div>
               </div>
             )}
@@ -2025,8 +2048,8 @@ function App() {
             {/* Banner ballottaggi */}
             {ballCount>0 && (
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",marginBottom:12,borderRadius:10,background:"rgba(255,209,0,0.15)",border:"1px solid rgba(255,209,0,0.40)"}}>
-                <span style={{color:"#003366",fontSize:12,fontWeight:700}}>{ballCount} ballottaggi</span>
-                <button onClick={()=>downloadBallottaggiICS(data)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:G.red,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Salva su Calendario</button>
+                <span style={{color:"#003366",fontSize:14,fontWeight:700}}>{ballCount} ballottaggi</span>
+                <button onClick={()=>downloadBallottaggiICS(data)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:G.red,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Salva su Calendario</button>
               </div>
             )}
 
@@ -2034,8 +2057,8 @@ function App() {
             {tab==="home" && (
               <div>
                 <div style={{display:"flex",gap:8,marginBottom:10}}>
-                  <input style={Object.assign({},inp,{flex:1})} placeholder="es. 5 marzo, 05/03" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")cerca();}}/>
-                  <button onClick={cerca} style={{padding:"0 18px",borderRadius:8,border:"none",background:"#ffd100",color:"#003366",fontWeight:800,fontSize:16,cursor:"pointer"}}>&rarr;</button>
+                  <input style={Object.assign({},inp,{flex:1,fontSize:16,padding:"12px 14px"})} placeholder="es. 5 marzo, 05/03" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")cerca();}}/>
+                  <button onClick={cerca} style={{padding:"0 18px",borderRadius:8,border:"none",background:"#ffd100",color:"#003366",fontWeight:800,fontSize:18,cursor:"pointer"}}>&rarr;</button>
                 </div>
                 <div style={{display:"flex",gap:5,marginBottom:14}}>
                   <button style={qb} onClick={()=>rapido("oggi")}>Oggi</button>
@@ -2048,20 +2071,20 @@ function App() {
                     const lm=parseInt(parts[1]),ly=parseInt(parts[2]);
                     return (
                       <div style={{padding:"14px 16px",borderRadius:12,background:"rgba(0,51,102,0.05)",border:"2px dashed #003366",marginBottom:10}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"#003366",marginBottom:4}}>
+                        <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:4}}>
                           📄 Preconoscenza {MESI_IT[lm]} {ly} non caricata
                         </div>
-                        <div style={{fontSize:12,color:G.t2,marginBottom:12}}>
+                        <div style={{fontSize:14,color:G.t2,marginBottom:12}}>
                           Per vedere i tuoi turni di {MESI_IT[lm]} carica il PDF del nuovo mese.
                         </div>
                         <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                          style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                          style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:800,cursor:"pointer"}}>
                           Carica Preconoscenza {MESI_IT[lm]} {ly}
                         </button>
                       </div>
                     );
                   }
-                  return <div style={Object.assign({},glassCard,{padding:"10px 14px",marginBottom:10,fontSize:13,color:G.t2})}>{msg==="nessun_turno"?"Nessun turno trovato per questa data":msg}</div>;
+                  return <div style={Object.assign({},glassCard,{padding:"10px 14px",marginBottom:10,fontSize:15,color:G.t2})}>{msg==="nessun_turno"?"Nessun turno trovato per questa data":msg}</div>;
                 })()}
                 {(()=>{
                   if(!res.length) return null;
@@ -2076,7 +2099,7 @@ function App() {
                         items.push(
                           <div key={"sep-"+i} style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 6px"}}>
                             <div style={{flex:1,height:2,background:"linear-gradient(90deg,#003366 0%,transparent 100%)"}}/>
-                            <span style={{fontSize:11,fontWeight:700,color:"#003366",background:"#f4f6f9",padding:"2px 10px",borderRadius:10,whiteSpace:"nowrap"}}>
+                            <span style={{fontSize:13,fontWeight:700,color:"#003366",background:"#f4f6f9",padding:"2px 10px",borderRadius:10,whiteSpace:"nowrap"}}>
                               {MESI_IT[m]} {y}
                             </span>
                             <div style={{flex:1,height:2,background:"linear-gradient(90deg,transparent 0%,#003366 100%)"}}/>
@@ -2090,14 +2113,14 @@ function App() {
                         shownMissingBanner[bannerKey]=true;
                         items.push(
                           <div key={"banner-"+bannerKey} style={{padding:"14px 16px",borderRadius:12,background:"rgba(0,51,102,0.05)",border:"2px dashed #003366",marginBottom:10}}>
-                            <div style={{fontSize:13,fontWeight:700,color:"#003366",marginBottom:4}}>
+                            <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:4}}>
                               📄 Preconoscenza {MESI_IT[m]} {y}
                             </div>
-                            <div style={{fontSize:12,color:G.t2,marginBottom:10}}>
+                            <div style={{fontSize:14,color:G.t2,marginBottom:10}}>
                               Carica il PDF per vedere i tuoi turni di {MESI_IT[m]}.
                             </div>
                             <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                              style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                              style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:800,cursor:"pointer"}}>
                               Carica Preconoscenza {MESI_IT[m]} {y}
                             </button>
                           </div>
@@ -2121,14 +2144,14 @@ function App() {
                   if(hasNextData) return null;
                   return (
                     <div style={{marginTop:10,padding:"14px 16px",borderRadius:12,background:"rgba(0,51,102,0.06)",border:"2px dashed #003366"}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#003366",marginBottom:4}}>
+                      <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:4}}>
                         📄 Preconoscenza {MESI_IT[lm]} {ly} non caricata
                       </div>
-                      <div style={{fontSize:12,color:G.t2,marginBottom:12}}>
+                      <div style={{fontSize:14,color:G.t2,marginBottom:12}}>
                         Per vedere i turni di {MESI_IT[lm]} devi caricare il PDF del nuovo mese.
                       </div>
                       <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                        style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                        style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:800,cursor:"pointer"}}>
                         Carica Preconoscenza {MESI_IT[lm]} {ly}
                       </button>
                     </div>
@@ -2141,15 +2164,15 @@ function App() {
             {tab==="mese" && (
               <div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:12}}>
-                  <button onClick={()=>{let nm=viewM-1,ny=viewY;if(nm<1){nm=12;ny--;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:16,fontWeight:700,cursor:"pointer"}}>&lsaquo;</button>
+                  <button onClick={()=>{let nm=viewM-1,ny=viewY;if(nm<1){nm=12;ny--;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&lsaquo;</button>
                   <div style={{textAlign:"center",minWidth:130}}>
-                    <div style={{fontSize:17,fontWeight:700,color:G.tw}}>{MESI_IT[viewM]} {viewY}</div>
-                    {!isCurrentMonth && <button onClick={()=>{setCalY(null);setCalM(null);setDet(null);}} style={{fontSize:10,color:G.accent,background:"transparent",border:"none",cursor:"pointer",marginTop:2}}>Torna a {MESI_IT[refM]} {refY}</button>}
+                    <div style={{fontSize:19,fontWeight:700,color:G.tw}}>{MESI_IT[viewM]} {viewY}</div>
+                    {!isCurrentMonth && <button onClick={()=>{setCalY(null);setCalM(null);setDet(null);}} style={{fontSize:12,color:G.accent,background:"transparent",border:"none",cursor:"pointer",marginTop:2}}>Torna a {MESI_IT[refM]} {refY}</button>}
                   </div>
-                  <button onClick={()=>{let nm=viewM+1,ny=viewY;if(nm>12){nm=1;ny++;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:16,fontWeight:700,cursor:"pointer"}}>&rsaquo;</button>
+                  <button onClick={()=>{let nm=viewM+1,ny=viewY;if(nm>12){nm=1;ny++;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&rsaquo;</button>
                 </div>
                 {/* Bottone Oggi sempre visibile nel tab Mese */}
-                <button onClick={()=>{setTab("home");rapido("oggi");}} style={{width:"100%",marginBottom:12,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                <button onClick={()=>{setTab("home");rapido("oggi");}} style={{width:"100%",marginBottom:12,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
                   {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Vai a Oggi
                 </button>
                 {(()=>{
@@ -2158,25 +2181,25 @@ function App() {
                   if(!hasDays&&!hasRiposi) return (
                     <div style={{textAlign:"center",padding:"20px 0"}}>
                       <div style={{marginBottom:10}}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8a9ab0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
-                      <div style={{color:G.tw,fontSize:15,fontWeight:700,marginBottom:4}}>
+                      <div style={{color:G.tw,fontSize:17,fontWeight:700,marginBottom:4}}>
                         Nessuna preconoscenza per {MESI_IT[viewM]} {viewY}
                       </div>
-                      <div style={{color:G.t2,fontSize:12,marginBottom:20}}>
+                      <div style={{color:G.t2,fontSize:14,marginBottom:20}}>
                         Carica il PDF del mese per vedere i tuoi turni
                       </div>
                       <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                        style={{display:"inline-block",padding:"14px 28px",borderRadius:12,border:"none",background:"#003366",color:"#ffd100",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:10}}>
+                        style={{display:"inline-block",padding:"14px 28px",borderRadius:12,border:"none",background:"#003366",color:"#ffd100",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:10}}>
                         📄 Carica Preconoscenza {MESI_IT[viewM]}
                       </button>
-                      <div style={{color:G.t3,fontSize:11,marginTop:6}}>
-                        oppure aprila dallo <button onClick={()=>setTab("storico")} style={{background:"none",border:"none",color:G.accent,fontSize:11,fontWeight:600,cursor:"pointer",padding:0}}>Storico</button> se già caricata
+                      <div style={{color:G.t3,fontSize:13,marginTop:6}}>
+                        oppure aprila dallo <button onClick={()=>setTab("storico")} style={{background:"none",border:"none",color:G.accent,fontSize:13,fontWeight:600,cursor:"pointer",padding:0}}>Storico</button> se già caricata
                       </div>
                     </div>
                   );
                   return(
                     <div>
                       <Grid days={calDays} yr={viewY} mo={viewM} riposiSet={riposiSet} onTap={(d,v)=>setDet({date:d,v:v})}/>
-                      {!hasDays&&hasRiposi&&<div style={{fontSize:10,color:G.t3,marginTop:4,textAlign:"center"}}>Riposi proiettati (ciclo {rc.cycle} giorni)</div>}
+                      {!hasDays&&hasRiposi&&<div style={{fontSize:12,color:G.t3,marginTop:4,textAlign:"center"}}>Riposi proiettati (ciclo {rc.cycle} giorni)</div>}
                       {det&&<div style={{marginTop:12}}><Card date={det.date} v={det.v} devs={calDevsActive} allDays={calDays} onPaste={onPasteTurno}/></div>}
                     </div>
                   );
@@ -2190,8 +2213,8 @@ function App() {
                 return (
                   <div style={{textAlign:"center",padding:"40px 20px",color:G.t2}}>
                     <div style={{marginBottom:12}}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8a9ab0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-                    <div style={{fontSize:14,fontWeight:700,color:G.tw,marginBottom:8}}>Nessun ciclo riposi rilevato</div>
-                    <div style={{fontSize:12,color:G.t2,lineHeight:1.5}}>Carica una preconoscenza con almeno due riposi consecutivi per proiettare il calendario annuale</div>
+                    <div style={{fontSize:16,fontWeight:700,color:G.tw,marginBottom:8}}>Nessun ciclo riposi rilevato</div>
+                    <div style={{fontSize:14,color:G.t2,lineHeight:1.5}}>Carica una preconoscenza con almeno due riposi consecutivi per proiettare il calendario annuale</div>
                   </div>
                 );
               }
@@ -2208,12 +2231,12 @@ function App() {
               }
               return (
                 <div>
-                  <div style={{fontSize:13,fontWeight:600,color:G.t2,marginBottom:16,textAlign:"center"}}>
+                  <div style={{fontSize:15,fontWeight:600,color:G.t2,marginBottom:16,textAlign:"center"}}>
                     Riposi proiettati · ciclo ogni {rc.cycle} giorni
                   </div>
                   {months.map(({y,m,dates})=>(
                     <div key={y+"-"+m} style={{marginBottom:18}}>
-                      <div style={{fontSize:13,fontWeight:800,color:G.tw,marginBottom:8,letterSpacing:"0.03em",textTransform:"uppercase"}}>
+                      <div style={{fontSize:15,fontWeight:800,color:G.tw,marginBottom:8,letterSpacing:"0.03em",textTransform:"uppercase"}}>
                         {MESI_IT[m]} {y}
                       </div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -2226,7 +2249,7 @@ function App() {
                               padding:"6px 12px",borderRadius:10,
                               background:isToday?"#003366":"#f4f6f9",
                               color:isToday?"#ffd100":G.tw,
-                              fontSize:13,fontWeight:700,
+                              fontSize:15,fontWeight:700,
                               border:isToday?"2px solid #003366":"1px solid #e0e5ec"
                             }}>
                               {wd} {d.getDate()}/{p2(m)}
