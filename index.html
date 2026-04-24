@@ -682,15 +682,19 @@ function buildICS(date,v,devSegs){
   return L.join("\r\n");
 }
 function shareToCalendar(date,v,devSegs){
-  // iOS Safari non supporta createObjectURL per aprire il Calendario.
-  // Su iOS usiamo un link data: direttamente, su altri usiamo blob URL.
   var ics=buildICS(date,v,devSegs);
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  if(isIOS){
-    // iOS: data URL con text/calendar apre il Calendario nativo
+  var isChrome=/CriOS/.test(navigator.userAgent);
+  if(isIOS && isChrome){
+    // Chrome su iOS: ICS data: non funziona, usiamo Google Calendar
+    var gcal=buildGcalUrl(date,v,devSegs);
+    if(gcal) window.open(gcal,"_blank","noopener");
+  } else if(isIOS){
+    // Safari iOS: data URL apre il Calendario nativo
     var dataUrl="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
     window.location.href=dataUrl;
   } else {
+    // Desktop/Android: scarica .ics
     var blob=new Blob([ics],{type:"text/calendar"});
     var url=URL.createObjectURL(blob);
     var a=document.createElement("a");a.href=url;a.download="turno.ics";
@@ -740,8 +744,24 @@ function buildMoovitData(date,v){
 }
 function openMoovit(data){
   if(!data)return;
-  var web="https://moovitapp.com/index/it/trasporto_pubblico-directions?origLat="+data.origLat+"&origLon="+data.origLon+"&origName="+encodeURIComponent(data.origName)+"&destLat="+data.lat+"&destLon="+data.lon+"&destName="+encodeURIComponent(data.name)+"&date="+encodeURIComponent(data.isoDate);
-  window.open(web,"_blank");
+  var p="orig_lat="+data.origLat+"&orig_lon="+data.origLon+"&orig_name="+encodeURIComponent(data.origName)
+       +"&dest_lat="+data.lat+"&dest_lon="+data.lon+"&dest_name="+encodeURIComponent(data.name)
+       +"&auto_run=true&partner_id=turnismart";
+  // Usa <a> con click diretto per iOS (window.location.href viene bloccato se non è nel tap handler)
+  var a=document.createElement("a");
+  a.href="moovit://directions?"+p;
+  a.style.display="none";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){document.body.removeChild(a);},300);
+}
+function openGMaps(data){
+  if(!data)return;
+  var url="https://www.google.com/maps/dir/?api=1"
+    +"&origin="+data.origLat+","+data.origLon
+    +"&destination="+data.lat+","+data.lon
+    +"&travelmode=transit";
+  window.open(url,"_blank");
 }
 
 /* ===== GTT LIVE ===== */
@@ -1150,14 +1170,12 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:copied?"#e8f5e9":"#f4f6f9",color:copied?"#1b7a3d":"#444",fontSize:14,fontWeight:700,cursor:"pointer"}}>
             {copied ? <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>} Copiato</> : <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} Copia</>}
           </button>
-          <a
-            href={"https://api.whatsapp.com/send?text="+encodeURIComponent(summary)}
-            target="_blank" rel="noopener noreferrer"
-            onClick={e=>e.stopPropagation()}
-            style={{flex:1,padding:"10px 0",borderRadius:10,background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+          <button
+            onClick={e=>{e.stopPropagation();window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(summary),"_blank","noopener");}}
+            style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             WhatsApp
-          </a>
+          </button>
         </div>
         {isMorning && v.t==="turno" && (
           <button onClick={e=>{e.stopPropagation();doAlarm();}}
@@ -1166,10 +1184,17 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
           </button>
         )}
         {moovitData && (
-          <button onClick={e=>{e.stopPropagation();openMoovit(moovitData);}}
-            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:"#fef2f2",color:"#e53935",fontSize:13,fontWeight:600,cursor:"pointer"}}>
-            {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>} Da Gerbido → {moovitData.locCode} entro {moovitData.arrLabel}
-          </button>
+          <div style={{display:"flex",gap:8,marginTop:6}}>
+            <button onClick={e=>{e.stopPropagation();openMoovit(moovitData);}}
+              style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:"#ff6900",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>} Moovit
+            </button>
+            <button onClick={e=>{e.stopPropagation();openGMaps(moovitData);}}
+              style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:"#4285f4",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              Maps
+            </button>
+          </div>
         )}
         {liveUrl && (
           <button onClick={e=>{e.stopPropagation();openLiveMap(liveUrl);}}
@@ -1200,7 +1225,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                     )}
                     {seg.vett && (
                       <span style={{fontSize:13,fontWeight:800,color:"#e65100",background:"#fff3e0",border:"1px solid #ffcc80",borderRadius:5,padding:"3px 6px",whiteSpace:"nowrap"}}>
-                        T.{seg.vett}
+                        Turno Vet. {seg.vett}
                       </span>
                     )}
                   </div>
@@ -1325,6 +1350,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         <div style={{background:"#f4f6f9",borderRadius:10,padding:"10px 14px"}}>
           <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.i)}</span>
           <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
+          {devSegs[0]&&devSegs[0].dir&&devSegs[0].dir!=="-" && <span style={{fontSize:12,fontWeight:700,marginLeft:5,color:devSegs[0].dir==="A"?"#003366":"#6a1b9a",background:devSegs[0].dir==="A"?"#eef3ff":"#f3e5f5",padding:"2px 7px",borderRadius:5}}>{devSegs[0].dir==="A"?"And.":"Rit."}</span>}
           <span style={{color:"#aab5c2",margin:"0 8px"}}>→</span>
           <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.e)}</span>
           <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
@@ -1575,8 +1601,14 @@ function LineeBrowser({devs}) {
 
 function LineeCard({code, segs, isSpezz, hasMulti}) {
   const [flipped, setFlipped] = useState(false);
+  const [animClass, setAnimClass] = useState("");
 
-  // Raggruppa i segmenti per vettura (ogni vettura = una corsa del turno)
+  function doFlip(next) {
+    setAnimClass("flip-shrink");
+    setTimeout(()=>{ setFlipped(next); setAnimClass("flip-grow"); }, 200);
+  }
+
+  // Raggruppa i segmenti per vettura/corsa
   const corsaMap = {};
   segs.forEach(function(s){
     const key = s.vett || s.start;
@@ -1587,100 +1619,95 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
     return hm2min(corsaMap[a][0].start) - hm2min(corsaMap[b][0].start);
   });
   const isMultiCorsa = corse.length > 1;
+  const needsFlip = isSpezz || isMultiCorsa;
+  const firstSeg = segs[0];
+  const lastSeg = segs[segs.length-1];
 
-  // Turno NON spezzato e non multi-corsa: card semplice, no flip
-  if (!isSpezz && !isMultiCorsa) {
-    const s0 = segs[0];
-    const sN = segs[segs.length-1];
+  // Bottone apri sviluppo
+  const btnApri = (
+    <button
+      onClick={()=>doFlip(true)}
+      style={{width:"100%",marginTop:8,padding:"9px 0",borderRadius:8,border:"2px solid "+(isSpezz?"#e65100":G.accentBorder),background:isSpezz?"rgba(230,81,0,0.06)":"rgba(0,51,102,0.05)",color:isSpezz?"#e65100":G.accent,fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+      {isSpezz?"Spezzato — vedi sviluppo":"Vedi corse"}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  );
+
+  // Bottone chiudi
+  const btnChiudi = (
+    <button
+      onClick={()=>doFlip(false)}
+      style={{width:"100%",marginTop:10,padding:"9px 0",borderRadius:8,border:"1px solid "+G.cardBorder,background:"transparent",color:G.t2,fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Chiudi
+    </button>
+  );
+
+  // Header comune
+  const header = (big) => (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+      <span style={{fontFamily:"monospace",fontSize:big?20:18,fontWeight:700,color:G.tw}}>{code}</span>
+      <div style={{display:"flex",gap:4}}>
+        {isSpezz && <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>}
+        {isMultiCorsa && !isSpezz && <Tag bg={G.glass} color={G.t2}>{corse.length} corse</Tag>}
+        {!needsFlip && firstSeg&&firstSeg.vett && <span style={{fontSize:14,color:G.t2}}>vet. {firstSeg.vett}</span>}
+      </div>
+    </div>
+  );
+
+  // Riga orario complessivo
+  const rigaOrario = (
+    <div style={{background:"#f4f6f9",borderRadius:8,padding:"8px 12px"}}>
+      <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{firstSeg&&firstSeg.start}</span>
+      <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{firstSeg&&firstSeg.loc_s}</span>
+      <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
+      <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{lastSeg&&lastSeg.end}</span>
+      <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{lastSeg&&lastSeg.loc_e}</span>
+    </div>
+  );
+
+  // Sviluppo corse (retro)
+  const sviluppo = corse.map(function(corsaKey, idx){
+    const corsaSegs = corsaMap[corsaKey];
+    const gap = idx < corse.length-1 ? calcGap(corsaSegs[corsaSegs.length-1].end, corsaMap[corse[idx+1]][0].start) : 0;
     return (
-      <div style={Object.assign({},glassCard,{padding:"14px 16px",marginBottom:8})}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-          <span style={{fontFamily:"monospace",fontSize:20,fontWeight:700,color:G.tw}}>{code}</span>
-          {s0&&s0.vett&&<span style={{fontSize:14,color:G.t2}}>vet. {s0.vett}</span>}
+      <div key={corsaKey}>
+        <div style={{background:idx%2===0?"#f4f6f9":"#fff8f0",borderLeft:"3px solid "+(idx%2===0?"#003366":"#e65100"),borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:gap>0?0:6}}>
+          {corsaSegs[0].vett && <span style={{fontSize:13,fontWeight:700,color:"#e65100",background:"#fff3e0",border:"1px solid #ffcc80",borderRadius:4,padding:"1px 5px",marginRight:6}}>Turno Vet. {corsaSegs[0].vett}</span>}
+          <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[0].start}</span>
+          <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[0].loc_s}</span>
+          <span style={{color:"#aab5c2",margin:"0 5px"}}>→</span>
+          <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[corsaSegs.length-1].end}</span>
+          <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[corsaSegs.length-1].loc_e}</span>
         </div>
-        <div style={{background:"#f4f6f9",borderRadius:8,padding:"8px 12px"}}>
-          <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{s0&&s0.start}</span>
-          <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{s0&&s0.loc_s}</span>
-          <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
-          <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{sN&&sN.end}</span>
-          <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{sN&&sN.loc_e}</span>
-        </div>
+        {gap>0&&gap<720&&(
+          <div style={{textAlign:"center",padding:"3px 0",marginBottom:6}}>
+            <span style={{fontSize:13,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"2px 10px",borderRadius:8,fontWeight:600}}>
+              {gap>=60?"Cambio":"Pausa"} {fmtGap(gap)}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  if (!flipped) {
+    return (
+      <div className={animClass} style={Object.assign({},glassCard,{padding:"14px 16px",marginBottom:8,borderLeft:isSpezz?"4px solid #e65100":undefined})}>
+        {header(true)}
+        {rigaOrario}
+        {needsFlip && btnApri}
+      </div>
+    );
+  } else {
+    return (
+      <div className={animClass} style={Object.assign({},glassCard,{padding:"14px 16px",marginBottom:8,borderLeft:isSpezz?"4px solid #e65100":"4px solid #003366"})}>
+        {header(false)}
+        {sviluppo}
+        {btnChiudi}
       </div>
     );
   }
-
-  // Turno SPEZZATO o multi-corsa: flip card
-  // FRONTE: orario complessivo (come turno normale — inizio prima corsa, fine ultima)
-  const firstSeg = segs[0];
-  const lastSeg = segs[segs.length-1];
-  const tapHint = (
-    <div style={{marginTop:8,padding:"6px 0",borderTop:"1px solid "+G.cardBorder,textAlign:"center",color:isSpezz?"#e65100":G.t3,fontSize:13,fontWeight:600}}>
-      {flipped ? "← Chiudi sviluppo" : (isSpezz?"Spezzato — tocca per sviluppo →":"Tocca per corse →")}
-    </div>
-  );
-
-  const front = (
-    <div className="flip-front" style={Object.assign({},glassCard,{padding:"14px 16px",borderLeft:isSpezz?"4px solid #e65100":undefined})}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <span style={{fontFamily:"monospace",fontSize:20,fontWeight:700,color:G.tw}}>{code}</span>
-        <div style={{display:"flex",gap:4}}>
-          {isSpezz && <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>}
-          {isMultiCorsa && !isSpezz && <Tag bg={G.glass} color={G.t2}>{corse.length} corse</Tag>}
-        </div>
-      </div>
-      {/* Orario complessivo — non sviluppato */}
-      <div style={{background:"#f4f6f9",borderRadius:8,padding:"8px 12px"}}>
-        <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{firstSeg&&firstSeg.start}</span>
-        <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{firstSeg&&firstSeg.loc_s}</span>
-        <span style={{color:"#aab5c2",margin:"0 6px"}}>→</span>
-        <span style={{fontWeight:800,fontSize:18,color:G.tw}}>{lastSeg&&lastSeg.end}</span>
-        <span style={{fontSize:14,color:G.t2,marginLeft:5}}>{lastSeg&&lastSeg.loc_e}</span>
-      </div>
-      {tapHint}
-    </div>
-  );
-
-  // RETRO: sviluppo completo per corse/segmenti
-  const back = (
-    <div className="flip-back" style={Object.assign({},glassCard,{padding:"14px 16px",background:"#ffffff",borderLeft:isSpezz?"4px solid #e65100":undefined})}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <span style={{fontFamily:"monospace",fontSize:18,fontWeight:700,color:G.tw}}>{code}</span>
-        {isSpezz && <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>}
-      </div>
-      {corse.map(function(corsaKey, idx){
-        const corsaSegs = corsaMap[corsaKey];
-        const gap = idx < corse.length-1 ? calcGap(corsaSegs[corsaSegs.length-1].end, corsaMap[corse[idx+1]][0].start) : 0;
-        return (
-          <div key={corsaKey}>
-            <div style={{background:idx%2===0?"#f4f6f9":"#fff8f0",borderLeft:"3px solid "+(idx%2===0?"#003366":"#e65100"),borderRadius:"0 8px 8px 0",padding:"7px 10px",marginBottom:gap>0?0:6}}>
-              {corsaSegs[0].vett && <span style={{fontSize:12,color:G.t2,marginRight:6}}>vet.{corsaSegs[0].vett}</span>}
-              <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[0].start}</span>
-              <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[0].loc_s}</span>
-              <span style={{color:"#aab5c2",margin:"0 5px"}}>→</span>
-              <span style={{fontWeight:800,fontSize:17,color:G.tw}}>{corsaSegs[corsaSegs.length-1].end}</span>
-              <span style={{fontSize:13,color:G.t2,marginLeft:4}}>{corsaSegs[corsaSegs.length-1].loc_e}</span>
-            </div>
-            {gap>0&&gap<720&&(
-              <div style={{textAlign:"center",padding:"3px 0",marginBottom:6}}>
-                <span style={{fontSize:12,color:gap>=60?"#c62828":"#e65100",background:gap>=60?"#fef2f2":"#fff3e0",padding:"1px 8px",borderRadius:8,fontWeight:600}}>
-                  {gap>=60?"Cambio":"Pausa"} {fmtGap(gap)}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {tapHint}
-    </div>
-  );
-
-  return (
-    <div className="flip-container" onClick={()=>setFlipped(!flipped)}>
-      <div className={"flip-inner"+(flipped?" flipped":"")} style={{minHeight:1,marginBottom:8}}>
-        {front}{back}
-      </div>
-    </div>
-  );
 }
 
 /* ===== STORICO ===== */
