@@ -1958,7 +1958,20 @@ function App() {
   function resetAll(){setData(null);setRes([]);setMsg("");setDet(null);setErr("");setDevs({});if(fileRef1.current)fileRef1.current.value="";if(fileRef2.current)fileRef2.current.value="";}
   function onLoadPreco(d){setData(d);setDevs({});setRes([]);setMsg("");setDet(null);setOverrides({});setTab("home");DB.set("ts_last_preco",precoKey(d.dIn.getFullYear(),d.dIn.getMonth()+1));if(d.dIn){const ok=orariKey(d.dIn.getFullYear(),d.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);}}
   function onLoadOrari(d){
-    setDevs(d);
+    // Salva gli orari caricati dallo storico nel mese corretto
+    // ma mantieni i devs del mese della preconoscenza corrente
+    if(data&&data.dIn){
+      // Prova a ricaricare gli orari del mese corrente (precaricati o localStorage)
+      const ok=orariKey(data.dIn.getFullYear(),data.dIn.getMonth()+1);
+      const current=loadOrariByKey(ok);
+      if(current&&Object.keys(current).length){
+        setDevs(current); // usa orari del mese corrente
+      } else {
+        setDevs(d); // fallback: usa quelli appena caricati
+      }
+    } else {
+      setDevs(d);
+    }
     setTab("home");
     setRes([]);
     setMsg("");
