@@ -1714,51 +1714,161 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
 function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
   const [hist, setHist] = useState(()=>getHistory());
   const [yr, setYr] = useState(()=>new Date().getFullYear());
+  const [selMonth, setSelMonth] = useState(null); // mese selezionato per dettaglio
   const precoRef = useRef(null), orariRef = useRef(null);
   const reload = ()=>setHist(getHistory());
 
   const groups = {};
-  hist.forEach(e=>{const gk=e.year+"-"+p2(e.month);if(!groups[gk])groups[gk]={year:e.year,month:e.month,preco:null,orari:null};if(e.type==="preco")groups[gk].preco=e;if(e.type==="orari")groups[gk].orari=e;});
+  hist.forEach(e=>{
+    const gk=e.year+"-"+p2(e.month);
+    if(!groups[gk])groups[gk]={year:e.year,month:e.month,preco:null,orari:null};
+    if(e.type==="preco")groups[gk].preco=e;
+    if(e.type==="orari")groups[gk].orari=e;
+  });
   const months = [];
   for(let m=1;m<=12;m++){const gk=yr+"-"+p2(m);months.push({month:m,data:groups[gk]||null});}
 
-  const arrowBtn={padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"};
-  const uploadBtn={width:"100%",padding:"6px 0",borderRadius:6,border:"1px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:12,cursor:"pointer",marginTop:3};
+  const arrowBtn={padding:"10px 18px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:20,fontWeight:700,cursor:"pointer"};
 
+  // Vista dettaglio mese selezionato
+  if(selMonth!==null){
+    const item=months[selMonth-1];
+    const has=item&&item.data;
+    const hasPr=has&&has.preco;
+    const hasOr=has&&has.orari;
+    const mLabel=MESI_IT[selMonth]+" "+yr;
+    return (
+      <div>
+        <input ref={precoRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadPreco(e.target.files[0],reload);}}/>
+        <input ref={orariRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadOrari(e.target.files[0],reload);}}/>
+        {/* Header dettaglio */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={()=>setSelMonth(null)} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Tutti i mesi
+          </button>
+          <span style={{fontSize:20,fontWeight:800,color:G.tw}}>{mLabel}</span>
+        </div>
+
+        {/* Card Preconoscenza */}
+        <div style={Object.assign({},glassCard,{padding:"18px 16px",marginBottom:12,borderColor:hasPr?G.accentBorder:G.glassBorder})}>
+          <div style={{fontSize:13,fontWeight:700,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>Preconoscenza turni</div>
+          {hasPr ? (
+            <div>
+              <div style={{fontSize:13,color:G.t2,marginBottom:10}}>
+                Caricata il {new Date(has.preco.ts).toLocaleDateString("it-IT")}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}}
+                  style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
+                  Carica turni
+                </button>
+                <button onClick={()=>{deleteEntry(has.preco.key);reload();}}
+                  style={{padding:"12px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={()=>{if(precoRef.current){precoRef.current.value="";precoRef.current.click();}}}
+              style={{width:"100%",padding:"14px 0",borderRadius:10,border:"2px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:15,fontWeight:600,cursor:"pointer"}}>
+              + Carica preconoscenza PDF
+            </button>
+          )}
+        </div>
+
+        {/* Card Orari */}
+        <div style={Object.assign({},glassCard,{padding:"18px 16px",borderColor:hasOr?G.greenBorder||"#4caf50":G.glassBorder})}>
+          <div style={{fontSize:13,fontWeight:700,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>Orari GTT</div>
+          {hasOr ? (
+            <div>
+              <div style={{fontSize:13,color:G.t2,marginBottom:10}}>
+                Caricati il {new Date(has.orari.ts).toLocaleDateString("it-IT")}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}}
+                  style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:G.greenBg,color:G.green,fontSize:15,fontWeight:700,cursor:"pointer"}}>
+                  Carica orari
+                </button>
+                <button onClick={()=>{deleteEntry(has.orari.key);reload();}}
+                  style={{padding:"12px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={()=>{if(orariRef.current){orariRef.current.value="";orariRef.current.click();}}}
+              style={{width:"100%",padding:"14px 0",borderRadius:10,border:"2px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:15,fontWeight:600,cursor:"pointer"}}>
+              + Carica orari PDF
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Vista griglia mesi
   return (
     <div>
       <input ref={precoRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadPreco(e.target.files[0],reload);}}/>
       <input ref={orariRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadOrari(e.target.files[0],reload);}}/>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16}}>
+
+      {/* Selettore anno */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginBottom:18}}>
         <button onClick={()=>setYr(yr-1)} style={arrowBtn}>&lsaquo;</button>
-        <span style={{fontSize:22,fontWeight:700,color:G.tw,minWidth:60,textAlign:"center"}}>{yr}</span>
+        <span style={{fontSize:24,fontWeight:800,color:G.tw,minWidth:60,textAlign:"center"}}>{yr}</span>
         <button onClick={()=>setYr(yr+1)} style={arrowBtn}>&rsaquo;</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+
+      {/* Griglia mesi — 2 colonne, più spaziosa */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {months.map(item=>{
           const has=item.data,hasPr=has&&has.preco,hasOr=has&&has.orari;
+          const isCurrentMonth=item.month===new Date().getMonth()+1&&yr===new Date().getFullYear();
           return (
-            <div key={item.month} style={Object.assign({},glassCard,{padding:"12px 10px",borderColor:hasPr?G.accentBorder:G.glassBorder})}>
-              <div style={{fontSize:16,fontWeight:700,color:hasPr?G.tw:G.t2,marginBottom:6,textAlign:"center"}}>{MESI_IT[item.month].slice(0,3)}</div>
-              {hasPr ? (
-                <div style={{marginBottom:4}}>
-                  <div style={{display:"flex",gap:3}}>
-                    <button onClick={()=>{const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.accentGlass,color:G.accent,fontSize:12,fontWeight:600,cursor:"pointer"}}>Apri turni</button>
-                    <button onClick={()=>{deleteEntry(has.preco.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:12,cursor:"pointer"}}>&times;</button>
-                  </div>
+            <div key={item.month}
+              onClick={()=>setSelMonth(item.month)}
+              style={{
+                ...glassCard,
+                padding:"16px 14px",
+                borderColor:hasPr?G.accentBorder:G.glassBorder,
+                borderWidth: isCurrentMonth?"2px":"1px",
+                cursor:"pointer",
+                position:"relative"
+              }}>
+              {isCurrentMonth && (
+                <div style={{position:"absolute",top:8,right:8,fontSize:9,fontWeight:700,color:"#fff",background:"#003366",borderRadius:4,padding:"2px 5px",textTransform:"uppercase"}}>
+                  Corrente
                 </div>
-              ) : <button onClick={()=>{if(precoRef.current){precoRef.current.value="";precoRef.current.click();}}} style={uploadBtn}>+ Preconoscenza</button>}
-              {hasOr ? (
-                <div style={{display:"flex",gap:3}}>
-                  <button onClick={()=>{const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}} style={{flex:1,padding:"6px 0",borderRadius:6,border:"none",background:G.greenBg,color:G.green,fontSize:12,fontWeight:600,cursor:"pointer"}}>Apri orari</button>
-                  <button onClick={()=>{deleteEntry(has.orari.key);reload();}} style={{padding:"6px 6px",borderRadius:6,border:"none",background:G.redBg,color:G.red,fontSize:12,cursor:"pointer"}}>&times;</button>
+              )}
+              {/* Nome mese */}
+              <div style={{fontSize:17,fontWeight:800,color:hasPr?G.tw:G.t2,marginBottom:10}}>
+                {MESI_IT[item.month]}
+              </div>
+              {/* Indicatori stato */}
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:hasPr?"#003366":"#dce1e8",flexShrink:0}}/>
+                  <span style={{fontSize:13,color:hasPr?G.tw:G.t3,fontWeight:hasPr?600:400}}>
+                    {hasPr?"Preconoscenza ✓":"Preconoscenza —"}
+                  </span>
                 </div>
-              ) : <button onClick={()=>{if(orariRef.current){orariRef.current.value="";orariRef.current.click();}}} style={uploadBtn}>+ Orari linee</button>}
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:hasOr?"#2e7d32":"#dce1e8",flexShrink:0}}/>
+                  <span style={{fontSize:13,color:hasOr?G.green:G.t3,fontWeight:hasOr?600:400}}>
+                    {hasOr?"Orari GTT ✓":"Orari GTT —"}
+                  </span>
+                </div>
+              </div>
+              {/* Freccia */}
+              <div style={{position:"absolute",right:12,bottom:14,color:G.t3}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
             </div>
           );
         })}
       </div>
-      <div style={{marginTop:14,textAlign:"center",color:G.t3,fontSize:13}}>I documenti vengono salvati automaticamente nel browser</div>
+      <div style={{marginTop:16,textAlign:"center",color:G.t3,fontSize:13}}>Tocca un mese per caricare o gestire i documenti</div>
     </div>
   );
 }
