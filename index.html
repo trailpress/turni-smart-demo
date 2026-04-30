@@ -1711,7 +1711,7 @@ function LineeCard({code, segs, isSpezz, hasMulti}) {
 }
 
 /* ===== STORICO ===== */
-function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
+function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari, onGoToMonth}) {
   const [hist, setHist] = useState(()=>getHistory());
   const [yr, setYr] = useState(()=>new Date().getFullYear());
   const [selMonth, setSelMonth] = useState(null); // mese selezionato per dettaglio
@@ -1737,13 +1737,29 @@ function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
     const hasPr=has&&has.preco;
     const hasOr=has&&has.orari;
     const mLabel=MESI_IT[selMonth]+" "+yr;
+
+    const fmtDate = (entry) => {
+      if(!entry) return "";
+      const d = new Date(entry.savedAt||entry.ts||0);
+      return isNaN(d.getTime()) ? "" : "Salvato il "+d.toLocaleDateString("it-IT");
+    };
+
     return (
       <div>
-        <input ref={precoRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadPreco(e.target.files[0],reload);}}/>
-        <input ref={orariRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])onUploadOrari(e.target.files[0],reload);}}/>
-        {/* Header dettaglio */}
+        <input ref={precoRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{
+          if(e.target.files[0]){
+            onUploadPreco(e.target.files[0],()=>{ reload(); });
+          }
+        }}/>
+        <input ref={orariRef} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{
+          if(e.target.files[0]){
+            onUploadOrari(e.target.files[0],()=>{ reload(); });
+          }
+        }}/>
+
+        {/* Header */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-          <button onClick={()=>setSelMonth(null)} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+          <button onClick={()=>setSelMonth(null)} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             Tutti i mesi
           </button>
@@ -1751,58 +1767,75 @@ function Storico({onLoadPreco, onLoadOrari, onUploadPreco, onUploadOrari}) {
         </div>
 
         {/* Card Preconoscenza */}
-        <div style={Object.assign({},glassCard,{padding:"18px 16px",marginBottom:12,borderColor:hasPr?G.accentBorder:G.glassBorder})}>
-          <div style={{fontSize:13,fontWeight:700,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>Preconoscenza turni</div>
+        <div style={Object.assign({},glassCard,{padding:"18px 16px",marginBottom:12,borderLeft:"4px solid "+(hasPr?"#003366":G.glassBorder)})}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:800,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em"}}>Preconoscenza turni</div>
+            {hasPr && <span style={{fontSize:11,color:G.t3}}>{fmtDate(has.preco)}</span>}
+          </div>
           {hasPr ? (
-            <div>
-              <div style={{fontSize:13,color:G.t2,marginBottom:10}}>
-                Caricata il {new Date(has.preco.ts).toLocaleDateString("it-IT")}
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}}
-                  style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
-                  Carica turni
-                </button>
-                <button onClick={()=>{deleteEntry(has.preco.key);reload();}}
-                  style={{padding:"12px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                </button>
-              </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{
+                const d=loadPrecoByKey(has.preco.key);
+                if(d){
+                  onLoadPreco(d);
+                  if(onGoToMonth) onGoToMonth(yr, selMonth);
+                }
+              }}
+                style={{flex:1,padding:"13px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
+                Usa turni → Mese
+              </button>
+              <button onClick={()=>{deleteEntry(has.preco.key);reload();}}
+                style={{padding:"13px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,cursor:"pointer"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
             </div>
           ) : (
             <button onClick={()=>{if(precoRef.current){precoRef.current.value="";precoRef.current.click();}}}
               style={{width:"100%",padding:"14px 0",borderRadius:10,border:"2px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:15,fontWeight:600,cursor:"pointer"}}>
-              + Carica preconoscenza PDF
+              + Carica PDF preconoscenza
             </button>
           )}
         </div>
 
-        {/* Card Orari */}
-        <div style={Object.assign({},glassCard,{padding:"18px 16px",borderColor:hasOr?G.greenBorder||"#4caf50":G.glassBorder})}>
-          <div style={{fontSize:13,fontWeight:700,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>Orari GTT</div>
+        {/* Card Orari GTT */}
+        <div style={Object.assign({},glassCard,{padding:"18px 16px",marginBottom:12,borderLeft:"4px solid "+(hasOr?"#2e7d32":G.glassBorder)})}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:800,color:G.t2,textTransform:"uppercase",letterSpacing:"0.05em"}}>Orari GTT</div>
+            {hasOr && <span style={{fontSize:11,color:G.t3}}>{fmtDate(has.orari)}</span>}
+          </div>
           {hasOr ? (
-            <div>
-              <div style={{fontSize:13,color:G.t2,marginBottom:10}}>
-                Caricati il {new Date(has.orari.ts).toLocaleDateString("it-IT")}
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}}
-                  style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:G.greenBg,color:G.green,fontSize:15,fontWeight:700,cursor:"pointer"}}>
-                  Carica orari
-                </button>
-                <button onClick={()=>{deleteEntry(has.orari.key);reload();}}
-                  style={{padding:"12px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                </button>
-              </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{
+                const d=loadOrariByKey(has.orari.key);
+                if(d&&Object.keys(d).length){onLoadOrari(d);}
+              }}
+                style={{flex:1,padding:"13px 0",borderRadius:10,border:"none",background:G.greenBg,color:G.green,fontSize:15,fontWeight:700,cursor:"pointer"}}>
+                Carica orari
+              </button>
+              <button onClick={()=>{deleteEntry(has.orari.key);reload();}}
+                style={{padding:"13px 16px",borderRadius:10,border:"none",background:G.redBg,color:G.red,fontSize:14,cursor:"pointer"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
             </div>
           ) : (
             <button onClick={()=>{if(orariRef.current){orariRef.current.value="";orariRef.current.click();}}}
               style={{width:"100%",padding:"14px 0",borderRadius:10,border:"2px dashed "+G.glassBorder,background:"transparent",color:G.t2,fontSize:15,fontWeight:600,cursor:"pointer"}}>
-              + Carica orari PDF
+              + Carica PDF orari GTT
             </button>
           )}
         </div>
+
+        {/* Bottone usa mese — carica entrambi e vai al mese */}
+        {(hasPr||hasOr) && (
+          <button onClick={()=>{
+            if(hasPr){const d=loadPrecoByKey(has.preco.key);if(d)onLoadPreco(d);}
+            if(hasOr){const d=loadOrariByKey(has.orari.key);if(d&&Object.keys(d).length)onLoadOrari(d);}
+            if(onGoToMonth) onGoToMonth(yr, selMonth);
+          }}
+          style={{width:"100%",padding:"14px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:800,cursor:"pointer",marginTop:4}}>
+            Vai al mese →
+          </button>
+        )}
       </div>
     );
   }
@@ -1947,10 +1980,10 @@ function App() {
           Promise.all(pp).then(function(texts){
             const r=parsePreconoscenza(texts.join("\n"));
             if(!Object.keys(r.days).length){setErr("Nessun turno trovato.");setLoading1(false);if(cb)cb();return;}
-            setData(r);savePreco(r);saveRiposiCycle(r);setDevs({});setRes([]);setMsg("");setDet(null);setOverrides({});setTab("home");
+            setData(r);savePreco(r);saveRiposiCycle(r);setRes([]);setMsg("");setDet(null);setOverrides({});
             DB.set("ts_last_preco",precoKey(r.dIn.getFullYear(),r.dIn.getMonth()+1));
-            if(r.dIn){const ok=orariKey(r.dIn.getFullYear(),r.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);}
-            setLoading1(false);if(cb)cb();
+            if(r.dIn){const ok=orariKey(r.dIn.getFullYear(),r.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);else setDevs({});}
+            setLoading1(false);if(cb)cb(r);
           });
         }).catch(e=>{setErr("Errore: "+e.message);setLoading1(false);});
       };
@@ -2066,25 +2099,36 @@ function App() {
     }
   }
   function resetAll(){setData(null);setRes([]);setMsg("");setDet(null);setErr("");setDevs({});if(fileRef1.current)fileRef1.current.value="";if(fileRef2.current)fileRef2.current.value="";}
-  function onLoadPreco(d){setData(d);setDevs({});setRes([]);setMsg("");setDet(null);setOverrides({});setTab("home");DB.set("ts_last_preco",precoKey(d.dIn.getFullYear(),d.dIn.getMonth()+1));if(d.dIn){const ok=orariKey(d.dIn.getFullYear(),d.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);}}
-  function onLoadOrari(d){
-    // Salva gli orari caricati dallo storico nel mese corretto
-    // ma mantieni i devs del mese della preconoscenza corrente
-    if(data&&data.dIn){
-      // Prova a ricaricare gli orari del mese corrente (precaricati o localStorage)
-      const ok=orariKey(data.dIn.getFullYear(),data.dIn.getMonth()+1);
-      const current=loadOrariByKey(ok);
-      if(current&&Object.keys(current).length){
-        setDevs(current); // usa orari del mese corrente
-      } else {
-        setDevs(d); // fallback: usa quelli appena caricati
-      }
+  // Carica preconoscenza — rimane nello storico, carica orari se disponibili
+  function onLoadPreco(d){
+    setData(d);
+    setRes([]);setMsg("");setDet(null);setOverrides({});
+    DB.set("ts_last_preco",precoKey(d.dIn.getFullYear(),d.dIn.getMonth()+1));
+    if(d.dIn){
+      const ok=orariKey(d.dIn.getFullYear(),d.dIn.getMonth()+1);
+      const od=loadOrariByKey(ok);
+      setDevs(od&&Object.keys(od).length ? od : {});
     } else {
-      setDevs(d);
+      setDevs({});
     }
-    setTab("home");
-    setRes([]);
-    setMsg("");
+    // NON cambia tab — resta nello Storico
+  }
+
+  // Carica orari — rimane nello storico
+  function onLoadOrari(d){
+    if(!d||!Object.keys(d).length){return;}
+    setDevs(d);
+    setRes([]);setMsg("");
+    // NON cambia tab — resta nello Storico
+  }
+
+  // Vai al mese caricato nella vista Mese
+  function goToLoadedMonth(d){
+    if(!d||!d.dIn){setTab("mese");return;}
+    setCalY(d.dIn.getFullYear());
+    setCalM(d.dIn.getMonth()+1);
+    setDet(null);
+    setTab("mese");
   }
   function onPasteTurno(iso,v){
     setOverrides(ov=>{
@@ -2168,7 +2212,7 @@ function App() {
 
         {err && <div style={Object.assign({},glassCard,{padding:"12px 16px",marginBottom:10,borderColor:err.startsWith("OK")?"rgba(27,122,61,0.25)":"rgba(239,83,80,0.25)",color:err.startsWith("OK")?G.green:G.red,fontSize:14,whiteSpace:"pre-wrap"})}>{err}</div>}
 
-        {!data ? (
+        {!data && tab!=="storico" ? (
           <div>
             <div onClick={()=>{if(!loading1&&fileRef1.current)fileRef1.current.click();}} style={Object.assign({},glassCard,{padding:"28px 20px",textAlign:"center",cursor:loading1?"wait":"pointer",marginBottom:14})}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={loading1?G.accent:G.tw} strokeWidth="1.5" style={{marginBottom:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
@@ -2181,7 +2225,7 @@ function App() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G.accent} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   Storico documenti
                 </div>
-                <Storico onLoadPreco={onLoadPreco} onLoadOrari={onLoadOrari} onUploadPreco={uploadPreco} onUploadOrari={uploadOrari}/>
+                <Storico onLoadPreco={onLoadPreco} onLoadOrari={onLoadOrari} onUploadPreco={uploadPreco} onUploadOrari={uploadOrari} onGoToMonth={(y,m)=>{setCalY(y);setCalM(m);setDet(null);setTab("mese");}}/>
               </div>
             ) : <div style={{textAlign:"center",padding:"20px 0",color:G.t3,fontSize:14}}>Carica una preconoscenza per iniziare.</div>}
           </div>
@@ -2217,8 +2261,7 @@ function App() {
                 {id:"home",    label:"Turni"},
                 {id:"mese",    label:"Mese"},
                 {id:"riposi",  label:"Riposi"},
-                ...(nDevs>0 ? [{id:"linee", label:"Linee"}] : []),
-                {id:"storico", label:"Storico"}
+                ...(nDevs>0 ? [{id:"linee", label:"Linee"}] : [])
               ].map(t=>(
                 <button key={t.id} style={tbS(t.id)} onClick={()=>{setTab(t.id);if(t.id==="mese")setDet(null);}}>
                   {t.label}
@@ -2344,6 +2387,7 @@ function App() {
             {/* Tab: Mese */}
             {tab==="mese" && (
               <div>
+                {/* Navigazione mese */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:12}}>
                   <button onClick={()=>{let nm=viewM-1,ny=viewY;if(nm<1){nm=12;ny--;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&lsaquo;</button>
                   <div style={{textAlign:"center",minWidth:130}}>
@@ -2352,29 +2396,68 @@ function App() {
                   </div>
                   <button onClick={()=>{let nm=viewM+1,ny=viewY;if(nm>12){nm=1;ny++;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&rsaquo;</button>
                 </div>
-                {/* Bottone Oggi sempre visibile nel tab Mese */}
-                <button onClick={()=>{setTab("home");rapido("oggi");}} style={{width:"100%",marginBottom:12,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
+
+                {/* Bottone Oggi */}
+                <button onClick={()=>{setTab("home");rapido("oggi");}} style={{width:"100%",marginBottom:10,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
                   {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Vai a Oggi
                 </button>
+
+                {/* Indicatori stato documenti mese */}
+                {(()=>{
+                  const hasPr=Object.keys(calDays).length>0;
+                  const hasOr=Object.keys(calDevsActive).length>0;
+                  const precoStored=DB.get(precoKey(viewY,viewM));
+                  const orariStored=isCurrentMonth?Object.keys(devs).length>0:!!DB.get(orariKey(viewY,viewM));
+                  return (
+                    <div style={{display:"flex",gap:8,marginBottom:10}}>
+                      {/* Stato preconoscenza */}
+                      <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:hasPr?"#eef3ff":"#f4f6f9",border:"1px solid "+(hasPr?"#c5d5f5":"#e0e5ec"),display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:hasPr?"#003366":"#d0d7de",flexShrink:0}}/>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:700,color:hasPr?"#003366":"#8a9ab0",textTransform:"uppercase",letterSpacing:"0.04em"}}>Preconoscenza</div>
+                          <div style={{fontSize:12,color:hasPr?"#003366":"#aab5c2",fontWeight:600}}>{hasPr?"Caricata":"Non caricata"}</div>
+                        </div>
+                      </div>
+                      {/* Stato orari */}
+                      <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:hasOr?"#f0faf0":"#f4f6f9",border:"1px solid "+(hasOr?"#a5d6a7":"#e0e5ec"),display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:hasOr?"#2e7d32":"#d0d7de",flexShrink:0}}/>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:700,color:hasOr?"#2e7d32":"#8a9ab0",textTransform:"uppercase",letterSpacing:"0.04em"}}>Orari GTT</div>
+                          <div style={{fontSize:12,color:hasOr?"#2e7d32":"#aab5c2",fontWeight:600}}>{hasOr?"Caricati":"Non caricati"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Bottoni caricamento documenti */}
+                {(()=>{
+                  const hasPr=Object.keys(calDays).length>0;
+                  const hasOr=Object.keys(calDevsActive).length>0;
+                  return (
+                    <div style={{display:"flex",gap:8,marginBottom:12}}>
+                      <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
+                        style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px dashed "+(hasPr?"#003366":"#c5d5f5"),background:hasPr?"transparent":"#f8faff",color:"#003366",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        {hasPr?"Ricarica turni":"+ Preconoscenza"}
+                      </button>
+                      <button onClick={()=>{if(fileRef2.current){fileRef2.current.value="";fileRef2.current.click();}}}
+                        style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px dashed "+(hasOr?"#2e7d32":"#a5d6a7"),background:hasOr?"transparent":"#f0faf0",color:"#2e7d32",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        {hasOr?"Ricarica orari":"+ Orari GTT"}
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                {/* Calendario e turno dettaglio */}
                 {(()=>{
                   const rc=loadRiposiCycle(),riposiSet=rc?projectRiposi(rc,viewY,viewM):{};
                   const hasDays=Object.keys(calDays).length>0,hasRiposi=Object.keys(riposiSet).length>0;
                   if(!hasDays&&!hasRiposi) return (
-                    <div style={{textAlign:"center",padding:"20px 0"}}>
-                      <div style={{marginBottom:10}}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8a9ab0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
-                      <div style={{color:G.tw,fontSize:17,fontWeight:700,marginBottom:4}}>
-                        Nessuna preconoscenza per {MESI_IT[viewM]} {viewY}
-                      </div>
-                      <div style={{color:G.t2,fontSize:14,marginBottom:20}}>
-                        Carica il PDF del mese per vedere i tuoi turni
-                      </div>
-                      <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                        style={{display:"inline-block",padding:"14px 28px",borderRadius:12,border:"none",background:"#003366",color:"#ffd100",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:10}}>
-                        📄 Carica Preconoscenza {MESI_IT[viewM]}
-                      </button>
-                      <div style={{color:G.t3,fontSize:13,marginTop:6}}>
-                        oppure aprila dallo <button onClick={()=>setTab("storico")} style={{background:"none",border:"none",color:G.accent,fontSize:13,fontWeight:600,cursor:"pointer",padding:0}}>Storico</button> se già caricata
-                      </div>
+                    <div style={{textAlign:"center",padding:"30px 0",color:G.t2}}>
+                      <div style={{fontSize:15,fontWeight:600,color:G.tw,marginBottom:4}}>Nessun turno per {MESI_IT[viewM]} {viewY}</div>
+                      <div style={{fontSize:13}}>Carica la preconoscenza PDF qui sopra</div>
                     </div>
                   );
                   return(
@@ -2444,7 +2527,7 @@ function App() {
               );
             })()}
             {tab==="linee" && nDevs>0 && <LineeBrowser devs={devs}/>}
-            {tab==="storico" && <Storico onLoadPreco={onLoadPreco} onLoadOrari={onLoadOrari} onUploadPreco={uploadPreco} onUploadOrari={uploadOrari}/>}
+
           </div>
         )}
       </div>
