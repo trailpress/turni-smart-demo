@@ -451,7 +451,20 @@ function parsePreconoscenza(text){
     var iso=toIso(date),tokens=rest.split(/\s+/),first=tokens[0]?tokens[0].toUpperCase():"";
     if(SPECIAL[first]){
       var entry={t:first,g:gg,x:tokens.slice(1).join(" ")};
-      if(first==="RIS"){var bc="";for(var bi=1;bi<tokens.length;bi++){if(/^B\d{2}$/.test(tokens[bi])){bc=tokens[bi];break;}}entry.ball=bc;}
+      if(first==="RIS"){
+        var bc="";
+        for(var bi=1;bi<tokens.length;bi++){
+          if(/^B\d{2}$/.test(tokens[bi])){bc=tokens[bi];break;}
+          // Gestisce "B B03" separato: token "B" seguito da token "\d{2}" o "B\d{2}"
+          if(tokens[bi]==="B"&&bi+1<tokens.length){
+            if(/^\d{2}$/.test(tokens[bi+1])){bc="B"+tokens[bi+1];break;}
+            if(/^B\d{2}$/.test(tokens[bi+1])){bc=tokens[bi+1];break;}
+          }
+          // Gestisce "B03" senza B iniziale separato
+          if(/^\d{2}$/.test(tokens[bi])&&bi>0&&tokens[bi-1]==="B"){bc="B"+tokens[bi];break;}
+        }
+        entry.ball=bc;
+      }
       days[iso]=entry;
     }else{var shift=parseShift(rest);if(shift){shift.g=gg;days[iso]=shift;}}
   });
@@ -2308,7 +2321,24 @@ function App() {
                       </div>
                     );
                   }
-                  return <div style={Object.assign({},glassCard,{padding:"10px 14px",marginBottom:10,fontSize:15,color:G.t2})}>{msg==="nessun_turno"?"Nessun turno trovato per questa data":msg}</div>;
+                  return (
+                  <div style={Object.assign({},glassCard,{padding:"14px 16px",marginBottom:10})}>
+                    <div style={{fontSize:15,fontWeight:700,color:G.tw,marginBottom:6}}>
+                      {msg==="nessun_turno"?"Giorno non trovato in preconoscenza":""}
+                    </div>
+                    <div style={{fontSize:13,color:G.t2,marginBottom:10}}>
+                      {msg==="nessun_turno"
+                        ? toFmt(new Date())+" non è presente nei dati caricati. Ricarica la preconoscenza PDF."
+                        : msg}
+                    </div>
+                    {msg==="nessun_turno" && (
+                      <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
+                        style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+                        Ricarica preconoscenza PDF
+                      </button>
+                    )}
+                  </div>
+                );
                 })()}
                 {(()=>{
                   if(!res.length) return null;
@@ -2398,7 +2428,41 @@ function App() {
                 </div>
 
                 {/* Bottone Oggi */}
-                <button onClick={()=>{setTab("home");rapido("oggi");}} style={{width:"100%",marginBottom:10,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
+                <button onClick={()=>{
+                  const oggi=new Date();
+                  const is2=toIso(oggi);
+                  // Recupera i dati: usa data se disponibile, altrimenti carica dal localStorage
+                  let srcData=data;
+                  if(!srcData||!srcData.days){
+                    srcData=loadLastPreco();
+                    if(srcData)setData(srcData);
+                  }
+                  const allDaysNow=srcData&&srcData.days?Object.assign({},srcData.days,overrides):{};
+                  const turnoOggi=allDaysNow[is2];
+                  // Ricarica orari mese corrente
+                  if(srcData&&srcData.dIn){
+                    const ok=orariKey(srcData.dIn.getFullYear(),srcData.dIn.getMonth()+1);
+                    const od=loadOrariByKey(ok);
+                    if(od&&Object.keys(od).length)setDevs(od);
+                  }
+                  setCalY(null);setCalM(null);
+                  setLastSearched(oggi);
+                  setMsg("");
+                  setDet(null);
+                  if(turnoOggi){
+                    setRes([{date:oggi,v:turnoOggi}]);
+                  } else {
+                    // Prova a cercare anche con chiave alternativa (es. fuso orario)
+                    const ieri=new Date(oggi);ieri.setDate(ieri.getDate()-1);
+                    const domani=new Date(oggi);domani.setDate(domani.getDate()+1);
+                    const altKeys=[toIso(ieri),toIso(domani)];
+                    let found=null;
+                    for(const ak of altKeys){if(allDaysNow[ak]){found={date:new Date(ak+"T12:00:00"),v:allDaysNow[ak]};break;}}
+                    if(found){setRes([found]);}
+                    else{setRes([]);setMsg("nessun_turno");}
+                  }
+                  setTab("home");
+                }} style={{width:"100%",marginBottom:10,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
                   {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Vai a Oggi
                 </button>
 
