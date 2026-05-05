@@ -142,14 +142,29 @@ var DB = {
     } catch(e) {
       if (e.name === "QuotaExceededError" || e.code === 22) {
         try {
-          var keys = [];
+          // Prima elimina solo orari vecchi (non il mese corrente precaricato)
+          var orariKeys = [];
           for (var i = 0; i < localStorage.length; i++) {
             var lk = localStorage.key(i);
-            if (lk && lk.indexOf("ts_") === 0) keys.push(lk);
+            if (lk && lk.indexOf("ts_orari_") === 0 && lk !== k) orariKeys.push(lk);
           }
-          keys.forEach(function(lk) { if (lk !== k) localStorage.removeItem(lk); });
-          localStorage.setItem(k, s);
-          return true;
+          orariKeys.sort(); // elimina i più vecchi prima
+          for (var j = 0; j < orariKeys.length; j++) {
+            localStorage.removeItem(orariKeys[j]);
+            try { localStorage.setItem(k, s); return true; } catch(e3) {}
+          }
+          // Se ancora non basta, elimina anche preconoscenze vecchie
+          var precoKeys = [];
+          for (var i2 = 0; i2 < localStorage.length; i2++) {
+            var lk2 = localStorage.key(i2);
+            if (lk2 && lk2.indexOf("ts_preco_") === 0 && lk2 !== k) precoKeys.push(lk2);
+          }
+          precoKeys.sort();
+          for (var j2 = 0; j2 < precoKeys.length; j2++) {
+            localStorage.removeItem(precoKeys[j2]);
+            try { localStorage.setItem(k, s); return true; } catch(e4) {}
+          }
+          return false;
         } catch(e2) { return false; }
       }
       return false;
@@ -336,10 +351,24 @@ function savePreco(data) {
   DB.set(k,serializePreco(data)); DB.set("ts_last_preco",k);
   updateIndex("preco",k,data.nome||"",y,m);
 }
-function saveOrari(devs,precoData) {
-  if(!precoData||!precoData.dIn||!Object.keys(devs).length) return false;
-  var y=precoData.dIn.getFullYear(),m=precoData.dIn.getMonth()+1,k=orariKey(y,m);
-  var ok=DB.set(k,devs);
+function saveOrari(devs,precoData,forceY,forceM) {
+  if(!Object.keys(devs).length) return false;
+  var y,m;
+  if(forceY&&forceM){y=forceY;m=forceM;}
+  else if(precoData&&precoData.dIn){y=precoData.dIn.getFullYear();m=precoData.dIn.getMonth()+1;}
+  else return false;
+  var k=orariKey(y,m);
+  // Gestione localStorage pieno: rimuovi vecchie entry se necessario
+  var ok=false;
+  try{ok=DB.set(k,devs);}catch(e){ok=false;}
+  if(!ok){
+    // localStorage pieno: elimina entry più vecchie
+    try{
+      var idx=DB.get("ts_index")||[];
+      var orariOld=idx.filter(function(e){return e.type==="orari";}).sort(function(a,b){return (a.savedAt||"")>(b.savedAt||"")?1:-1;});
+      for(var i=0;i<orariOld.length&&!ok;i++){DB.del(orariOld[i].key);ok=DB.set(k,devs);}
+    }catch(e2){}
+  }
   if(ok){DB.set("ts_last_orari",k);updateIndex("orari",k,"",y,m);}
   return ok;
 }
@@ -589,6 +618,15 @@ function mergeDevs(target,source){
 }
 
 /* ===== FILTRO GT (no fallback) ===== */
+// Festivi nazionali italiani fissi (giorno/mese)
+function isFestivoNazionale(date){
+  var m=date.getMonth()+1,d=date.getDate();
+  // Festivi fissi: 1/1, 6/1, 25/4, 1/5, 2/6, 15/8, 1/11, 8/12, 25/12, 26/12
+  var fissi=[[1,1],[6,1],[25,4],[1,5],[2,6],[15,8],[1,11],[8,12],[25,12],[26,12]];
+  for(var i=0;i<fissi.length;i++){if(fissi[i][0]===d&&fissi[i][1]===m)return true;}
+  return false;
+}
+
 function getFilteredDevSegs(devs,v,date){
   if(v&&v._pasted&&(!devs||Object.keys(devs).length===0)) return [];
   // Prova tutte le varianti di chiave (gestisce linee tipo 5B, 38B ecc.)
@@ -599,7 +637,8 @@ function getFilteredDevSegs(devs,v,date){
   }
   var dk=keys[0]||null;
   if(segs.length>0&&date){
-    var dow=date.getDay(),dt2=dow===0?"FEST":dow===6?"SAB":"LV";
+    var dow=date.getDay();
+    var dt2=dow===0?"FEST":dow===6?"SAB":(isFestivoNazionale(date)?"FEST":"LV");
     segs=segs.filter(function(s){
       var g=(s.gt||"").toUpperCase();
       if(!g)return true;
@@ -1102,7 +1141,9 @@ function SegmentList({segs, showGaps=true, showLive=true}) {
 function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const [copied, setCopied] = useState(false);
   const [flipped, setFlipped] = useState(false);
-  const [animClass, setAnimClass] = useState("flip-grow");
+  const [animClass, setAnimClass] = useState("");
+  const [showActions, setShowActions] = useState(false);
+  const [showVett, setShowVett] = useState(false);
   const [pasteErr, setPasteErr] = useState("");
   const [showPaste, setShowPaste] = useState(false);
   const [pasteTxt, setPasteTxt] = useState("");
@@ -1167,65 +1208,119 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const bdr = isSpezzato ? "4px solid "+orange : "4px solid "+accent;
   const cardBase = {background:"#fff",borderRadius:14,boxShadow:"0 2px 12px rgba(0,51,102,0.10)",borderLeft:bdr,padding:"16px 16px 14px"};
 
-  // Bottoni azioni — usati sia nel front che nel back
+  // ─── Azioni card — design minimal Jony Ive ───
+  // Azione primaria: sveglia (se mattina) oppure navigazione
+  // Secondarie: menu "···" con tutto il resto
   function ActionButtons({stopFlip}) {
-    const stop = stopFlip ? (e)=>e.stopPropagation() : null;
     return (
-      <div style={{marginTop:12,borderTop:"1px solid #edf0f4",paddingTop:12}}>
-        <div style={{display:"flex",gap:6}}>
-          <button
-            onClick={e=>{e.stopPropagation();doCalendar();}}
-            style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:"#eef3ff",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-            {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Calendario
-          </button>
-          <button
-            onClick={e=>{e.stopPropagation();doCopy();}}
-            style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:copied?"#e8f5e9":"#f4f6f9",color:copied?"#1b7a3d":"#444",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-            {copied ? <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>} Copiato</> : <>{<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} Copia</>}
-          </button>
-          <button
-            onClick={e=>{e.stopPropagation();window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(summary),"_blank","noopener");}}
-            style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            WhatsApp
+      <div style={{marginTop:16,borderTop:"1px solid #f0f2f5",paddingTop:14}} onClick={e=>e.stopPropagation()}>
+        {/* Riga principale: azione primaria + menu */}
+        <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
+          {/* Azione primaria: sveglia se mattina, navigazione se pomeriggio */}
+          {isMorning && v.t==="turno" ? (
+            <button onClick={doAlarm}
+              style={{flex:1,padding:"13px 0",borderRadius:12,border:"none",
+                background:alarmSet?"#f0faf0":"#003366",
+                color:alarmSet?"#1b7a3d":"#ffd100",
+                fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"-0.01em"}}>
+              {alarmSet?"✓ Sveglia impostata":"Imposta sveglia"}
+            </button>
+          ) : moovitData ? (
+            <button onClick={()=>openMoovit(moovitData)}
+              style={{flex:1,padding:"13px 0",borderRadius:12,border:"none",
+                background:"#003366",color:"#ffd100",
+                fontSize:15,fontWeight:700,cursor:"pointer"}}>
+              Come arrivare
+            </button>
+          ) : (
+            <button onClick={doCopy}
+              style={{flex:1,padding:"13px 0",borderRadius:12,border:"none",
+                background:copied?"#f0faf0":"#003366",
+                color:copied?"#1b7a3d":"#ffd100",
+                fontSize:15,fontWeight:700,cursor:"pointer"}}>
+              {copied?"✓ Copiato":"Copia turno"}
+            </button>
+          )}
+          {/* Bottone "···" menu secondario */}
+          <button onClick={()=>setShowActions(a=>!a)}
+            style={{width:48,padding:"13px 0",borderRadius:12,border:"none",
+              background:"#f4f6f9",color:"#5a6b80",
+              fontSize:18,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+            {showActions?"✕":"···"}
           </button>
         </div>
-        {isMorning && v.t==="turno" && (
-          <button onClick={e=>{e.stopPropagation();doAlarm();}}
-            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:alarmSet?"#fff9e6":"#ffd100",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-            {alarmSet ? <>{<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><line x1="6.8" y1="3.5" x2="4" y2="6"/><line x1="17.2" y1="3.5" x2="20" y2="6"/></svg>} Rivedi su Google Calendar</> : <>{<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><line x1="6.8" y1="3.5" x2="4" y2="6"/><line x1="17.2" y1="3.5" x2="20" y2="6"/></svg>} Sveglia {p2(Math.max(0,parseInt(v.i.slice(0,2))-1))}:{v.i.slice(2)} — GCal</>}
-          </button>
-        )}
-        {moovitData && (
-          <div style={{display:"flex",gap:8,marginTop:6}}>
-            <button onClick={e=>{e.stopPropagation();openMoovit(moovitData);}}
-              style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:"#ff6900",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-              {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>} Moovit
+
+        {/* Menu azioni secondarie — appaiono su tap "···" */}
+        {showActions && (
+          <div style={{marginTop:10,background:"#f9fafc",borderRadius:14,overflow:"hidden",border:"1px solid #edf0f4"}}>
+            {/* Calendario */}
+            <button onClick={()=>{doCalendar();setShowActions(false);}}
+              style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:"1px solid #edf0f4",
+                background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Aggiungi al Calendario</span>
             </button>
-            <button onClick={e=>{e.stopPropagation();openGMaps(moovitData);}}
-              style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:"#4285f4",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:4}}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-              Maps
+            {/* Copia */}
+            <button onClick={()=>{doCopy();setTimeout(()=>setShowActions(false),800);}}
+              style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:"1px solid #edf0f4",
+                background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>{copied?"✓ Copiato":"Copia testo turno"}</span>
             </button>
+            {/* WhatsApp */}
+            <button onClick={()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(summary),"_blank","noopener");setShowActions(false);}}
+              style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:moovitData?"1px solid #edf0f4":"none",
+                background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Condividi su WhatsApp</span>
+            </button>
+            {/* Navigazione */}
+            {moovitData && (
+              <>
+                <button onClick={()=>{openMoovit(moovitData);setShowActions(false);}}
+                  style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:"1px solid #edf0f4",
+                    background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6900" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="#ff6900"/><circle cx="17" cy="14" r="1" fill="#ff6900"/></svg>
+                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Apri in Moovit</span>
+                </button>
+                <button onClick={()=>{openGMaps(moovitData);setShowActions(false);}}
+                  style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:liveUrl?"1px solid #edf0f4":"none",
+                    background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Apri in Google Maps</span>
+                </button>
+              </>
+            )}
+            {liveUrl && (
+              <button onClick={()=>{openLiveMap(liveUrl);setShowActions(false);}}
+                style={{width:"100%",padding:"13px 16px",border:"none",
+                  background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Arrivi linea {parseInt(v.l)}</span>
+              </button>
+            )}
           </div>
         )}
-        {liveUrl && (
-          <button onClick={e=>{e.stopPropagation();openLiveMap(liveUrl);}}
-            style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:10,border:"none",background:"#003366",color:"#fff",fontSize:15,fontWeight:600,cursor:"pointer"}}>
-            Arrivi linea {parseInt(v.l)} a {v.li}
-          </button>
-        )}
-        {v.t==="turno" && devSegs.length > 0 && (
-          <div style={{marginTop:14,borderTop:"2px solid #e8ecf2",paddingTop:12}} onClick={e=>e.stopPropagation()}>
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:14,fontWeight:800,color:"#5a6b80",marginBottom:6,letterSpacing:"0.05em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>
-                Numero vettura
+        {v.t==="turno" && devSegs.length > 0 && (() => {
+          const hasVett = Object.keys(vettMap).some(k=>vettMap[k]);
+          return (
+          <div style={{marginTop:14,borderTop:"1px solid #f0f2f5",paddingTop:10}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setShowVett(prev=>!prev)}
+              style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",
+                padding:"6px 0 8px",background:"transparent",border:"none",cursor:"pointer"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a9ab0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="#8a9ab0"/><circle cx="17" cy="14" r="1" fill="#8a9ab0"/></svg>
+                <span style={{fontSize:13,fontWeight:600,color:"#8a9ab0",textTransform:"uppercase",letterSpacing:"0.04em"}}>Vettura</span>
+                {hasVett && <span style={{fontSize:13,fontWeight:700,color:"#003366",background:"#eef3ff",borderRadius:6,padding:"2px 8px"}}>
+                  {devSegs.map((_,si)=>vettMap[si]||"—").join(" · ")}
+                </span>}
+                {!hasVett && <span style={{fontSize:12,color:"#c0c8d4"}}>Non inserita</span>}
               </div>
-              <div style={{fontSize:15,fontWeight:600,color:"#003366",background:"#eef3ff",border:"1px solid #c5d5f5",borderRadius:8,padding:"8px 12px",lineHeight:1.4}}>
-                Inserisci qui sotto nei campi il numero della vettura assegnata per ciascun segmento del turno
-              </div>
-            </div>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c0c8d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                {showVett?<polyline points="18 15 12 9 6 15"/>:<polyline points="6 9 12 15 18 9"/>}
+              </svg>
+            </button>
+            {showVett && <div>
             {devSegs.map((seg, si) => {
               const saved = vettMap[si] || "";
               return (
@@ -1292,8 +1387,10 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                 : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salva numeri vettura</>
               }
             </button>
+          </div>}
           </div>
-        )}
+          );
+        })()}
       </div>
     );
   }
@@ -1402,14 +1499,24 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
             {v.d && <span style={{marginLeft:10,fontSize:14,color:"#8a9ab0"}}>{fD(v.d)}</span>}
           </div>
-          <button
-            onClick={()=>{
-              setAnimClass("flip-shrink");
-              setTimeout(()=>{setFlipped(true);setAnimClass("flip-grow");},200);
-            }}
-            style={{width:"100%",padding:"12px 0",borderRadius:10,border:"2px solid #e65100",background:"rgba(230,81,0,0.06)",color:"#e65100",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10}}>
-            {devSegs.length>0 ? <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>Vedi {devSegs.length} segmenti<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span> : <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>Vedi sviluppo<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>}
-          </button>
+          {(devSegs.length > 1 || devSegs.length === 0) && (
+            <button
+              onClick={()=>{
+                setAnimClass("flip-shrink");
+                setTimeout(()=>{setFlipped(true);setAnimClass("flip-grow");},200);
+              }}
+              style={{width:"100%",padding:"12px 0",borderRadius:12,border:"none",
+                background:"#e65100",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10,
+                display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              {devSegs.length>1 ? <>Vedi {devSegs.length} segmenti <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></> : <>Vedi sviluppo <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></>}
+            </button>
+          )}
+          {devSegs.length === 1 && (
+            <div style={{marginTop:4,marginBottom:10,padding:"10px 12px",borderRadius:10,background:"#fff8f0",border:"1px solid #ffd0a8"}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#e65100",marginBottom:3}}>Segmento unico disponibile</div>
+              <div style={{fontSize:14,fontWeight:600,color:"#1a1a2e"}}>{devSegs[0].start} {devSegs[0].loc_s} → {devSegs[0].end} {devSegs[0].loc_e}</div>
+            </div>
+          )}
           <ActionButtons stopFlip={false}/>
         </div>
       );
@@ -1425,12 +1532,63 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             <Tag bg="#fef2f2" color="#c62828">Spezzato</Tag>
           </div>
           {devSegs.length===0 ? (
-            <div style={{textAlign:"center",padding:"20px 0"}}>
-              <div style={{marginBottom:8}}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
-              <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:4}}>Sviluppo non disponibile</div>
-              <div style={{fontSize:14,color:"#8a9ab0",marginBottom:12,lineHeight:1.5}}>
-                Carica il PDF Orari Linee GTT per vedere i segmenti
+            <div style={{padding:"16px 0"}}>
+              <div style={{textAlign:"center",marginBottom:14}}>
+                <div style={{marginBottom:8}}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
+                <div style={{fontSize:15,fontWeight:700,color:"#003366",marginBottom:6}}>Sviluppo non disponibile</div>
+                <div style={{fontSize:13,color:"#8a9ab0",lineHeight:1.5}}>
+                  {Object.keys(devs).length>0
+                    ? "Il turno "+v.l+"/"+v.n+" non è nelle tabelle GTT per questo giorno. Potrebbe essere un turno speciale festivo o di ballottaggio."
+                    : "Carica il PDF Orari Linee GTT per vedere i segmenti"}
+                </div>
               </div>
+              {onPaste && (
+                <div style={{borderTop:"1px solid #e8ecf2",paddingTop:12}}>
+                  {!showPaste ? (
+                    <button onClick={e=>{e.stopPropagation();setShowPaste(true);}}
+                      style={{width:"100%",padding:"11px 0",borderRadius:10,border:"2px dashed #003366",background:"#f0f4ff",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+                      ✏️ Inserisci turno manualmente
+                    </button>
+                  ) : (
+                    <div onClick={e=>e.stopPropagation()}>
+                      <div style={{fontSize:13,fontWeight:600,color:"#003366",marginBottom:6}}>
+                        Incolla la riga dalla preconoscenza o scrivi gli orari:
+                      </div>
+                      <div style={{fontSize:12,color:"#8a9ab0",marginBottom:8,lineHeight:1.4}}>
+                        Es: <span style={{fontFamily:"monospace",background:"#f4f6f9",padding:"1px 4px",borderRadius:3}}>05 44 GE 0523 GERB 1142 CATT</span>
+                      </div>
+                      <textarea
+                        value={pasteTxt}
+                        onInput={e=>setPasteTxt(e.target.value)}
+                        onChange={e=>setPasteTxt(e.target.value)}
+                        onPaste={e=>{
+                          e.stopPropagation();
+                          var clip=e.clipboardData?e.clipboardData.getData("text"):"";
+                          if(!clip){setTimeout(()=>{if(e.target&&e.target.value)clip=e.target.value;if(clip){const parsed=parseShiftFromPaste(clip);if(parsed){parsed.g=toWd(date).toUpperCase().slice(0,3);if(onPaste)onPaste(iso,parsed);setShowPaste(false);setPasteTxt("");}else{setPasteTxt(clip);setPasteErr("Formato non riconosciuto.");}}},150);return;}
+                          const parsed=parseShiftFromPaste(clip);
+                          if(parsed){parsed.g=toWd(date).toUpperCase().slice(0,3);if(onPaste)onPaste(iso,parsed);setShowPaste(false);setPasteTxt("");}
+                        }}
+                        placeholder="Incolla o scrivi il turno..."
+                        style={{width:"100%",minHeight:60,padding:"8px 10px",borderRadius:8,border:"1px solid #c5d5f5",fontSize:13,fontFamily:"monospace",boxSizing:"border-box",marginBottom:8}}
+                      />
+                      {pasteErr&&<div style={{color:"#c62828",fontSize:12,marginBottom:6}}>{pasteErr}</div>}
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>{
+                          const parsed=parseShiftFromPaste(pasteTxt);
+                          if(parsed){parsed.g=toWd(date).toUpperCase().slice(0,3);if(onPaste)onPaste(iso,parsed);setShowPaste(false);setPasteTxt("");setPasteErr("");}
+                          else setPasteErr("Formato non riconosciuto. Usa: linea turno GE HHMM LUOGO HHMM LUOGO");
+                        }} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:"#003366",color:"#ffd100",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                          ✓ Conferma
+                        </button>
+                        <button onClick={()=>{setShowPaste(false);setPasteTxt("");setPasteErr("");}}
+                          style={{padding:"9px 14px",borderRadius:8,border:"1px solid #e0e5ec",background:"transparent",color:"#8a9ab0",fontSize:13,cursor:"pointer"}}>
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : devSegs.map((s,idx)=>{
             const gap=idx<devSegs.length-1?calcGap(s.end,devSegs[idx+1].start):0;
@@ -1488,33 +1646,92 @@ function Grid({days, yr, mo, riposiSet, onTap}) {
   for(let i=0;i<off;i++) cells.push(0);
   for(let i=1;i<=nd;i++) cells.push(i);
   const todayStr = toIso(new Date());
+  const WK_SHORT = ["L","M","M","G","V","S","D"];
   return (
     <div>
+      {/* Intestazione giorni — minimale */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:4}}>
+        {WK_SHORT.map((w,i)=>(
+          <div key={i} style={{textAlign:"center",fontSize:11,fontWeight:500,
+            color: i>=5 ? "#c62828" : "#b0b8c8",
+            padding:"4px 0",letterSpacing:"0.02em"}}>
+            {w}
+          </div>
+        ))}
+      </div>
+      {/* Celle giorni */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
-        {WK.map(w=><div key={w} style={{textAlign:"center",fontSize:12,fontWeight:600,color:G.t3,padding:"5px 0",textTransform:"uppercase"}}>{w}</div>)}
         {cells.map((day,idx)=>{
           if(!day) return <div key={"e"+idx}/>;
           const dt=new Date(yr,mo-1,day),is2=toIso(dt),v=days[is2];
           const isProjRest=!v&&riposiSet&&riposiSet[is2];
-          let bg="transparent",cl=G.t3,fw=400;
           const today=is2===todayStr;
-          if(v){fw=700;if(REST_CODES[v.t]){bg="#ffd100";cl="#003366";}else if(v.t==="RIS"){bg="#c62828";cl="#ffffff";}else if(v.t==="turno"){bg="#003366";cl="#ffffff";}else{bg=G.orangeBg;cl=G.orange;}}
-          else if(isProjRest){fw=600;bg="rgba(255,209,0,0.30)";cl="#8b6914";}
-          if(today){bg="#00897b";cl="#ffffff";fw=800;}
+          const isSatSun=(idx%7)>=5;
+
+          // Determina tipo cella
+          let type="empty";
+          if(today) type="today";
+          else if(v&&v.t==="turno") type="turno";
+          else if(v&&v.t==="RIS") type="ballottaggio";
+          else if(v&&REST_CODES[v.t]) type="riposo";
+          else if(v) type="altro";
+          else if(isProjRest) type="riposo_proj";
+
+          const styles = {
+            today:       {bg:"#003366", cl:"#ffd100", fw:800, radius:"50%", shadow:"0 2px 8px rgba(0,51,102,0.35)"},
+            turno:       {bg:"#003366", cl:"#fff",    fw:700, radius:"10px", shadow:"none"},
+            ballottaggio:{bg:"#c62828", cl:"#fff",    fw:700, radius:"10px", shadow:"none"},
+            riposo:      {bg:"#ffd100", cl:"#003366", fw:700, radius:"10px", shadow:"none"},
+            riposo_proj: {bg:"rgba(255,209,0,0.2)", cl:"#a08010", fw:500, radius:"10px", shadow:"none"},
+            altro:       {bg:"#f0f2f5", cl:"#5a6b80", fw:600, radius:"10px", shadow:"none"},
+            empty:       {bg:"transparent", cl: isSatSun?"#d0a0a0":"#c8d0dc", fw:400, radius:"10px", shadow:"none"},
+          };
+          const s = styles[type];
+
           return (
             <div key={idx}
               onClick={()=>{if(v)onTap(dt,v);else if(isProjRest)onTap(dt,{t:"RP",g:"",x:"Riposo previsto"});}}
-              style={{textAlign:"center",fontSize:15,padding:"7px 2px",borderRadius:today?"50%":"8px",color:cl,fontWeight:fw,background:bg,cursor:(v||isProjRest)?"pointer":"default",minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:today?"0 0 0 2px #00897b,0 0 0 4px rgba(0,137,123,0.25)":"none"}}>
+              style={{
+                textAlign:"center",
+                fontSize: today?16:14,
+                padding:"0",
+                borderRadius:s.radius,
+                color:s.cl,
+                fontWeight:s.fw,
+                background:s.bg,
+                cursor:(v||isProjRest)?"pointer":"default",
+                height:40,
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"center",
+                justifyContent:"center",
+                boxShadow:s.shadow,
+                position:"relative",
+                transition:"opacity 0.15s",
+              }}>
               {day}
+              {/* Dot indicatore turno spezzato */}
+              {v&&v.t==="turno"&&v.n&&parseInt(v.n)<100&&(
+                <div style={{position:"absolute",bottom:3,width:4,height:4,borderRadius:"50%",background:"#e65100"}}/>
+              )}
             </div>
           );
         })}
       </div>
-      <div style={{display:"flex",justifyContent:"center",gap:12,flexWrap:"wrap",marginTop:8}}>
-        {[["#00897b","Oggi","50%"],["#003366","Turno","3px"],["#ffd100","Riposo","3px"],["#c62828","Ballott.","3px"]].map(([bg,label,br])=>(
-          <span key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:G.t3}}>
-            <span style={{width:10,height:10,borderRadius:br,background:bg,display:"inline-block"}}/> {label}
-          </span>
+      {/* Legenda compatta in basso */}
+      <div style={{display:"flex",justifyContent:"center",gap:14,marginTop:12}}>
+        {[
+          {bg:"#003366",cl:"#ffd100",label:"Oggi",radius:"50%",size:14},
+          {bg:"#003366",cl:"#fff",label:"Turno",radius:"6px"},
+          {bg:"#ffd100",cl:"#003366",label:"Riposo",radius:"6px"},
+          {bg:"#c62828",cl:"#fff",label:"Ballott.",radius:"6px"},
+        ].map(({bg,cl,label,radius,size})=>(
+          <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{width:size||12,height:size||12,borderRadius:radius,background:bg,
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            </div>
+            <span style={{fontSize:11,color:"#b0b8c8",fontWeight:500}}>{label}</span>
+          </div>
         ))}
       </div>
     </div>
@@ -1939,6 +2156,7 @@ function App() {
   const [calM, setCalM] = useState(null);
   const [calData, setCalData] = useState(null);
   const [calDevs, setCalDevs] = useState(null);
+  const [orariVer, setOrariVer] = useState(0); // incrementa per forzare re-render Card
   const [showArchivio, setShowArchivio] = useState(false);
 
   /* Cache version check on mount */
@@ -1975,7 +2193,7 @@ function App() {
   useEffect(()=>{
     if(isCurrentMonth){setCalData(null);setCalDevs(null);return;}
     const pd=deserializePreco(DB.get(precoKey(viewY,viewM)));setCalData(pd);
-    const od=DB.get(orariKey(viewY,viewM));setCalDevs(od&&Object.keys(od).length?od:null);
+    const od=loadOrariByKey(orariKey(viewY,viewM));setCalDevs(od&&Object.keys(od).length?od:null);
   },[viewY,viewM,isCurrentMonth]);
 
   const calDays = isCurrentMonth?days:(calData?Object.assign({},calData.days):{});
@@ -2040,9 +2258,22 @@ function App() {
               }
             });
             var saved=false;
-            if(Object.keys(nd).length){setDevs(nd);saved=saveOrari(nd,data||{dIn:new Date()});}
+            if(Object.keys(nd).length){
+              var fy=window._uploadOrariY,fm=window._uploadOrariM;
+              if(fy&&fm){
+                saved=saveOrari(nd,null,fy,fm);
+                // Aggiorna devs solo se è il mese della preco corrente
+                if(data&&data.dIn&&data.dIn.getFullYear()===fy&&data.dIn.getMonth()+1===fm){
+                  setDevs(nd);
+                }
+                // Altrimenti NON toccare devs globali
+              } else {
+                saved=saveOrari(nd,data||{dIn:new Date()});
+                setDevs(nd);
+              }
+            }
             var nTurni=Object.keys(nd).length;
-            setLoading2(false);if(cb)cb();
+            setLoading2(false);if(cb)cb(nd);
             if(!nTurni)setErr("Nessun turno trovato.");
             else setErr("OK! "+nTurni+" turni caricati e salvati.");
           });
@@ -2191,7 +2422,22 @@ function App() {
 
       <div style={{maxWidth:460,margin:"0 auto",padding:"16px 16px"}}>
         <input ref={fileRef1} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])uploadPreco(e.target.files[0]);}}/>
-        <input ref={fileRef2} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{if(e.target.files[0])uploadOrari(e.target.files[0]);}}/>
+        <input ref={fileRef2} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>{
+          if(e.target.files[0]){
+            window._uploadOrariY=viewY;
+            window._uploadOrariM=viewM;
+            uploadOrari(e.target.files[0],(nd)=>{
+              window._uploadOrariY=null;
+              window._uploadOrariM=null;
+              if(nd&&Object.keys(nd).length){
+                // Log per debug
+                setCalDevs(nd);
+                if(isCurrentMonth){setDevs(nd);}
+                setOrariVer(v=>v+1);
+              }
+            });
+          }
+        }}/>
 
         {/* Card autista — gialla, identica v4.3 */}
         <div style={{background:"#ffd100",borderRadius:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.10)",padding:"16px 18px",marginBottom:14}}>
@@ -2417,118 +2663,153 @@ function App() {
             {/* Tab: Mese */}
             {tab==="mese" && (
               <div>
-                {/* Navigazione mese */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:12}}>
-                  <button onClick={()=>{let nm=viewM-1,ny=viewY;if(nm<1){nm=12;ny--;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&lsaquo;</button>
-                  <div style={{textAlign:"center",minWidth:130}}>
-                    <div style={{fontSize:19,fontWeight:700,color:G.tw}}>{MESI_IT[viewM]} {viewY}</div>
-                    {!isCurrentMonth && <button onClick={()=>{setCalY(null);setCalM(null);setDet(null);}} style={{fontSize:12,color:G.accent,background:"transparent",border:"none",cursor:"pointer",marginTop:2}}>Torna a {MESI_IT[refM]} {refY}</button>}
+                {/* Header mese — navigazione pulita */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                  <button onClick={()=>{let nm=viewM-1,ny=viewY;if(nm<1){nm=12;ny--;}setCalY(ny);setCalM(nm);setDet(null);}}
+                    style={{width:40,height:40,borderRadius:"50%",border:"none",
+                      background:"#f4f6f9",color:"#003366",fontSize:20,fontWeight:300,
+                      cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    ‹
+                  </button>
+                  <div style={{textAlign:"center",flex:1}}>
+                    <div style={{fontSize:22,fontWeight:700,color:"#003366",letterSpacing:"-0.02em"}}>
+                      {MESI_IT[viewM]}
+                    </div>
+                    <div style={{fontSize:14,color:"#8a9ab0",fontWeight:400}}>{viewY}</div>
+                    {!isCurrentMonth && (
+                      <button onClick={()=>{setCalY(null);setCalM(null);setDet(null);}}
+                        style={{marginTop:2,fontSize:11,color:"#003366",background:"#eef3ff",
+                          border:"none",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:600}}>
+                        ← Torna ad oggi
+                      </button>
+                    )}
                   </div>
-                  <button onClick={()=>{let nm=viewM+1,ny=viewY;if(nm>12){nm=1;ny++;}setCalY(ny);setCalM(nm);setDet(null);}} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+G.cardBorder,background:"transparent",color:G.tw,fontSize:18,fontWeight:700,cursor:"pointer"}}>&rsaquo;</button>
+                  <button onClick={()=>{let nm=viewM+1,ny=viewY;if(nm>12){nm=1;ny++;}setCalY(ny);setCalM(nm);setDet(null);}}
+                    style={{width:40,height:40,borderRadius:"50%",border:"none",
+                      background:"#f4f6f9",color:"#003366",fontSize:20,fontWeight:300,
+                      cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    ›
+                  </button>
                 </div>
 
-                {/* Bottone Oggi */}
-                <button onClick={()=>{
-                  const oggi=new Date();
-                  const is2=toIso(oggi);
-                  // Recupera i dati: usa data se disponibile, altrimenti carica dal localStorage
-                  let srcData=data;
-                  if(!srcData||!srcData.days){
-                    srcData=loadLastPreco();
-                    if(srcData)setData(srcData);
-                  }
-                  const allDaysNow=srcData&&srcData.days?Object.assign({},srcData.days,overrides):{};
-                  const turnoOggi=allDaysNow[is2];
-                  // Ricarica orari mese corrente
-                  if(srcData&&srcData.dIn){
-                    const ok=orariKey(srcData.dIn.getFullYear(),srcData.dIn.getMonth()+1);
-                    const od=loadOrariByKey(ok);
-                    if(od&&Object.keys(od).length)setDevs(od);
-                  }
-                  setCalY(null);setCalM(null);
-                  setLastSearched(oggi);
-                  setMsg("");
-                  setDet(null);
-                  if(turnoOggi){
-                    setRes([{date:oggi,v:turnoOggi}]);
-                  } else {
-                    // Prova a cercare anche con chiave alternativa (es. fuso orario)
-                    const ieri=new Date(oggi);ieri.setDate(ieri.getDate()-1);
-                    const domani=new Date(oggi);domani.setDate(domani.getDate()+1);
-                    const altKeys=[toIso(ieri),toIso(domani)];
-                    let found=null;
-                    for(const ak of altKeys){if(allDaysNow[ak]){found={date:new Date(ak+"T12:00:00"),v:allDaysNow[ak]};break;}}
-                    if(found){setRes([found]);}
-                    else{setRes([]);setMsg("nessun_turno");}
-                  }
-                  setTab("home");
-                }} style={{width:"100%",marginBottom:10,padding:"9px 0",borderRadius:10,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer"}}>
-                  {<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",marginRight:5}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} Vai a Oggi
-                </button>
-
-                {/* Indicatori stato documenti mese */}
+                {/* Barra strumenti — Oggi */}
                 {(()=>{
                   const hasPr=Object.keys(calDays).length>0;
                   const hasOr=Object.keys(calDevsActive).length>0;
-                  const precoStored=DB.get(precoKey(viewY,viewM));
-                  const orariStored=isCurrentMonth?Object.keys(devs).length>0:!!DB.get(orariKey(viewY,viewM));
-                  return (
-                    <div style={{display:"flex",gap:8,marginBottom:10}}>
-                      {/* Stato preconoscenza */}
-                      <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:hasPr?"#eef3ff":"#f4f6f9",border:"1px solid "+(hasPr?"#c5d5f5":"#e0e5ec"),display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:hasPr?"#003366":"#d0d7de",flexShrink:0}}/>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:700,color:hasPr?"#003366":"#8a9ab0",textTransform:"uppercase",letterSpacing:"0.04em"}}>Preconoscenza</div>
-                          <div style={{fontSize:12,color:hasPr?"#003366":"#aab5c2",fontWeight:600}}>{hasPr?"Caricata":"Non caricata"}</div>
-                        </div>
+                  return (<>
+                    {/* Bottone Oggi */}
+                    <button onClick={()=>{
+                      const oggi=new Date();const is2=toIso(oggi);
+                      let srcData=data;
+                      if(!srcData||!srcData.days){srcData=loadLastPreco();if(srcData)setData(srcData);}
+                      const allDaysNow=srcData&&srcData.days?Object.assign({},srcData.days,overrides):{};
+                      const turnoOggi=allDaysNow[is2];
+                      if(srcData&&srcData.dIn){const ok=orariKey(srcData.dIn.getFullYear(),srcData.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);}
+                      setCalY(null);setCalM(null);setLastSearched(oggi);setMsg("");setDet(null);
+                      if(turnoOggi){setRes([{date:oggi,v:turnoOggi}]);}
+                      else{const ieri=new Date(oggi);ieri.setDate(ieri.getDate()-1);const dom2=new Date(oggi);dom2.setDate(dom2.getDate()+1);const altKeys=[toIso(ieri),toIso(dom2)];let found=null;for(const ak of altKeys){if(allDaysNow[ak]){found={date:new Date(ak+"T12:00:00"),v:allDaysNow[ak]};break;}}if(found){setRes([found]);}else{setRes([]);setMsg("nessun_turno");}}
+                      setTab("home");
+                    }} style={{width:"100%",height:40,borderRadius:12,border:"none",
+                      background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,
+                      cursor:"pointer",marginBottom:14}}>
+                      Turno di oggi
+                    </button>
+
+                    {/* Area documenti mese */}
+                    <div style={{
+                      borderRadius:14,border:"1px solid #edf0f4",
+                      overflow:"hidden",marginBottom:14
+                    }}>
+                      {/* Titolo sezione */}
+                      <div style={{padding:"10px 14px",background:"#f9fafc",
+                        borderBottom:"1px solid #edf0f4",
+                        fontSize:11,fontWeight:700,color:"#8a9ab0",
+                        textTransform:"uppercase",letterSpacing:"0.06em"}}>
+                        Documenti {MESI_IT[viewM]}
                       </div>
-                      {/* Stato orari */}
-                      <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:hasOr?"#f0faf0":"#f4f6f9",border:"1px solid "+(hasOr?"#a5d6a7":"#e0e5ec"),display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:hasOr?"#2e7d32":"#d0d7de",flexShrink:0}}/>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:700,color:hasOr?"#2e7d32":"#8a9ab0",textTransform:"uppercase",letterSpacing:"0.04em"}}>Orari GTT</div>
-                          <div style={{fontSize:12,color:hasOr?"#2e7d32":"#aab5c2",fontWeight:600}}>{hasOr?"Caricati":"Non caricati"}</div>
+                      {/* Riga preconoscenza */}
+                      <div style={{display:"flex",alignItems:"center",
+                        padding:"12px 14px",borderBottom:"1px solid #edf0f4",
+                        background:"#fff"}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:600,color:"#1a1a2e"}}>Preconoscenza turni</div>
+                          <div style={{fontSize:12,color:hasPr?"#003366":"#b0b8c8",marginTop:1}}>
+                            {hasPr?"Caricata":"Non ancora caricata"}
+                          </div>
                         </div>
+                        <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
+                          style={{padding:"6px 14px",borderRadius:8,border:"none",
+                            background:hasPr?"#f0f4ff":"#003366",
+                            color:hasPr?"#003366":"#ffd100",
+                            fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                          {hasPr?"Ricarica":"Carica PDF"}
+                        </button>
+                      </div>
+                      {/* Riga orari */}
+                      <div style={{display:"flex",alignItems:"center",
+                        padding:"12px 14px",background:"#fff"}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:600,color:"#1a1a2e"}}>Orari GTT</div>
+                          <div style={{fontSize:12,color:hasOr?"#2e7d32":"#b0b8c8",marginTop:1}}>
+                            {hasOr?"Caricati":"Non ancora caricati"}
+                          </div>
+                        </div>
+                        <button onClick={()=>{if(fileRef2.current){fileRef2.current.value="";fileRef2.current.click();}}}
+                          style={{padding:"6px 14px",borderRadius:8,border:"none",
+                            background:hasOr?"#f0faf0":"#2e7d32",
+                            color:hasOr?"#2e7d32":"#fff",
+                            fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                          {hasOr?"Ricarica":"Carica PDF"}
+                        </button>
                       </div>
                     </div>
-                  );
+                  </>);
                 })()}
 
-                {/* Bottoni caricamento documenti */}
-                {(()=>{
-                  const hasPr=Object.keys(calDays).length>0;
-                  const hasOr=Object.keys(calDevsActive).length>0;
-                  return (
-                    <div style={{display:"flex",gap:8,marginBottom:12}}>
-                      <button onClick={()=>{if(fileRef1.current){fileRef1.current.value="";fileRef1.current.click();}}}
-                        style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px dashed "+(hasPr?"#003366":"#c5d5f5"),background:hasPr?"transparent":"#f8faff",color:"#003366",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        {hasPr?"Ricarica turni":"+ Preconoscenza"}
-                      </button>
-                      <button onClick={()=>{if(fileRef2.current){fileRef2.current.value="";fileRef2.current.click();}}}
-                        style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px dashed "+(hasOr?"#2e7d32":"#a5d6a7"),background:hasOr?"transparent":"#f0faf0",color:"#2e7d32",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                        {hasOr?"Ricarica orari":"+ Orari GTT"}
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {/* Calendario e turno dettaglio */}
+                {/* Calendario + dettaglio */}
                 {(()=>{
                   const rc=loadRiposiCycle(),riposiSet=rc?projectRiposi(rc,viewY,viewM):{};
                   const hasDays=Object.keys(calDays).length>0,hasRiposi=Object.keys(riposiSet).length>0;
                   if(!hasDays&&!hasRiposi) return (
-                    <div style={{textAlign:"center",padding:"30px 0",color:G.t2}}>
-                      <div style={{fontSize:15,fontWeight:600,color:G.tw,marginBottom:4}}>Nessun turno per {MESI_IT[viewM]} {viewY}</div>
-                      <div style={{fontSize:13}}>Carica la preconoscenza PDF qui sopra</div>
+                    <div style={{textAlign:"center",padding:"40px 20px"}}>
+                      <div style={{width:56,height:56,borderRadius:"50%",background:"#f0f4ff",
+                        display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#003366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2"/>
+                          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                          <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                      </div>
+                      <div style={{fontSize:17,fontWeight:700,color:"#003366",marginBottom:6}}>
+                        {MESI_IT[viewM]} {viewY}
+                      </div>
+                      <div style={{fontSize:14,color:"#8a9ab0",lineHeight:1.5}}>
+                        Carica la preconoscenza per vedere i turni di questo mese
+                      </div>
                     </div>
                   );
                   return(
                     <div>
-                      <Grid days={calDays} yr={viewY} mo={viewM} riposiSet={riposiSet} onTap={(d,v)=>setDet({date:d,v:v})}/>
-                      {!hasDays&&hasRiposi&&<div style={{fontSize:12,color:G.t3,marginTop:4,textAlign:"center"}}>Riposi proiettati (ciclo {rc.cycle} giorni)</div>}
-                      {det&&<div style={{marginTop:12}}><Card date={det.date} v={det.v} devs={calDevsActive} allDays={calDays} onPaste={onPasteTurno}/></div>}
+                      <Grid days={calDays} yr={viewY} mo={viewM} riposiSet={riposiSet} onTap={(d,v)=>{setDet({date:d,v:v});}}/>
+                      {!hasDays&&hasRiposi&&(
+                        <div style={{textAlign:"center",marginTop:8,fontSize:12,color:"#b0b8c8"}}>
+                          Riposi proiettati · ciclo {rc.cycle} giorni
+                        </div>
+                      )}
+                      {/* Dettaglio giorno selezionato */}
+                      {det && (
+                        <div style={{marginTop:16}}>
+                          {/* Separatore elegante */}
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                            <div style={{flex:1,height:1,background:"#f0f2f5"}}/>
+                            <div style={{fontSize:12,color:"#b0b8c8",fontWeight:500}}>
+                              {["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][det.date.getDay()]} {det.date.getDate()} {MESI_IT[det.date.getMonth()+1]}
+                            </div>
+                            <div style={{flex:1,height:1,background:"#f0f2f5"}}/>
+                          </div>
+                          <Card key={toIso(det.date)+"-"+orariVer} date={det.date} v={det.v} devs={calDevsActive} allDays={calDays} onPaste={onPasteTurno}/>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
