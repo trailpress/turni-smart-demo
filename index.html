@@ -206,28 +206,30 @@ var DIR_LABEL = {A:"Andata", R:"Ritorno"};
 var SPECIAL = {RP:1,RIS:1,FS:1,SL:1,MP:1};
 var REST_CODES = {RP:1,FS:1,SL:1,MP:1};
 var LOC_GPS = {
-  GERB:[45.0396,7.5912,"Deposito Gerbido",692,692],
-  SPAO:[45.0550,7.6560,"Deposito S.Paolo",0,0],
-  VENA:[45.1285,7.6330,"Deposito Venaria",0,0],
-  FERM:[45.0710,7.5770,"Stazione Fermi",3430,3430],
-  PITA:[45.0540,7.6520,"P.za Pitagora",134,135],
-  MONG:[45.0700,7.6580,"C.so Trapani/Monginevro",182,182],
-  BABE:[45.0390,7.6530,"V.Barbera/Unione Sov.",1169,1170],
-  BENS:[45.0340,7.6690,"P.za Bengasi",3628,1023],
-  CAIA:[45.0485,7.6350,"P.za Caio Mario",1119,1119],
-  CAIQ:[45.0485,7.6350,"P.za Caio Mario",1119,1119],
-  CATT:[45.0625,7.6745,"P.za Cattaneo",307,308],
-  CLGR:[45.0760,7.5710,"Collegno Francia/Gramsci",969,968],
-  CLMA:[45.0780,7.5680,"Collegno Francia/Macedonia",853,852],
-  FILA:[45.0440,7.6600,"V.Gorizia/Filadelfia",350,350],
-  LING:[45.0316,7.6676,"Lingotto FS",2604,2603],
-  OMER:[45.0645,7.5750,"P.za Omero",928,928],
-  OMRO:[45.0645,7.5750,"P.za Omero",928,928],
-  ORSA:[45.0420,7.6450,"Orbassano/Sebastopoli",728,729],
-  ORSN:[45.0420,7.6450,"Orbassano/Sebastopoli",317,318],
-  OSET:[45.0445,7.6380,"Orbassano/Settembrini",299,300],
-  PORT:[45.0310,7.5960,"Str.Portone/Gorini",0,0],
-  STPL:[45.0515,7.6310,"P.za Stampalia",3414,3414]
+  GERB:[45.0396,7.5912,"Deposito Gerbido, Via Paolo Gorini 26"],
+  SPAO:[45.0550,7.6560,"Deposito S.Paolo"],
+  VENA:[45.1285,7.6330,"Deposito Venaria"],
+  FERM:[45.0715,7.5772,"Stazione Fermi (Metro)"],
+  PITA:[45.0528,7.6498,"P.za Pitagora, Torino"],
+  MONG:[45.0698,7.6578,"C.so Trapani/Monginevro, Torino"],
+  BABE:[45.0388,7.6528,"C.so Unione Sov./Barbera, Torino"],
+  BENS:[45.0332,7.6688,"P.za Bengasi, Torino"],
+  CAIA:[45.0488,7.6358,"P.za Caio Mario, Torino"],
+  CAIQ:[45.0488,7.6358,"P.za Caio Mario, Torino"],
+  CATT:[45.0628,7.6748,"P.za Cattaneo, Torino"],
+  CLGR:[45.0752,7.5718,"Collegno C.so Francia/Gramsci"],
+  CLMA:[45.0780,7.5682,"Collegno C.so Francia/Macedonia"],
+  FILA:[45.0488,7.6508,"C.so Orbassano/Filadelfia, Torino"],
+  LING:[45.0316,7.6676,"Lingotto FS, Torino"],
+  OMER:[45.0648,7.5752,"P.za Omero, Torino"],
+  OMRO:[45.0648,7.5752,"P.za Omero, Torino"],
+  ORSA:[45.0472,7.6468,"C.so Orbassano/Sebastopoli, Torino"],
+  ORSN:[45.0472,7.6468,"C.so Orbassano/Sebastopoli, Torino"],
+  OSET:[45.0455,7.6412,"C.so Orbassano/Settembrini, Torino"],
+  PORT:[45.0308,7.5958,"Str.Portone/Gorini, Torino"],
+  STPL:[45.0515,7.6310,"P.za Stampalia, Torino"],
+  GRGO:[45.0628,7.5498,"Grugliasco Capolinea"],
+  VENA:[45.1285,7.6330,"Deposito Venaria"]
 };
 var G = {
   bg:"#f4f6f9",glass:"#ffffff",glassBorder:"#dce1e8",cardBorder:"#c8d0da",
@@ -662,6 +664,18 @@ function getFilteredDevSegs(devs,v,date){
     var runKeys=Object.keys(runs);
     if(runKeys.length>1&&v&&v.i){
       var turnoMin=hm2min(v.i.slice(0,2)+":"+v.i.slice(2));
+      var turnoEndMin=v.e?hm2min(v.e.slice(0,2)+":"+v.e.slice(2)):99999;
+      // Controlla se i segmenti di tutti i run formano un turno spezzato continuo
+      // (l'orario preconoscenza copre tutti i segmenti)
+      var allSegsFlat=segs.slice().sort(function(a,b){return hm2min(a.start)-hm2min(b.start);});
+      var firstStart=hm2min(allSegsFlat[0].start);
+      var lastEnd=hm2min(allSegsFlat[allSegsFlat.length-1].end);
+      var spannedByPreco=(firstStart>=turnoMin-30)&&(lastEnd<=turnoEndMin+30);
+      if(spannedByPreco){
+        // Tutti i segmenti appartengono a questo turno — restituiscili tutti
+        return allSegsFlat;
+      }
+      // Altrimenti scegli il run più vicino all'orario di inizio
       var best=runKeys[0],bestDiff=99999;
       runKeys.forEach(function(k){
         var s0=runs[k].slice().sort(function(a,b){return hm2min(a.start)-hm2min(b.start);})[0];
@@ -729,30 +743,18 @@ function buildICS(date,v,devSegs){
     var s=gcalDate(date,v.i),e=gcalDate(date,v.e);
     if(s)L.push("DTSTART:"+s);if(e)L.push("DTEND:"+e);
     L.push("SUMMARY:Turno "+v.l+" "+v.n,"DESCRIPTION:"+calDesc(v,devSegs).replace(/\n/g,"\\n"));
+
   }
   L.push("END:VEVENT","END:VCALENDAR");
   return L.join("\r\n");
 }
 function shareToCalendar(date,v,devSegs){
   var ics=buildICS(date,v,devSegs);
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  var isChrome=/CriOS/.test(navigator.userAgent);
-  if(isIOS && isChrome){
-    // Chrome su iOS: ICS data: non funziona, usiamo Google Calendar
-    var gcal=buildGcalUrl(date,v,devSegs);
-    if(gcal) window.open(gcal,"_blank","noopener");
-  } else if(isIOS){
-    // Safari iOS: data URL apre il Calendario nativo
-    var dataUrl="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
-    window.location.href=dataUrl;
-  } else {
-    // Desktop/Android: scarica .ics
-    var blob=new Blob([ics],{type:"text/calendar"});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement("a");a.href=url;a.download="turno.ics";
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(function(){URL.revokeObjectURL(url);},5000);
-  }
+  if(!ics)return;
+  var blob=new Blob([ics],{type:"text/calendar"});
+  var url=URL.createObjectURL(blob);
+  window.location.href=url;
+  setTimeout(function(){URL.revokeObjectURL(url);},10000);
 }
 function buildBallottaggiICS(data){
   if(!data||!data.days)return null;
@@ -770,8 +772,10 @@ function buildBallottaggiICS(data){
 }
 function downloadBallottaggiICS(data){
   var r=buildBallottaggiICS(data);if(!r)return;
-  var blob=new Blob([r.ics],{type:"text/calendar"}),url=URL.createObjectURL(blob);
-  window.location.href=url;setTimeout(function(){URL.revokeObjectURL(url);},10000);
+  var blob=new Blob([r.ics],{type:"text/calendar"});
+  var url=URL.createObjectURL(blob);
+  window.location.href=url;
+  setTimeout(function(){URL.revokeObjectURL(url);},10000);
 }
 function buildSummary(date,v,devSegs){
   var wd=toWd(date),df=toFmt(date);
@@ -1153,9 +1157,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const [vettMap, setVettMap] = useState(loadVett);
   const vettRefs = React.useRef({});
   const [vettSaved, setVettSaved] = useState(false);
-  const [alarmSet, setAlarmSet] = useState(function(){
-    const a = DB.get("ts_alarm_"+toIso(date)); return a && a.set ? true : false;
-  });
+
 
   const v = localV || allDays[toIso(date)] || vProp;
   const devSegs = getFilteredDevSegs(devs, v, date);
@@ -1172,7 +1174,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const gcalUrl = buildGcalUrl(date, v, devSegs);
   const summary = buildSummary(date, v, devSegs);
   const moovitData = buildMoovitData(date, v);
-  const isMorning = v.t==="turno" && v.i && parseInt(v.i.slice(0,2)) < 14;
+
   const liveUrl = v.t==="turno" ? buildLiveUrlForCard(v) : null;
 
   let lineVariant = "";
@@ -1190,18 +1192,11 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
     try{const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);setCopied(true);setTimeout(()=>setCopied(false),1500);}catch(err){}
   }
 
-  function doCalendar(e) {
-    if(e)e.stopPropagation();
+  function doCalendar() {
     shareToCalendar(date,v,devSegs);
   }
 
-  function doAlarm(e) {
-    if(e)e.stopPropagation();
-    if(v.t!=="turno"||!v.i)return;
-    window.open(gcalUrl,"_blank","noopener");
-    DB.set("ts_alarm_"+iso,{ts:Date.now(),label:"Turno "+v.l+" "+v.n,set:true});
-    setAlarmSet(true);
-  }
+
 
   // Stili base
   const accent="#003366", orange="#e65100";
@@ -1217,20 +1212,12 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         {/* Riga principale: azione primaria + menu */}
         <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
           {/* Azione primaria: sveglia se mattina, navigazione se pomeriggio */}
-          {isMorning && v.t==="turno" ? (
-            <button onClick={doAlarm}
-              style={{flex:1,padding:"13px 0",borderRadius:12,border:"none",
-                background:alarmSet?"#f0faf0":"#003366",
-                color:alarmSet?"#1b7a3d":"#ffd100",
-                fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"-0.01em"}}>
-              {alarmSet?"✓ Sveglia impostata":"Imposta sveglia"}
-            </button>
-          ) : moovitData ? (
-            <button onClick={()=>openMoovit(moovitData)}
+          {moovitData ? (
+            <button onClick={()=>openGMaps(moovitData)}
               style={{flex:1,padding:"13px 0",borderRadius:12,border:"none",
                 background:"#003366",color:"#ffd100",
-                fontSize:15,fontWeight:700,cursor:"pointer"}}>
-              Come arrivare
+                fontSize:14,fontWeight:700,cursor:"pointer",lineHeight:1.2}}>
+              {"Da Gerbido → "+moovitData.locCode}
             </button>
           ) : (
             <button onClick={doCopy}
@@ -1249,6 +1236,15 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
             {showActions?"✕":"···"}
           </button>
         </div>
+
+        {/* Bottone Calendario — sempre visibile */}
+        <button onClick={()=>doCalendar()}
+          style={{width:"100%",marginTop:6,padding:"11px 0",borderRadius:12,border:"none",
+            background:"#f0f4ff",color:"#003366",fontSize:14,fontWeight:700,
+            cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Aggiungi al Calendario
+        </button>
 
         {/* Menu azioni secondarie — appaiono su tap "···" */}
         {showActions && (
@@ -1281,13 +1277,13 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
                   style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:"1px solid #edf0f4",
                     background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6900" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 19v2M17 19v2"/><circle cx="7" cy="14" r="1" fill="#ff6900"/><circle cx="17" cy="14" r="1" fill="#ff6900"/></svg>
-                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Apri in Moovit</span>
+                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Moovit <span style={{fontSize:12,color:"#8a9ab0",fontWeight:400}}>(trasporto pubblico)</span></span>
                 </button>
                 <button onClick={()=>{openGMaps(moovitData);setShowActions(false);}}
                   style={{width:"100%",padding:"13px 16px",border:"none",borderBottom:liveUrl?"1px solid #edf0f4":"none",
                     background:"transparent",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Apri in Google Maps</span>
+                  <span style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>Google Maps <span style={{fontSize:12,color:"#8a9ab0",fontWeight:400}}>(percorso a piedi/TPL)</span></span>
                 </button>
               </>
             )}
