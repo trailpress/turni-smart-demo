@@ -637,6 +637,19 @@ function getFilteredDevSegs(devs,v,date){
   for(var ki=0;ki<keys.length;ki++){
     if(devs[keys[ki]]&&devs[keys[ki]].length>0){segs=devs[keys[ki]];break;}
   }
+  // Fallback generico: controlla tutti i mesi precaricati
+  // Se un mese precaricato ha più segmenti per lo stesso turno, usali
+  if(typeof ORARI_PRECARICATI!=="undefined"){
+    var preMonths=Object.keys(ORARI_PRECARICATI);
+    for(var pm=0;pm<preMonths.length;pm++){
+      var preMonth=ORARI_PRECARICATI[preMonths[pm]]||{};
+      for(var ki2=0;ki2<keys.length;ki2++){
+        if(preMonth[keys[ki2]]&&preMonth[keys[ki2]].length>segs.length){
+          segs=preMonth[keys[ki2]];
+        }
+      }
+    }
+  }
   var dk=keys[0]||null;
   if(segs.length>0&&date){
     var dow=date.getDay();
