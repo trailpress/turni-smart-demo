@@ -56,6 +56,15 @@ select option { background: #ffffff; color: #1a1a2e; }
   margin-right: 6px;
   animation: vettSaveCheck 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
+  @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes scaleIn { from { transform:scale(0.96); opacity:0; } to { transform:scale(1); opacity:1; } }
+@keyframes successBounce { 0% { transform:scale(1); } 40% { transform:scale(1.15); } 100% { transform:scale(1); } }
+@keyframes shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
+.card-appear { animation: fadeInUp 0.25s ease-out; }
+.tab-active { animation: scaleIn 0.15s ease-out; }
+button:active { opacity: 0.75; transform: scale(0.97); transition: all 0.08s; }
 </style>
 
 </head>
@@ -628,6 +637,21 @@ function isFestivoNazionale(date){
   for(var i=0;i<fissi.length;i++){if(fissi[i][0]===d&&fissi[i][1]===m)return true;}
   return false;
 }
+
+// Nomi leggibili per i luoghi GTT
+var LOC_LABELS = {
+  GERB:"Deposito Gerbido", FILA:"Filadelfia", ORSA:"Orbassano/Sebastopoli",
+  ORSN:"Orbassano/Sebastopoli", OSET:"Orbassano/Settembrini", PITA:"P.za Pitagora",
+  CATT:"P.za Cattaneo", LING:"Lingotto FS", BENS:"P.za Bengasi",
+  BABE:"Unione Sov./Barbera", CLGR:"Collegno Francia/Gramsci",
+  CLMA:"Collegno Francia/Macedonia", FERM:"Stazione Fermi",
+  OMER:"P.za Omero", OMRO:"P.za Omero", MONG:"Trapani/Monginevro",
+  CAIA:"P.za Caio Mario", CAIQ:"P.za Caio Mario", STPL:"P.za Stampalia",
+  PORT:"Str.Portone/Gorini", GRGO:"Grugliasco Capolinea",
+  TAPO:"C.so Tazzoli/Poste", BETL:"V.Bertola", GCAS:"V.Grosso/Casalegno",
+  SPAO:"Deposito S.Paolo", VENA:"Deposito Venaria"
+};
+function locLabel(code){ return LOC_LABELS[code]||code; }
 
 function getFilteredDevSegs(devs,v,date){
   if(v&&v._pasted&&(!devs||Object.keys(devs).length===0)) return [];
@@ -1213,7 +1237,7 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
 
   // Stili base
   const accent="#003366", orange="#e65100";
-  const bdr = isSpezzato ? "4px solid "+orange : "4px solid "+accent;
+  const bdr = isSpezzato ? "3px solid "+orange : "3px solid "+accent;
   const cardBase = {background:"#fff",borderRadius:14,boxShadow:"0 2px 12px rgba(0,51,102,0.10)",borderLeft:bdr,padding:"16px 16px 14px"};
 
   // ─── Azioni card — design minimal Jony Ive ───
@@ -1464,15 +1488,15 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
         <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
           <span style={{fontFamily:"'SF Mono',monospace",fontSize:28,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
           <span style={{fontSize:15,color:"#8a9ab0"}}>vet. {vettMap[0]||firstVett||"—"}</span>
-          {v.c && <span style={{fontSize:13,color:"#aab5c2"}}>cod. {v.c}</span>}
+          
         </div>
         <div style={{background:"#f4f6f9",borderRadius:10,padding:"10px 14px"}}>
           <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.i)}</span>
-          <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
+          <span style={{fontSize:13,color:"#8a9ab0",marginLeft:5}}>{locLabel(v.li)}</span>
           {devSegs[0]&&devSegs[0].dir&&devSegs[0].dir!=="-" && <span style={{fontSize:12,fontWeight:700,marginLeft:5,color:devSegs[0].dir==="A"?"#003366":"#6a1b9a",background:devSegs[0].dir==="A"?"#eef3ff":"#f3e5f5",padding:"2px 7px",borderRadius:5}}>{devSegs[0].dir==="A"?"And.":"Rit."}</span>}
-          <span style={{color:"#aab5c2",margin:"0 8px"}}>→</span>
+          <span style={{color:"#c8d0dc",margin:"0 8px"}}>→</span>
           <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.e)}</span>
-          <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
+          <span style={{fontSize:13,color:"#8a9ab0",marginLeft:5}}>{locLabel(v.le)}</span>
           {v.d && <span style={{marginLeft:10,fontSize:14,color:"#8a9ab0"}}>{fD(v.d)}</span>}
         </div>
         <ActionButtons stopFlip={false}/>
@@ -1498,14 +1522,14 @@ function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
             <span style={{fontFamily:"'SF Mono',monospace",fontSize:28,fontWeight:800,color:"#003366",letterSpacing:"-0.02em"}}>{code}</span>
             {firstVett && <span style={{fontSize:15,color:"#8a9ab0"}}>vet. {vettMap[0]||firstVett}</span>}
-            {v.c && <span style={{fontSize:13,color:"#aab5c2"}}>cod. {v.c}</span>}
+            
           </div>
           <div style={{background:"#f4f6f9",borderRadius:10,padding:"10px 14px",marginBottom:10}}>
             <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.i)}</span>
-            <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.li}</span>
-            <span style={{color:"#aab5c2",margin:"0 8px"}}>→</span>
+            <span style={{fontSize:13,color:"#8a9ab0",marginLeft:5}}>{locLabel(v.li)}</span>
+            <span style={{color:"#c8d0dc",margin:"0 8px"}}>→</span>
             <span style={{fontWeight:800,fontSize:20,color:"#003366"}}>{fT(v.e)}</span>
-            <span style={{fontSize:15,color:"#5a6b80",marginLeft:5}}>{v.le}</span>
+            <span style={{fontSize:13,color:"#8a9ab0",marginLeft:5}}>{locLabel(v.le)}</span>
             {v.d && <span style={{marginLeft:10,fontSize:14,color:"#8a9ab0"}}>{fD(v.d)}</span>}
           </div>
           {(devSegs.length > 1 || devSegs.length === 0) && (
@@ -2399,34 +2423,41 @@ function App() {
 
   const inp={width:"100%",padding:"12px 16px",borderRadius:8,border:"2px solid #d0d7de",background:"#ffd100",color:"#1a1a2e",fontSize:17,outline:"none",boxSizing:"border-box"};
   const qb={flex:1,padding:"10px 2px",borderRadius:8,border:"1px solid #d0d7de",background:"#ffd100",color:"#003366",fontSize:14,fontWeight:700,cursor:"pointer"};
-  const tbS=n=>({flex:1,padding:"12px 0",textAlign:"center",fontSize:15,fontWeight:700,background:tab===n?"#003366":"#ffffff",color:tab===n?"#ffd100":"#003366",border:"1px solid "+(tab===n?"#003366":"#d0d7de"),borderRadius:8,cursor:"pointer"});
+  const tbS=n=>({
+    flex:1,padding:"8px 4px 6px",
+    display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+    background:tab===n?"#003366":"transparent",
+    color:tab===n?"#ffd100":"#8a9ab0",
+    border:"none",borderRadius:12,cursor:"pointer",
+    transition:"all 0.15s ease",
+    fontSize:10,fontWeight:700,letterSpacing:"0.02em"
+  });
 
   const ballCount = Object.keys(days).filter(k=>days[k]&&days[k].t==="RIS").length;
 
   return (
     <div style={{minHeight:"100vh",background:"#f4f6f9",color:"#1a1a2e",fontFamily:"'Segoe UI','SF Pro Display',-apple-system,sans-serif"}}>
 
-      {/* Header — identico v4.3 */}
-      <div style={{background:"#003366",padding:"10px 18px",display:"flex",alignItems:"center",gap:12,borderBottom:"3px solid #ffd100",boxShadow:"0 2px 12px rgba(0,51,102,0.20)"}}>
-        <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
-          <path d="M8 20l12-8 14 6 14-6 12 8v28l-12 8-14-6-14 6L8 48V20z" fill="#e8d44d" stroke="#c4a82a" strokeWidth="1"/>
-          <path d="M20 12l14 6v36l-14-6V12z" fill="#b8c94a" stroke="#8fa03a" strokeWidth="0.5"/>
-          <path d="M34 18l14-6v36l-14 6V18z" fill="#d4cc5a" stroke="#b0a83a" strokeWidth="0.5"/>
-          <path d="M32 6c-6.6 0-12 5-12 11.2C20 25.6 32 38 32 38s12-12.4 12-20.8C44 11 38.6 6 32 6z" fill="#003366"/>
-          <circle cx="32" cy="17" r="7.5" fill="#ffffff"/>
-          <rect x="26" y="12.5" width="12" height="8" rx="2" fill="#003366"/>
-          <rect x="27" y="14" width="4.5" height="3" rx="0.8" fill="#89b4e8"/>
-          <rect x="32.5" y="14" width="4.5" height="3" rx="0.8" fill="#89b4e8"/>
-          <circle cx="28.5" cy="22" r="1.2" fill="#003366"/>
-          <circle cx="35.5" cy="22" r="1.2" fill="#003366"/>
-        </svg>
-        <div style={{flex:1}}>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:24,fontWeight:800,color:"#ffffff",letterSpacing:"-0.02em"}}>Turni Smart</span>
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:500}}>v5</span>
+      {/* Header con logo reale */}
+      <div style={{background:"#003366",paddingTop:"env(safe-area-inset-top,0px)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px 10px"}}>
+          {/* Logo PNG + titolo */}
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <img src="data:image/png;base64,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" alt="Turni Smart" style={{width:42,height:42,objectFit:"contain",filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:"-0.03em",lineHeight:1}}>Turni Smart</span>
+                {/* Badge v5 stile Apple — pill blu scuro */}
+                <span style={{background:"rgba(255,255,255,0.15)",border:"1.5px solid rgba(255,255,255,0.3)",borderRadius:10,padding:"2px 9px",fontSize:12,fontWeight:800,color:"#ffd100",letterSpacing:"0.02em",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.1)"}}>v5</span>
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:500,marginTop:2}}>Deposito Gerbido · GTT Torino</div>
+            </div>
           </div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.65)",fontWeight:500,marginTop:1}}>Gestione turni GTT &mdash; Deposito Gerbido</div>
+          <button onClick={resetAll} style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"5px 11px",color:"rgba(255,255,255,0.7)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+            Reset
+          </button>
         </div>
+        <div style={{height:2,background:"linear-gradient(90deg,transparent,#ffd100 15%,#ffd100 85%,transparent)"}}/>
       </div>
 
       <div style={{maxWidth:460,margin:"0 auto",padding:"16px 16px"}}>
@@ -2484,7 +2515,15 @@ function App() {
           <div>
             <div onClick={()=>{if(!loading1&&fileRef1.current)fileRef1.current.click();}} style={Object.assign({},glassCard,{padding:"28px 20px",textAlign:"center",cursor:loading1?"wait":"pointer",marginBottom:14})}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={loading1?G.accent:G.tw} strokeWidth="1.5" style={{marginBottom:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
-              <div style={{fontSize:17,fontWeight:600,color:loading1?G.accent:G.tw,marginBottom:3}}>{loading1?"Analisi in corso...":"Carica Preconoscenza"}</div>
+              {loading1 && (
+                <div style={{marginBottom:8}}>
+                  <div style={{width:28,height:28,border:"3px solid #edf0f4",borderTopColor:"#003366",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 8px"}}/>
+                  <div style={{height:3,background:"#f0f2f5",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+                    <div style={{height:"100%",background:"linear-gradient(90deg,transparent,#003366,transparent)",backgroundSize:"300px 100%",animation:"shimmer 1.2s linear infinite"}}/>
+                  </div>
+                </div>
+              )}
+              <div style={{fontSize:17,fontWeight:600,color:loading1?G.accent:G.tw,marginBottom:3}}>{loading1?"Analisi preconoscenza...":"Carica Preconoscenza PDF"}</div>
               <div style={{color:G.t3,fontSize:14}}>PDF mensile turni personali</div>
             </div>
             {hasHistory ? (
@@ -2514,7 +2553,7 @@ function App() {
             ) : (
               <div style={{marginBottom:12}}>
                 <div onClick={()=>{if(!loading2&&fileRef2.current)fileRef2.current.click();}} style={Object.assign({},glassCard,{padding:"24px 20px",textAlign:"center",cursor:loading2?"wait":"pointer",borderStyle:"dashed"})}>
-                  <div style={{fontSize:17,fontWeight:600,color:loading2?G.accent:G.tw,marginBottom:5}}>{loading2?"Analisi in corso...":"Carica Orari Linee GTT"}</div>
+                  <div style={{fontSize:17,fontWeight:600,color:loading2?G.accent:G.tw,marginBottom:5}}>{loading2?"Elaborazione orari GTT...":"Carica Orari Linee GTT"}</div>
                   <div style={{color:G.t2,fontSize:15}}>PDF con lo sviluppo turni del deposito</div>
                 </div>
                 <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
@@ -2526,13 +2565,56 @@ function App() {
             {/* Tab bar — stile v4.3 */}
             <div style={{display:"flex",gap:4,marginBottom:14}}>
               {[
-                {id:"home",    label:"Turni"},
-                {id:"mese",    label:"Mese"},
-                {id:"riposi",  label:"Riposi"},
-                ...(nDevs>0 ? [{id:"linee", label:"Linee"}] : [])
+                                {id:"home", label:"Turni", svgEl:(active)=>(
+                  <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="9" fill={active?"#003366":"none"}/>
+                    <rect x="8" y="14" width="24" height="15" rx="3" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="10" y="11" width="20" height="5" rx="2" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="10" y="17" width="8" height="5" rx="1.5" fill={active?"#003366":"#e0e5ec"}/>
+                    <rect x="22" y="17" width="8" height="5" rx="1.5" fill={active?"#003366":"#e0e5ec"}/>
+                    <circle cx="13" cy="30" r="2.5" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <circle cx="27" cy="30" r="2.5" fill={active?"#FFD100":"#8a9ab0"}/>
+                  </svg>
+                )},
+                {id:"mese", label:"Mese", svgEl:(active)=>(
+                  <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+                    <rect x="5" y="8" width="30" height="27" rx="4" stroke={active?"#FFD100":"#8a9ab0"} strokeWidth="2.5" fill="none"/>
+                    <rect x="5" y="14" width="30" height="2" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <circle cx="13" cy="11" r="2" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <circle cx="27" cy="11" r="2" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="10" y="18" width="5" height="5" rx="1" fill={active?"#FFD100":"#8a9ab0"} opacity="0.7"/>
+                    <rect x="17.5" y="18" width="5" height="5" rx="1" fill={active?"#FFD100":"#8a9ab0"} opacity="0.7"/>
+                    <rect x="25" y="18" width="5" height="5" rx="1" fill={active?"#FFD100":"#8a9ab0"} opacity="0.7"/>
+                    <rect x="10" y="25" width="5" height="5" rx="1" fill={active?"#FFD100":"#8a9ab0"} opacity="0.7"/>
+                    <rect x="17.5" y="25" width="5" height="5" rx="1" fill={active?"#FFD100":"#8a9ab0"} opacity="0.7"/>
+                    <path d="M27 27l2 2 4-4" stroke={active?"#FFD100":"#8a9ab0"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )},
+                {id:"riposi", label:"Riposi", svgEl:(active)=>(
+                  <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+                    <rect x="5" y="22" width="30" height="3" rx="1.5" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="5" y="25" width="4" height="8" rx="1" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="31" y="25" width="4" height="8" rx="1" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="5" y="17" width="18" height="5" rx="2" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <rect x="5" y="13" width="14" height="6" rx="5" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <text x="23" y="10" fontSize="6" fontWeight="bold" fill={active?"#FFD100":"#8a9ab0"} fontFamily="system-ui">z</text>
+                    <text x="27" y="7" fontSize="7" fontWeight="bold" fill={active?"#FFD100":"#8a9ab0"} fontFamily="system-ui">Z</text>
+                    <text x="32" y="5" fontSize="8" fontWeight="bold" fill={active?"#FFD100":"#8a9ab0"} fontFamily="system-ui">Z</text>
+                  </svg>
+                )},
+                ...(nDevs>0 ? [{id:"linee", label:"Linee", svgEl:(active)=>(
+                  <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+                    <path d="M12 30 Q20 15 28 10" stroke={active?"#FFD100":"#8a9ab0"} strokeWidth="2" strokeDasharray="3 3" fill="none"/>
+                    <path d="M12 30c0-3.3 2.7-6 6-6s6 2.7 6 6c0 4.7-6 9-6 9s-6-4.3-6-9z" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <circle cx="12" cy="30" r="2" fill={active?"#003366":"#e0e5ec"}/>
+                    <path d="M22 10c0-3.3 2.7-6 6-6s6 2.7 6 6c0 4.7-6 9-6 9s-6-4.3-6-9z" fill={active?"#FFD100":"#8a9ab0"}/>
+                    <circle cx="28" cy="10" r="2" fill={active?"#003366":"#e0e5ec"}/>
+                  </svg>
+                )}] : [])
               ].map(t=>(
                 <button key={t.id} style={tbS(t.id)} onClick={()=>{setTab(t.id);if(t.id==="mese")setDet(null);}}>
-                  {t.label}
+                  {t.svgEl && t.svgEl(tab===t.id)}
+                  <span>{t.label}</span>
                 </button>
               ))}
             </div>
@@ -2639,7 +2721,7 @@ function App() {
                       if(r.missingPreco) return;
                     } else if(r.missingPreco) return;
 
-                    items.push(<Card key={toIso(r.date)} date={r.date} v={r.v} devs={devs} allDays={days} onPaste={onPasteTurno}/>);
+                    items.push(<div key={toIso(r.date)} className="card-appear"><Card date={r.date} v={r.v} devs={devs} allDays={days} onPaste={onPasteTurno}/></div>);
                   });
                   return items;
                 })()}
