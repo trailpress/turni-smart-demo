@@ -1355,6 +1355,146 @@ function BusProgress({vi, ve, date}) {
   );
 }
 
+// ── DaySlider ──────────────────────────────────────────
+function DaySlider({viewY, viewM, calDays, det, setDet, isCurrentMonth}) {
+  var nd = new Date(viewY, viewM, 0).getDate();
+  var initDay = det ? det.date.getDate() : (isCurrentMonth ? Math.min(new Date().getDate(), nd) : 1);
+  initDay = Math.max(1, Math.min(initDay, nd));
+
+  var sliderRef  = React.useRef(null);
+  var busRef     = React.useRef(null);
+  var trackRef   = React.useRef(null);
+  var dayRef     = React.useRef(null);
+  var turnoRef   = React.useRef(null);
+  var oraRef     = React.useRef(null);
+  var rafRef     = React.useRef(null);
+  var lastDay    = React.useRef(initDay);
+
+  function moveBus(day) {
+    if(rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(function() {
+      lastDay.current = day;
+      var pct  = nd > 1 ? (day-1)/(nd-1)*100 : 0;
+      var left = pct * 0.86 + 4;
+      if(busRef.current)   busRef.current.style.left  = left + "%";
+      if(trackRef.current) trackRef.current.style.width = (pct * 0.86) + "%";
+      if(dayRef.current)   dayRef.current.textContent = day;
+      var ds = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+      var vv = calDays[ds];
+      var col = vv ? (vv.t==="turno"?"#003366":vv.t==="RIS"?"#c62828":"#b8860b") : "#8a9ab0";
+      if(turnoRef.current) {
+        turnoRef.current.textContent = vv
+          ? (vv.t==="turno"?vv.l+" "+vv.n:(TL[vv.t]||[vv.t])[0]) : "—";
+        turnoRef.current.style.color = col;
+      }
+      if(oraRef.current)
+        oraRef.current.textContent = vv&&vv.t==="turno"&&vv.i&&vv.e
+          ? fT(vv.i)+" → "+fT(vv.e) : "";
+      if(busRef.current) {
+        var inner = busRef.current.firstChild;
+        if(inner) inner.style.background = col;
+      }
+      if(trackRef.current) trackRef.current.style.background = col;
+    });
+  }
+
+  React.useEffect(function() {
+    if(det) moveBus(det.date.getDate());
+  }, [det, viewY, viewM]);
+
+  // Touch events diretti sull'input per massima fluidità su iOS
+  function handleTouch(e) {
+    if(!sliderRef.current) return;
+    var rect = sliderRef.current.getBoundingClientRect();
+    var touch = e.touches[0] || e.changedTouches[0];
+    var x = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+    var day = Math.round(1 + x * (nd-1));
+    day = Math.max(1, Math.min(nd, day));
+    moveBus(day);
+    if(e.type === "touchend") {
+      var ds = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+      var vv = calDays[ds];
+      setDet(vv ? {date:new Date(viewY,viewM-1,day), v:vv} : null);
+    }
+  }
+
+  var sd   = det ? det.date.getDate() : initDay;
+  var dStr = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(sd).padStart(2,"0");
+  var vSel = calDays[dStr];
+  var bCol = vSel ? (vSel.t==="turno"?"#003366":vSel.t==="RIS"?"#c62828":"#b8860b") : "#8a9ab0";
+  var pct0 = nd > 1 ? (sd-1)/(nd-1)*100 : 0;
+
+  return (
+    <div style={{marginBottom:16}}>
+      {/* Mirino */}
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",
+        borderRadius:12,border:"2px solid "+(vSel?bCol:"#e0e5ec"),
+        background:vSel?(vSel.t==="turno"?"#eef3ff":vSel.t==="RIS"?"#fef2f2":"#fffde7"):"#f4f6f9",
+        marginBottom:14}}>
+        <div style={{width:36,height:36,borderRadius:9,background:vSel?bCol:"#e0e5ec",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          flexShrink:0,fontSize:15,fontWeight:800,
+          color:vSel&&vSel.t==="turno"?"#ffd100":"#fff"}}>
+          <span ref={dayRef}>{sd}</span>
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:11,color:"#8a9ab0",fontWeight:600,marginBottom:2}}>
+            {["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(viewY,viewM-1,sd).getDay()]}
+            {"  "}{sd}{"  "}{MESI_IT[viewM]}
+          </div>
+          <div ref={turnoRef} style={{fontSize:16,fontWeight:800,color:bCol,letterSpacing:"-0.02em"}}>
+            {vSel?(vSel.t==="turno"?vSel.l+" "+vSel.n:(TL[vSel.t]||[vSel.t])[0]):"—"}
+          </div>
+          <div ref={oraRef} style={{fontSize:11,color:"#8a9ab0",marginTop:1}}>
+            {vSel&&vSel.t==="turno"&&vSel.i&&vSel.e?fT(vSel.i)+" → "+fT(vSel.e):""}
+          </div>
+        </div>
+        {vSel&&<div style={{fontSize:18,color:bCol}}>›</div>}
+      </div>
+
+      {/* Slider */}
+      <div style={{position:"relative",height:52,marginBottom:6,touchAction:"none"}}>
+        <div style={{position:"absolute",top:"50%",left:"4%",right:"4%",
+          height:5,background:"#e0e5ec",borderRadius:3,transform:"translateY(-50%)"}}/>
+        <div ref={trackRef} style={{position:"absolute",top:"50%",left:"4%",
+          width:(pct0*0.86)+"%",height:5,background:bCol,borderRadius:3,transform:"translateY(-50%)"}}/>
+        {/* Input con touch events diretti */}
+        <input ref={sliderRef} type="range" min={1} max={nd} defaultValue={sd}
+          onTouchStart={handleTouch}
+          onTouchMove={handleTouch}
+          onTouchEnd={handleTouch}
+          onChange={function(e){
+            var day=parseInt(e.target.value);
+            moveBus(day);
+            var ds=viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+            var vv=calDays[ds];
+            setDet(vv?{date:new Date(viewY,viewM-1,day),v:vv}:null);
+          }}
+          style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",
+            opacity:0,cursor:"pointer",margin:0,padding:0,
+            WebkitAppearance:"none",zIndex:10,touchAction:"none"}}
+        />
+        <div ref={busRef} style={{position:"absolute",top:"50%",
+          left:(pct0*0.86+4)+"%",
+          transform:"translate(-50%,-50%)",pointerEvents:"none",zIndex:5}}>
+          <div style={{width:36,height:36,borderRadius:9,background:bCol,
+            border:"3px solid #fff",
+            boxShadow:"0 2px 8px rgba(0,51,102,0.25)",
+            display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <img src={"data:image/png;base64,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"}
+              style={{width:22,height:22,objectFit:"contain",filter:"brightness(0) invert(1)"}}/>
+          </div>
+        </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <span style={{fontSize:10,color:"#aab5c2",fontWeight:600}}>1 {MESI_IT[viewM].slice(0,3)}</span>
+        <span style={{fontSize:10,color:"#aab5c2",fontWeight:600}}>{nd} {MESI_IT[viewM].slice(0,3)}</span>
+      </div>
+    </div>
+  );
+}
+
+
 function Card({date, devs={}, allDays={}, onPaste, v: vProp}) {
   const [copied, setCopied] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -3100,93 +3240,13 @@ function App() {
                   );
                   return(
                     <div>
+                      <DaySlider
+                        viewY={viewY} viewM={viewM}
+                        calDays={calDays}
+                        det={det} setDet={setDet}
+                        isCurrentMonth={isCurrentMonth}
+                      />
                       <Grid days={calDays} yr={viewY} mo={viewM} riposiSet={riposiSet} onTap={(d,v)=>{setDet({date:d,v:v});}}/>
-
-                      {/* Slider giorni — fluido via DOM diretto */}
-                      {hasDays && (()=>{
-                        var nd = new Date(viewY,viewM,0).getDate();
-                        var sd = det ? det.date.getDate() : (isCurrentMonth ? Math.min(new Date().getDate(),nd) : 1);
-                        sd = Math.max(1, Math.min(sd, nd));
-                        var dStr = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(sd).padStart(2,"0");
-                        var vSel = calDays[dStr];
-                        var bCol = vSel ? (vSel.t==="turno"?"#003366":vSel.t==="RIS"?"#c62828":"#b8860b") : "#8a9ab0";
-                        var sliderRef = React.useRef(null);
-                        var busRef = React.useRef(null);
-                        var trackRef = React.useRef(null);
-                        var mirrorDayRef = React.useRef(null);
-                        var mirrorTurnoRef = React.useRef(null);
-                        var mirrorOraRef = React.useRef(null);
-
-                        // Aggiorna bus e track DIRETTAMENTE nel DOM — nessun re-render
-                        var updateBusDom = React.useCallback(function(day, total) {
-                          var pct = total > 1 ? (day-1)/(total-1)*100 : 0;
-                          var busLeft = (pct * 0.86 + 4);
-                          if(busRef.current) busRef.current.style.left = busLeft + "%";
-                          if(trackRef.current) trackRef.current.style.width = (pct * 0.86) + "%";
-                          // Aggiorna mirino
-                          var ds = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(day).padStart(2,"0");
-                          var vv = calDays[ds];
-                          if(mirrorDayRef.current) mirrorDayRef.current.textContent = day;
-                          if(mirrorTurnoRef.current) mirrorTurnoRef.current.textContent = vv
-                            ? (vv.t==="turno" ? vv.l+" "+vv.n : (TL[vv.t]||[vv.t])[0])
-                            : "—";
-                          if(mirrorOraRef.current) mirrorOraRef.current.textContent = vv&&vv.t==="turno"&&vv.i&&vv.e
-                            ? (fT(vv.i)+" → "+fT(vv.e)) : "";
-                        }, [viewY, viewM, calDays]);
-
-                        return (
-                          <div style={{marginTop:16}}>
-                            {/* Mirino */}
-                            <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:vSel?"#f0f4ff":"#f4f6f9",borderRadius:12,border:"2px solid "+(vSel?bCol:"#e0e5ec"),marginBottom:14}}>
-                              <div style={{width:34,height:34,borderRadius:8,background:vSel?bCol:"#e0e5ec",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:15,fontWeight:800,color:vSel&&vSel.t==="turno"?"#ffd100":"#fff"}}>
-                                <span ref={mirrorDayRef}>{sd}</span>
-                              </div>
-                              <div style={{flex:1}}>
-                                <div style={{fontSize:11,color:"#8a9ab0",fontWeight:600}}>
-                                  {["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(viewY,viewM-1,sd).getDay()]}{"  "}{sd}{"  "}{MESI_IT[viewM]}
-                                </div>
-                                <div ref={mirrorTurnoRef} style={{fontSize:16,fontWeight:800,color:vSel?bCol:"#aab5c2",letterSpacing:"-0.02em"}}>
-                                  {vSel ? (vSel.t==="turno" ? vSel.l+" "+vSel.n : (TL[vSel.t]||[vSel.t])[0]) : "—"}
-                                </div>
-                                <div ref={mirrorOraRef} style={{fontSize:11,color:"#8a9ab0"}}>
-                                  {vSel&&vSel.t==="turno"&&vSel.i&&vSel.e ? fT(vSel.i)+" → "+fT(vSel.e) : ""}
-                                </div>
-                              </div>
-                              {vSel&&<div style={{fontSize:18,color:bCol}}>›</div>}
-                            </div>
-                            {/* Slider */}
-                            <div style={{position:"relative",height:48,marginBottom:4}}>
-                              <div style={{position:"absolute",top:"50%",left:"4%",right:"4%",height:5,background:"#e0e5ec",borderRadius:3,transform:"translateY(-50%)"}}/>
-                              <div ref={trackRef} style={{position:"absolute",top:"50%",left:"4%",width:((nd>1?(sd-1)/(nd-1)*100:0)*0.86)+"%",height:5,background:bCol,borderRadius:3,transform:"translateY(-50%)"}}/>
-                              <input
-                                ref={sliderRef}
-                                type="range" min={1} max={nd} defaultValue={sd}
-                                onInput={e=>{
-                                  var day = parseInt(e.target.value);
-                                  updateBusDom(day, nd);
-                                }}
-                                onChange={e=>{
-                                  var day = parseInt(e.target.value);
-                                  var dt = new Date(viewY,viewM-1,day);
-                                  var ds = viewY+"-"+String(viewM).padStart(2,"0")+"-"+String(day).padStart(2,"0");
-                                  var vv = calDays[ds];
-                                  setDet(vv?{date:dt,v:vv}:null);
-                                }}
-                                style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",opacity:0,cursor:"pointer",margin:0,padding:0,WebkitAppearance:"none",zIndex:10}}
-                              />
-                              <div ref={busRef} style={{position:"absolute",top:"50%",left:((nd>1?(sd-1)/(nd-1)*100:0)*0.86+4)+"%",transform:"translate(-50%,-50%)",pointerEvents:"none",zIndex:5}}>
-                                <div style={{width:36,height:36,borderRadius:9,background:vSel?bCol:"#8a9ab0",border:"3px solid #fff",boxShadow:"0 2px 8px rgba(0,51,102,0.25)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                  <img src={"data:image/png;base64,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"} style={{width:22,height:22,objectFit:"contain",filter:"brightness(0) invert(1)"}}/>
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{display:"flex",justifyContent:"space-between"}}>
-                              <span style={{fontSize:10,color:"#aab5c2",fontWeight:600}}>1 {MESI_IT[viewM].slice(0,3)}</span>
-                              <span style={{fontSize:10,color:"#aab5c2",fontWeight:600}}>{nd} {MESI_IT[viewM].slice(0,3)}</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
 
                       {!hasDays&&hasRiposi&&<div style={{textAlign:"center",marginTop:8,fontSize:12,color:"#b0b8c8"}}>Riposi proiettati · ciclo {rc.cycle} giorni</div>}
                       {det && (
