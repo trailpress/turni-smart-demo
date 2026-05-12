@@ -71,6 +71,8 @@ input.day-slider::-moz-range-thumb { width:38px; height:38px; border-radius:9px;
 button:active { opacity: 0.75; transform: scale(0.97); transition: all 0.08s; }
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 <body>
 
@@ -804,6 +806,247 @@ function buildICS(date,v,devSegs){
   L.push("END:VEVENT","END:VCALENDAR");
   return L.join("\r\n");
 }
+// Genera testo calendario semplificato per moglie
+function buildCalendarioMoglie(data) {
+  if(!data||!data.days) return "";
+  var GIORNI = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+  var MESI_SHORT = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  var lines = [];
+  var sorted = Object.keys(data.days).sort();
+  sorted.forEach(function(iso) {
+    var v = data.days[iso];
+    if(!v) return;
+    var d = new Date(iso+"T12:00:00");
+    var gg = GIORNI[d.getDay()];
+    var giorno = d.getDate();
+    var mese = MESI_SHORT[d.getMonth()];
+    if(v.t === "turno") {
+      var orario = v.i && v.e ? fT(v.i)+" - "+fT(v.e) : "";
+      lines.push(gg+" "+giorno+" "+mese+": "+orario);
+    } else if(v.t === "RIS") {
+      lines.push(gg+" "+giorno+" "+mese+": Ballottaggio");
+    } else if(REST_CODES[v.t]) {
+      var desc = TL[v.t] ? TL[v.t][0] : "Riposo";
+      lines.push(gg+" "+giorno+" "+mese+": "+desc);
+    }
+  });
+  return lines.join("\n");
+}
+
+function shareCalendarioMoglie(data) {
+  var txt = buildCalendarioMoglie(data);
+  if(!txt) return;
+  var header = "🚌 Turni "+(data.nome||"")+"\n"+(data.dIn?toFmt(data.dIn)+" - "+(data.dFin?toFmt(data.dFin):""):"")+"\n\n";
+  var full = header + txt;
+  // WhatsApp
+  window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(full), "_blank", "noopener");
+}
+
+function shareCalendarioMoglieCopy(data) {
+  var txt = buildCalendarioMoglie(data);
+  if(!txt) return;
+  var header = "🚌 Turni\n\n";
+  var full = header + txt;
+  try {
+    if(navigator.clipboard) {
+      navigator.clipboard.writeText(full);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = full;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+  } catch(e) {}
+}
+
+// ── Genera PDF calendario colorato per moglie ──────────
+function generateCalendarioPDF(data) {
+  if(!data||!data.days) return null;
+  var {jsPDF} = window.jspdf;
+  if(!jsPDF) return null;
+  var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  var W=210, H=297;
+
+  // Colori
+  var BLU=[0,51,102], GIALLO=[255,209,0], BIANCO=[255,255,255];
+  var VERDE=[46,125,50], ROSSO=[198,40,40], ARANCIO=[230,81,0];
+  var GRIGIO=[245,247,250], GRIGIO2=[232,236,242];
+
+  // Header
+  doc.setFillColor.apply(doc,BLU);
+  doc.rect(0,0,W,22,'F');
+  doc.setFillColor.apply(doc,GIALLO);
+  doc.circle(13,11,7,'F');
+  doc.setTextColor.apply(doc,BLU);
+  doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('GTT',13,13,{align:'center'});
+  doc.setTextColor.apply(doc,BIANCO);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Turni Smart',23,9);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(255,209,0);
+  doc.text('Deposito Gerbido · GTT Torino',23,14);
+  // Nome autista
+  var nome = data.nome||"Autista";
+  var mat  = data.nCar ? "N. "+data.nCar : "";
+  doc.setTextColor.apply(doc,BIANCO);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(nome,W-5,9,{align:'right'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  if(mat) doc.text(mat,W-5,14,{align:'right'});
+  if(data.dIn&&data.dFin) doc.text(toFmt(data.dIn)+" — "+toFmt(data.dFin),W-5,19,{align:'right'});
+
+  // Linea gialla
+  doc.setDrawColor.apply(doc,GIALLO);
+  doc.setLineWidth(0.8);
+  doc.line(0,22,W,22);
+
+  // Legenda
+  var legends=[{c:BLU,l:'Turno'},{c:VERDE,l:'Riposo'},{c:ROSSO,l:'Ballottaggio'},{c:ARANCIO,l:'Spezzato'}];
+  var xL=5;
+  legends.forEach(function(lg){
+    doc.setFillColor.apply(doc,lg.c);
+    doc.roundedRect(xL,24,5,5,1,1,'F');
+    doc.setTextColor(80,80,80);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text(lg.l,xL+6,28.5);
+    xL+=38;
+  });
+
+  // Raggruppa per mese — USA SOLO i giorni della preconoscenza
+  var byMonth={};
+  Object.keys(data.days).sort().forEach(function(iso){
+    var m=iso.slice(0,7);
+    if(!byMonth[m]) byMonth[m]=[];
+    byMonth[m].push({iso:iso,v:data.days[iso]});
+  });
+
+  var DAYS_HDR=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var cellW=(W-10)/7, cellH=20;
+  var yOff=32;
+
+  Object.keys(byMonth).sort().forEach(function(mKey,mi){
+    if(mi>0){doc.addPage();yOff=10;}
+    var yr=parseInt(mKey.slice(0,4)),mo=parseInt(mKey.slice(5,7));
+    var mNome=MESI_IT[mo]+' '+yr;
+
+    // Titolo mese
+    doc.setFillColor.apply(doc,BLU);
+    doc.roundedRect(5,yOff,W-10,8,1,1,'F');
+    doc.setTextColor.apply(doc,GIALLO);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text(mNome,W/2,yOff+5.5,{align:'center'});
+    yOff+=10;
+
+    // Intestazione giorni
+    DAYS_HDR.forEach(function(d,i){
+      doc.setFillColor(220,228,240);
+      doc.rect(5+i*cellW,yOff,cellW,7,'F');
+      doc.setTextColor.apply(doc,BLU);
+      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.text(d,5+i*cellW+cellW/2,yOff+4.8,{align:'center'});
+    });
+    yOff+=7;
+
+    // Mappa giorni dal mese
+    var dmap={};
+    byMonth[mKey].forEach(function(g){dmap[g.iso]=g.v;});
+
+    // Itera tutti i giorni del mese — celle grigie per giorni NON in preconoscenza
+    var primo=new Date(yr,mo-1,1);
+    var startDow=primo.getDay()===0?6:primo.getDay()-1;
+    var ndm=new Date(yr,mo,0).getDate();
+    var col=startDow, row=0;
+
+    for(var d=1;d<=ndm;d++){
+      var iso=yr+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var vv=dmap[iso];
+      var x=5+col*cellW;
+      var y=yOff+row*cellH;
+
+      var bg, txtC;
+      if(vv&&vv.t==='turno')       {bg=[232,240,255]; txtC=BLU;}
+      else if(vv&&vv.t==='RIS')    {bg=[255,235,238]; txtC=ROSSO;}
+      else if(vv&&REST_CODES[vv.t]){bg=[232,245,233]; txtC=VERDE;}
+      else                         {bg=[250,251,252]; txtC=[210,214,220];}
+
+      doc.setFillColor.apply(doc,bg);
+      doc.setDrawColor(220,224,230);
+      doc.setLineWidth(0.2);
+      doc.rect(x,y,cellW,cellH,'FD');
+
+      // Numero giorno
+      doc.setTextColor.apply(doc,txtC);
+      doc.setFontSize(9); doc.setFont('helvetica',vv?'bold':'normal');
+      doc.text(String(d),x+2.5,y+6);
+
+      // Orario solo se turno
+      if(vv&&vv.t==='turno'&&vv.i&&vv.e){
+        doc.setFontSize(7); doc.setFont('helvetica','bold');
+        doc.setTextColor.apply(doc,BLU);
+        doc.text(fT(vv.i)+' - '+fT(vv.e),x+cellW/2,y+14,{align:'center'});
+      } else if(vv&&vv.t==='RIS'){
+        doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+        doc.setTextColor.apply(doc,ROSSO);
+        doc.text('Ballot.',x+cellW/2,y+14,{align:'center'});
+      } else if(vv&&REST_CODES[vv.t]){
+        var rl=(TL[vv.t]||[vv.t])[0].slice(0,7);
+        doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+        doc.setTextColor.apply(doc,VERDE);
+        doc.text(rl,x+cellW/2,y+14,{align:'center'});
+      }
+
+      // Pallino colorato
+      if(vv){
+        var dotC=vv.t==='turno'?BLU:vv.t==='RIS'?ROSSO:VERDE;
+        doc.setFillColor.apply(doc,dotC);
+        doc.circle(x+cellW-2.5,y+3,1.8,'F');
+      }
+
+      col++;
+      if(col>=7){col=0;row++;}
+    }
+    yOff+=(row+1)*cellH+8;
+  });
+  // Footer
+  doc.setFillColor.apply(doc,GRIGIO2);
+  doc.rect(0,H-10,W,10,'F');
+  doc.setTextColor(150,150,150);
+  doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('Generato da Turni Smart v5 · GTT Deposito Gerbido',W/2,H-3.5,{align:'center'});
+
+  return doc;
+}
+
+function inviaCalendarioWhatsApp(data) {
+  if(!data){alert("Carica prima la preconoscenza");return;}
+  if(!window.jspdf){alert("Libreria PDF non disponibile");return;}
+  var doc=generateCalendarioPDF(data);
+  if(!doc)return;
+  var nome=data.dIn?toFmt(data.dIn).replace(/\//g,"-"):"turni";
+  var filename="preconoscenza-"+nome+".pdf";
+  // Genera il blob PDF
+  var blob=doc.output("blob");
+  var file=new File([blob],filename,{type:"application/pdf"});
+  // Su iOS: usa Web Share API per aprire il foglio di condivisione nativo
+  // che include WhatsApp, Mail, AirDrop, ecc.
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({
+      title:"Preconoscenza GTT",
+      text:"Ecco la mia preconoscenza turni GTT 🚌",
+      files:[file]
+    }).catch(function(){
+      // Fallback: scarica il file
+      doc.save(filename);
+    });
+  } else {
+    // Fallback per browser che non supportano share con file
+    doc.save(filename);
+  }
+}
+
 function shareToCalendar(date,v,devSegs){
   var ics=buildICS(date,v,devSegs);
   if(!ics)return;
@@ -3146,7 +3389,14 @@ function App() {
                         <div style={Object.assign({},glassCard,{padding:"10px 14px",marginBottom:10,background:"#fffde7",border:"1px solid #ffd100"})}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontWeight:700,color:"#003366"}}>{balls.length} ballottaggi</span>
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                             <button onClick={()=>downloadBallottaggiICS(data)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:G.red,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Salva su Calendario</button>
+                            <button onClick={()=>inviaCalendarioWhatsApp(data)}
+                              style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                              Invia preconoscenza
+                            </button>
+                          </div>
                           </div>
                         </div>
                       );
