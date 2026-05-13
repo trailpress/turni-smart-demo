@@ -64,6 +64,26 @@ select option { background: #ffffff; color: #1a1a2e; }
 input.day-slider { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; outline:none; cursor:pointer; border:none; }
 input.day-slider::-webkit-slider-thumb { -webkit-appearance:none; width:38px; height:38px; border-radius:9px; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,51,102,0.35); cursor:pointer; margin-top:-16px; }
 input.day-slider::-moz-range-thumb { width:38px; height:38px; border-radius:9px; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,51,102,0.35); cursor:pointer; }
+@keyframes swipeHintL {
+  0%,100% { opacity:0; transform:translateX(0) scaleX(1); }
+  40%      { opacity:0.7; transform:translateX(4px) scaleX(1.04); }
+  60%      { opacity:0.5; transform:translateX(2px) scaleX(1.02); }
+}
+@keyframes swipeHintR {
+  0%,100% { opacity:0; transform:translateX(0) scaleX(1); }
+  40%      { opacity:0.7; transform:translateX(-4px) scaleX(1.04); }
+  60%      { opacity:0.5; transform:translateX(-2px) scaleX(1.02); }
+}
+@keyframes swipeChevron {
+  0%,100% { opacity:0; transform:translateX(0); }
+  30%      { opacity:1; }
+  60%      { opacity:0.6; transform:translateX(6px); }
+}
+@keyframes swipeChevronR {
+  0%,100% { opacity:0; transform:translateX(0); }
+  30%      { opacity:1; }
+  60%      { opacity:0.6; transform:translateX(-6px); }
+}
 @keyframes todayPulse { 0%,100% { box-shadow: 0 0 0 3px #ffd100, 0 0 0 6px rgba(255,209,0,0.4), 0 0 16px 4px rgba(255,209,0,0.3); outline: 3px solid #ffd100; } 50% { box-shadow: 0 0 0 3px transparent, 0 0 0 6px transparent, 0 0 0 0 transparent; outline: 3px solid transparent; } }
 @keyframes shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
 .card-appear { animation: fadeInUp 0.25s ease-out; }
@@ -156,19 +176,39 @@ var DB = {
       return true;
     } catch(e) {
       if (e.name === "QuotaExceededError" || e.code === 22) {
+        // ── AVVISO E EXPORT PRIMA DI CANCELLARE ──
+        // Mostra avviso e offre export Excel dei dati in memoria
+        if(typeof window._quotaWarningShown === "undefined") {
+          window._quotaWarningShown = true;
+          setTimeout(function() {
+            if(typeof exportDatiXLSX === "function") {
+              var ok = confirm(
+                "⚠️ Memoria quasi piena!
+
+" +
+                "Alcuni dati vecchi verranno rimossi per fare spazio.
+
+" +
+                "Vuoi salvare prima i dati attuali in un file Excel?"
+              );
+              if(ok) exportDatiXLSX();
+            }
+            window._quotaWarningShown = undefined;
+          }, 100);
+        }
         try {
-          // Prima elimina solo orari vecchi (non il mese corrente precaricato)
+          // Prima elimina orari vecchi
           var orariKeys = [];
           for (var i = 0; i < localStorage.length; i++) {
             var lk = localStorage.key(i);
             if (lk && lk.indexOf("ts_orari_") === 0 && lk !== k) orariKeys.push(lk);
           }
-          orariKeys.sort(); // elimina i più vecchi prima
+          orariKeys.sort();
           for (var j = 0; j < orariKeys.length; j++) {
             localStorage.removeItem(orariKeys[j]);
             try { localStorage.setItem(k, s); return true; } catch(e3) {}
           }
-          // Se ancora non basta, elimina anche preconoscenze vecchie
+          // Poi preconoscenze vecchie
           var precoKeys = [];
           for (var i2 = 0; i2 < localStorage.length; i2++) {
             var lk2 = localStorage.key(i2);
@@ -1047,6 +1087,68 @@ function inviaCalendarioWhatsApp(data) {
   }
 }
 
+// ── Export dati in Excel (XLSX) ─────────────────────────
+function exportDatiXLSX() {
+  // Raccoglie tutti i dati presenti in localStorage
+  var rows = [];
+  rows.push(["Data","Giorno","Tipo","Linea","Turno","Inizio","Fine","Luogo Inizio","Luogo Fine"]);
+
+  for(var i=0; i<localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if(!key || key.indexOf("ts_preco_") !== 0) continue;
+    try {
+      var data = JSON.parse(localStorage.getItem(key));
+      if(!data || !data.days) continue;
+      var GIORNI = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+      Object.keys(data.days).sort().forEach(function(iso) {
+        var v = data.days[iso];
+        if(!v) return;
+        var d = new Date(iso+"T12:00:00");
+        var gg = GIORNI[d.getDay()];
+        rows.push([
+          iso,
+          gg,
+          v.t || "",
+          v.l || "",
+          v.n || "",
+          v.i ? fT(v.i) : "",
+          v.e ? fT(v.e) : "",
+          v.li || "",
+          v.le || ""
+        ]);
+      });
+    } catch(e) {}
+  }
+
+  if(rows.length <= 1) {
+    alert("Nessun dato da esportare.");
+    return;
+  }
+
+  // Crea il file XLSX con SheetJS
+  try {
+    var XLSX = window.XLSX;
+    if(!XLSX) { alert("Libreria XLSX non disponibile."); return; }
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    // Larghezze colonne
+    ws['!cols'] = [{wch:12},{wch:6},{wch:12},{wch:6},{wch:6},{wch:8},{wch:8},{wch:8},{wch:8}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Turni");
+    XLSX.writeFile(wb, "turni-smart-backup.xlsx");
+  } catch(err) {
+    // Fallback CSV
+    var csv = rows.map(function(r){return r.join(",");}).join("
+");
+    var blob = new Blob([csv], {type:"text/csv"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "turni-smart-backup.csv";
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);}, 3000);
+  }
+}
+
 function shareToCalendar(date,v,devSegs){
   var ics=buildICS(date,v,devSegs);
   if(!ics)return;
@@ -1133,15 +1235,10 @@ function buildLiveUrl(seg){var ln=seg.ln||"";if(!ln)return null;var lineNum=ln.r
 function buildLiveUrlForCard(v){
   if(v.t!=="turno"||!v.l)return null;
   var lineNum=parseInt(v.l);if(!lineNum)return null;
-  // Cerca palina reale nei dati GPS
   var palina=getPalina(v.li,v.di,v.l||"");
-  if(palina>0)return"https://www.gtt.to.it/cms/percorari/urbano?view=palina&bacino=U&palina="+palina+"&realtime=true&linea="+lineNum;
-  // Fallback: apri Google Maps con la fermata specifica vicino alle coordinate
-  var gps=LOC_GPS[v.li];
-  if(gps){
-    // Cerca fermata GTT vicina alle coordinate del posto cambio
-    return"https://www.gtt.to.it/cms/percorari/urbano?view=percorsi&bacino=U&linea="+lineNum;
-  }
+  // Solo se abbiamo una palina reale — altrimenti non mostrare il bottone
+  if(palina>0)
+    return"https://www.gtt.to.it/cms/percorari/urbano?view=palina&bacino=U&palina="+palina+"&realtime=true&linea="+lineNum;
   return null;
 }
 function openLiveMap(url){if(!url)return;window.open(url,"_blank","noopener,noreferrer");}
@@ -1386,11 +1483,14 @@ function extractText(page){
     }).catch(function(){return text1;});
   });
 }
+
 </script>
 
 <!-- JSX Components: script type=text/babel — Babel processes this directly, no escaping needed -->
 
 <script type="text/babel">
+
+
 
 const {useState, useEffect, useRef} = React;
 
@@ -1594,6 +1694,142 @@ function BusProgress({vi, ve, date}) {
         <span style={{fontSize:10,color:"#aab5c2"}}>100%</span>
       </div>
 
+    </div>
+  );
+}
+
+// ── SwipeCard — wrapper con rilevamento swipe ────────────
+function SwipeCard({children, onSwipeLeft, onSwipeRight, swipeKey}) {
+  var startX = React.useRef(null);
+  var startY = React.useRef(null);
+  var isDragging = React.useRef(false);
+  var cardRef = React.useRef(null);
+
+  function onTouchStart(e) {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    isDragging.current = false;
+    if(cardRef.current) cardRef.current.style.transition = "none";
+  }
+
+  function onTouchMove(e) {
+    if(startX.current === null) return;
+    var dx = e.touches[0].clientX - startX.current;
+    var dy = e.touches[0].clientY - startY.current;
+    // Solo swipe orizzontale
+    if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      isDragging.current = true;
+      if(cardRef.current) {
+        cardRef.current.style.transform = "translateX("+dx+"px)";
+        cardRef.current.style.opacity = String(1 - Math.abs(dx)/400);
+      }
+    }
+  }
+
+  function onTouchEnd(e) {
+    if(startX.current === null) return;
+    var dx = e.changedTouches[0].clientX - startX.current;
+    if(cardRef.current) {
+      cardRef.current.style.transition = "transform 0.25s ease, opacity 0.25s ease";
+    }
+    if(isDragging.current && Math.abs(dx) > 60) {
+      // Swipe completato — anima uscita e cambia
+      var dir = dx < 0 ? -1 : 1;
+      if(cardRef.current) {
+        cardRef.current.style.transform = "translateX("+(dir > 0 ? "100%" : "-100%")+")";
+        cardRef.current.style.opacity = "0";
+      }
+      setTimeout(function() {
+        if(dir < 0) { if(onSwipeLeft) onSwipeLeft(); }
+        else         { if(onSwipeRight) onSwipeRight(); }
+      }, 220);
+    } else {
+      // Swipe troppo corto — torna alla posizione originale
+      if(cardRef.current) {
+        cardRef.current.style.transform = "translateX(0)";
+        cardRef.current.style.opacity = "1";
+      }
+    }
+    startX.current = null;
+    isDragging.current = false;
+  }
+
+  return (
+    <div
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{position:"relative", borderRadius:14, overflow:"visible"}}
+    >
+      {/* Zona sinistra — liquid glass hint */}
+      {onSwipeRight && (
+        <div style={{
+          position:"absolute", left:-2, top:0, bottom:0, width:36,
+          zIndex:10, pointerEvents:"none",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          borderRadius:"14px 0 0 14px",
+        }}>
+          {/* Glass pill */}
+          <div style={{
+            position:"absolute", inset:0,
+            background:"linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%)",
+            backdropFilter:"blur(8px)",
+            WebkitBackdropFilter:"blur(8px)",
+            borderRadius:"14px 0 0 14px",
+            border:"1px solid rgba(255,255,255,0.25)",
+            borderRight:"none",
+            animation:"swipeHintL 2.8s ease-in-out infinite",
+          }}/>
+          {/* Chevron */}
+          <svg width="14" height="24" viewBox="0 0 14 24" fill="none"
+            style={{position:"relative",zIndex:2,animation:"swipeChevronR 2.8s ease-in-out infinite"}}>
+            <polyline points="10,4 4,12 10,20" stroke="rgba(0,51,102,0.6)"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Zona destra — liquid glass hint */}
+      {onSwipeLeft && (
+        <div style={{
+          position:"absolute", right:-2, top:0, bottom:0, width:36,
+          zIndex:10, pointerEvents:"none",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          borderRadius:"0 14px 14px 0",
+        }}>
+          <div style={{
+            position:"absolute", inset:0,
+            background:"linear-gradient(270deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%)",
+            backdropFilter:"blur(8px)",
+            WebkitBackdropFilter:"blur(8px)",
+            borderRadius:"0 14px 14px 0",
+            border:"1px solid rgba(255,255,255,0.25)",
+            borderLeft:"none",
+            animation:"swipeHintR 2.8s ease-in-out infinite 0.4s",
+          }}/>
+          <svg width="14" height="24" viewBox="0 0 14 24" fill="none"
+            style={{position:"relative",zIndex:2,animation:"swipeChevron 2.8s ease-in-out infinite 0.4s"}}>
+            <polyline points="4,4 10,12 4,20" stroke="rgba(0,51,102,0.6)"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Card */}
+      <div
+        ref={cardRef}
+        key={swipeKey}
+        style={{
+          transform:"translateX(0)",
+          opacity:1,
+          transition:"transform 0.3s ease, opacity 0.3s ease",
+          willChange:"transform, opacity",
+          borderRadius:14,
+          overflow:"hidden"
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -2771,6 +3007,8 @@ function App() {
   const [loading2, setLoading2] = useState(false);
   const [err, setErr] = useState("");
   const [det, setDet] = useState(null);
+  const [resIdx, setResIdx] = useState(0);
+  const [vistaType, setVistaType] = useState("giorno"); // "giorno" o "week"
   const [overrides, setOverrides] = useState({});
   const [restored, setRestored] = useState(false);
   const [lastSearched, setLastSearched] = useState(null);
@@ -2927,6 +3165,7 @@ function App() {
     setMsg("");
     const oggi=new Date();
     if(tipo==="oggi"){
+      setVistaType("giorno");
       // Ricarica gli orari del mese corrente se devs è vuoto o è del mese sbagliato
       if(data&&data.dIn){
         const ok=orariKey(data.dIn.getFullYear(),data.dIn.getMonth()+1);
@@ -2939,6 +3178,7 @@ function App() {
       else{setRes([]);setMsg(msgPerData(oggi));}
     }
     else if(tipo==="domani"){
+      setVistaType("giorno");
       const d2=new Date();d2.setDate(d2.getDate()+1);
       setLastSearched(d2);
       const is3=toIso(d2);
@@ -2946,6 +3186,7 @@ function App() {
       else{setRes([]);setMsg(msgPerData(d2));}
     }
     else if(tipo==="week"){
+      setVistaType("week");
       const r=[];
       for(let j=0;j<7;j++){
         const dd=new Date();dd.setDate(dd.getDate()+j);
@@ -3372,14 +3613,69 @@ function App() {
                         </button>
                       ))}
                     </div>
-                    {res.length>0 && (
-                      <div>
-                        {res.map((r,i)=>{
-                          const items=[];
-                          items.push(<div key={toIso(r.date)} className="card-appear"><Card date={r.date} v={r.v} devs={devs} allDays={days} onPaste={onPasteTurno}/></div>);
-                          return items;
-                        })}
-                      </div>
+                    {res.length>0 && (vistaType==="week"
+                      ? (
+                        // ── Vista SETTIMANA: lista verticale ──
+                        <div>
+                          {res.map((r,i)=>(
+                            r.v
+                              ? <div key={toIso(r.date)} style={{marginBottom:10}} className="card-appear">
+                                  <Card date={r.date} v={r.v} devs={devs} allDays={days} onPaste={onPasteTurno}/>
+                                </div>
+                              : <div key={toIso(r.date)} style={{padding:"12px 16px",background:"#f4f6f9",borderRadius:12,marginBottom:10,fontSize:13,color:"#8a9ab0",textAlign:"center"}}>
+                                  {["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][r.date.getDay()]} {r.date.getDate()} — nessun dato
+                                </div>
+                          ))}
+                        </div>
+                      ) : (()=>{
+                        // ── Vista GIORNALIERA: carosello sfogliabile ──
+                        var allDayKeys = Object.keys(days).sort();
+                        var ri = Math.min(resIdx, res.length-1);
+                        var curR = res[ri];
+                        if(!curR||!curR.v) return null;
+                        var curKey = toIso(curR.date);
+                        var globalIdx = allDayKeys.indexOf(curKey);
+                        var prevKey = globalIdx > 0 ? allDayKeys[globalIdx-1] : null;
+                        var nextKey = globalIdx < allDayKeys.length-1 ? allDayKeys[globalIdx+1] : null;
+                        var prevV = prevKey ? days[prevKey] : null;
+                        var nextV = nextKey ? days[nextKey] : null;
+                        // Funzioni navigazione
+                        var goNext = function(){if(nextKey&&nextV){setRes([{date:new Date(nextKey+"T12:00:00"),v:nextV}]);setResIdx(0);}};
+                        var goPrev = function(){if(prevKey&&prevV){setRes([{date:new Date(prevKey+"T12:00:00"),v:prevV}]);setResIdx(0);}};
+                        return (
+                          <div>
+                            {/* Indicatore posizione */}
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                              <button onClick={goPrev} disabled={!prevKey||!prevV}
+                                style={{width:40,height:40,borderRadius:12,border:"none",
+                                  background:(!prevKey||!prevV)?"#f4f6f9":"#003366",
+                                  color:(!prevKey||!prevV)?"#c0c8d4":"#ffd100",
+                                  fontSize:22,cursor:(!prevKey||!prevV)?"default":"pointer",
+                                  flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                                  boxShadow:(!prevKey||!prevV)?"none":"0 2px 8px rgba(0,51,102,0.2)"}}>‹</button>
+                              <div style={{flex:1,textAlign:"center"}}>
+                                <div style={{fontSize:13,fontWeight:700,color:"#003366"}}>
+                                  {["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][curR.date.getDay()]} {curR.date.getDate()} {MESI_IT[curR.date.getMonth()+1]} {curR.date.getFullYear()}
+                                </div>
+                                {globalIdx>=0&&allDayKeys.length>1&&(
+                                  <div style={{fontSize:10,color:"#aab5c2",marginTop:2}}>{globalIdx+1} / {allDayKeys.length}</div>
+                                )}
+                              </div>
+                              <button onClick={goNext} disabled={!nextKey||!nextV}
+                                style={{width:40,height:40,borderRadius:12,border:"none",
+                                  background:(!nextKey||!nextV)?"#f4f6f9":"#003366",
+                                  color:(!nextKey||!nextV)?"#c0c8d4":"#ffd100",
+                                  fontSize:22,cursor:(!nextKey||!nextV)?"default":"pointer",
+                                  flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                                  boxShadow:(!nextKey||!nextV)?"none":"0 2px 8px rgba(0,51,102,0.2)"}}>›</button>
+                            </div>
+                            {/* Card con swipe touch nativo */}
+                            <SwipeCard onSwipeLeft={goNext} onSwipeRight={goPrev} swipeKey={curKey}>
+                              <Card key={curKey} date={curR.date} v={curR.v} devs={devs} allDays={days} onPaste={onPasteTurno}/>
+                            </SwipeCard>
+                          </div>
+                        );
+                      })()
                     )}
                     {/* Ballottaggi */}
                     {/* Bottone Condividi preconoscenza */}
@@ -3452,8 +3748,8 @@ function App() {
                       const turnoOggi=allDaysNow[is2];
                       if(srcData&&srcData.dIn){const ok=orariKey(srcData.dIn.getFullYear(),srcData.dIn.getMonth()+1);const od=loadOrariByKey(ok);if(od&&Object.keys(od).length)setDevs(od);}
                       setCalY(null);setCalM(null);setLastSearched(oggi);setMsg("");setDet(null);
-                      if(turnoOggi){setRes([{date:oggi,v:turnoOggi}]);}
-                      else{const ieri=new Date(oggi);ieri.setDate(ieri.getDate()-1);const dom2=new Date(oggi);dom2.setDate(dom2.getDate()+1);const altKeys=[toIso(ieri),toIso(dom2)];let found=null;for(const ak of altKeys){if(allDaysNow[ak]){found={date:new Date(ak+"T12:00:00"),v:allDaysNow[ak]};break;}}if(found){setRes([found]);}else{setRes([]);setMsg("nessun_turno");}}
+                      if(turnoOggi){setRes([{date:oggi,v:turnoOggi}]);setResIdx(0);}
+                      else{const ieri=new Date(oggi);ieri.setDate(ieri.getDate()-1);const dom2=new Date(oggi);dom2.setDate(dom2.getDate()+1);const altKeys=[toIso(ieri),toIso(dom2)];let found=null;for(const ak of altKeys){if(allDaysNow[ak]){found={date:new Date(ak+"T12:00:00"),v:allDaysNow[ak]};break;}}if(found){setRes([found]);setResIdx(0);}else{setRes([]);setResIdx(0);setMsg("nessun_turno");}}
                       setTab("home");
                     }} style={{width:"100%",height:40,borderRadius:12,border:"none",background:"#003366",color:"#ffd100",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:14}}>
                       Turno di oggi
