@@ -36,7 +36,7 @@ export function UploadPanel({
   const statusText =
     loading || orariLoading
       ? `Elaborazione ${orariLoading ? 'Orari Linee' : 'Preconoscenza'} in corso...`
-      : [successMessage, orariSuccessMessage].filter(Boolean).join(' ');
+      : '';
 
   return (
     <section className="upload-panel sb" aria-labelledby="upload-title">
@@ -47,7 +47,7 @@ export function UploadPanel({
           </span>
           <h2 id="upload-title">Documenti</h2>
         </div>
-        {statusText ? <p>{statusText}</p> : null}
+        {statusText ? <p className="upload-working">{statusText}</p> : null}
         {error ? <p className="upload-message upload-message--error">{error}</p> : null}
         {orariError ? <p className="upload-message upload-message--error">{orariError}</p> : null}
       </div>
@@ -69,54 +69,56 @@ export function UploadPanel({
         type="file"
       />
 
-      <div className="upload-section">
-        <div className="upload-section__heading">
-          <span className="upload-doc-icon" aria-hidden="true">
-            <AssetIcon name="upload" size={34} />
-          </span>
-          <div>
+      <div className={hasPreconoscenza ? 'upload-document is-loaded' : 'upload-document'}>
+        <span className="upload-doc-icon" aria-hidden="true">
+          <AssetIcon name="upload" size={34} />
+        </span>
+        <div className="upload-document__body">
+          <div className="upload-document__title">
             <h3>Preconoscenza</h3>
-            <span>PDF turni</span>
+            <span>{hasPreconoscenza ? 'Caricata' : 'Non caricata'}</span>
           </div>
+          {hasPreconoscenza ? (
+            <p>
+              {preconoscenzaSummary.totalDays} giorni · {preconoscenzaSummary.totalShifts} turni · {preconoscenzaSummary.restDays} riposi ·{' '}
+              {preconoscenzaSummary.ballots} ballottaggi
+            </p>
+          ) : (
+            <p>PDF mensile con i tuoi turni.</p>
+          )}
         </div>
         <button
-          className="upload-button"
+          className="upload-document__action"
           disabled={loading}
           onClick={() => preconoscenzaInputRef.current?.click()}
           type="button"
         >
-          {loading ? 'Elaborazione...' : 'Carica Preconoscenza'}
+          {loading ? 'Elaboro...' : hasPreconoscenza ? 'Sostituisci' : 'Carica'}
         </button>
         {hasPreconoscenza ? (
-          <p className="upload-counts">
-            {preconoscenzaSummary.totalDays} giorni · {preconoscenzaSummary.totalShifts} turni · {preconoscenzaSummary.restDays} riposi ·{' '}
-            {preconoscenzaSummary.ballots} ballott.
-          </p>
-        ) : null}
-        {hasPreconoscenza ? (
-          <button className="upload-button upload-button--ghost" onClick={onClearPreconoscenza} type="button">
-            Cancella dati
+          <button className="upload-document__clear" onClick={onClearPreconoscenza} type="button">
+            Cancella
           </button>
         ) : null}
       </div>
 
-      {hasPreconoscenza || hasOrari ? <div className="upload-section">
-        <div className="upload-section__heading">
-          <span className="upload-doc-icon" aria-hidden="true">
-            <AssetIcon name="route" size={34} />
-          </span>
-          <div>
+      {hasPreconoscenza || hasOrari ? <div className={hasOrari ? 'upload-document is-loaded' : 'upload-document'}>
+        <span className="upload-doc-icon" aria-hidden="true">
+          <AssetIcon name="route" size={34} />
+        </span>
+        <div className="upload-document__body">
+          <div className="upload-document__title">
             <h3>Orari Linee</h3>
-            <span>Sviluppi turno</span>
+            <span>{hasOrari ? 'Caricati' : 'Opzionali'}</span>
           </div>
+          {hasOrari ? <p>{debugInfo.keyCount} turni · {debugInfo.associations || 0} associazioni</p> : <p>Completano lo sviluppo del turno.</p>}
         </div>
-        <button className="upload-button upload-button--secondary" disabled={orariLoading} onClick={() => orariInputRef.current?.click()} type="button">
-          {orariLoading ? 'Elaborazione...' : 'Carica Orari Linee'}
+        <button className="upload-document__action upload-document__action--secondary" disabled={orariLoading} onClick={() => orariInputRef.current?.click()} type="button">
+          {orariLoading ? 'Elaboro...' : hasOrari ? 'Sostituisci' : 'Carica'}
         </button>
-        {hasOrari ? <p className="upload-counts">{debugInfo.keyCount} turni · {debugInfo.associations || 0} associazioni</p> : null}
         {hasOrari ? (
-          <button className="upload-button upload-button--ghost" onClick={onClearOrari} type="button">
-            Cancella orari
+          <button className="upload-document__clear" onClick={onClearOrari} type="button">
+            Cancella
           </button>
         ) : null}
       </div> : null}

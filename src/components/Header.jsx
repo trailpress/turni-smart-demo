@@ -1,14 +1,6 @@
 import { AssetIcon } from './Icon.jsx';
 
-const KPI_LABELS = [
-  ['Turni', 'totalShifts'],
-  ['Spezzati', 'splitShifts'],
-  ['Serali', 'eveningShifts'],
-  ['Riposi', 'restDays'],
-  ['Ballottaggi', 'ballots'],
-];
-
-export function Header({ orariLoaded = false, pdfLoaded = false, period, person, stats }) {
+export function Header({ orariLoaded = false, pdfLoaded = false, period, person }) {
   if (!pdfLoaded) {
     return (
       <header className="app-header app-header--empty">
@@ -55,17 +47,6 @@ export function Header({ orariLoaded = false, pdfLoaded = false, period, person,
         <span className={pdfLoaded ? 'status-pill is-ok' : 'status-pill'}>Preconoscenza {pdfLoaded ? 'caricata' : 'non caricata'}</span>
         <span className={orariLoaded ? 'status-pill is-ok' : 'status-pill'}>Orari Linee {orariLoaded ? 'caricati' : 'non caricati'}</span>
       </div>
-
-      {pdfLoaded ? (
-        <div className="header-kpis" aria-label="Indicatori periodo">
-          {KPI_LABELS.map(([label, key]) => (
-            <div className="header-kpi" key={key}>
-              <span>{label}</span>
-              <strong>{stats?.[key] ?? 0}</strong>
-            </div>
-          ))}
-        </div>
-      ) : null}
     </header>
   );
 }
