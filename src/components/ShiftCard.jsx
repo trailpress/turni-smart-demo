@@ -73,6 +73,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
   const [isFlipped, setIsFlipped] = useState(false);
   const [assignedTurn, setAssignedTurn] = useState('');
   const [assignedTurnError, setAssignedTurnError] = useState('');
+  const [assignedTurnSuccess, setAssignedTurnSuccess] = useState('');
   const [isBallotInfoOpen, setIsBallotInfoOpen] = useState(false);
 
   if (shift.type === 'special') {
@@ -81,8 +82,10 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
     const shareText = buildShareText(shift, [], assignedTurn.trim());
     function confirmAssignedTurn() {
       setAssignedTurnError('');
+      setAssignedTurnSuccess('');
       try {
         onAssignTurn?.(dayData, assignedTurn);
+        setAssignedTurnSuccess('Turno inserito.');
       } catch (error) {
         setAssignedTurnError(error.message || 'Formato turno non riconosciuto.');
       }
@@ -131,6 +134,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
               value={assignedTurn}
             />
             {assignedTurnError ? <p className="ballot-assignment-error">{assignedTurnError}</p> : null}
+            {assignedTurnSuccess ? <p className="ballot-assignment-success">{assignedTurnSuccess}</p> : null}
             <button className="ballot-insert-button" disabled={!assignedTurn.trim()} onClick={confirmAssignedTurn} type="button">
               Inserisci turno
             </button>

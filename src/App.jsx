@@ -496,6 +496,7 @@ export default function App() {
     };
     const nextDays = { ...days, [targetIso]: nextDay };
     setDays(nextDays);
+    setSearchResults((current) => current.map((item) => (item?.iso === targetIso ? nextDay : item)));
     if (pdfInfo?.dIn) {
       savePreconoscenza({ ...pdfInfo, days: nextDays });
       refreshHistory();

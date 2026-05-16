@@ -1623,6 +1623,13 @@ select:focus-visible {
   font-weight: 850;
 }
 
+.ballot-assignment-success {
+  margin: 0;
+  color: #8fe4a3;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
 .ballot-insert-button {
   min-height: 40px;
   border: 0;
