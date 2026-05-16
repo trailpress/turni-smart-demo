@@ -3,7 +3,7 @@ import { normalizeLineCode } from './constants/depotGerbido.js';
 
 const TIME_TOKEN_RE = /\d{2}[.:]?\d{2}/;
 const SEGMENT_RE =
-  /(?:([A-Z0-9/() ]{1,12}\s+\d{1,3})\s+)?([A-Z0-9/() ]{1,12})\s*\/\s*(\d+)\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})/g;
+  /(?:([A-Z0-9/() ]{1,12}\s+\d{1,3})\s+)?([A-Z0-9/() ]{1,12})\s*\/\s*(\d+)\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})(?:\s+([AR-]))?\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})/g;
 
 function normalizeTime(value) {
   const raw = String(value || '').replace(/\D/g, '');
@@ -79,9 +79,12 @@ function extractSegmentsFromLine(line, gt, ver) {
     if (!/^[A-Z0-9/()]+\/\d+$/.test(tokens[index])) continue;
     if (!TIME_TOKEN_RE.test(tokens[index + 1])) continue;
     if (!/^[A-Z]{2,4}$/.test(tokens[index + 2])) continue;
-    if (!/^[AR-]$/.test(tokens[index + 3])) continue;
-    if (!TIME_TOKEN_RE.test(tokens[index + 4])) continue;
-    if (!/^[A-Z]{2,4}$/.test(tokens[index + 5])) continue;
+
+    const hasDirection = /^[AR-]$/.test(tokens[index + 3]);
+    const endTimeIndex = hasDirection ? index + 4 : index + 3;
+    const endPlaceIndex = hasDirection ? index + 5 : index + 4;
+    if (!TIME_TOKEN_RE.test(tokens[endTimeIndex])) continue;
+    if (!/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
 
     const [lineCode, vehicle] = tokens[index].split('/');
     const code = extractCodeFromTokens(tokens, index);
@@ -94,9 +97,9 @@ function extractSegmentsFromLine(line, gt, ver) {
         turnoVettura: code || '',
         start: normalizeTime(tokens[index + 1]),
         loc_s: tokens[index + 2],
-        dir: tokens[index + 3] !== '-' ? tokens[index + 3] : '',
-        end: normalizeTime(tokens[index + 4]),
-        loc_e: tokens[index + 5],
+        dir: hasDirection && tokens[index + 3] !== '-' ? tokens[index + 3] : '',
+        end: normalizeTime(tokens[endTimeIndex]),
+        loc_e: tokens[endPlaceIndex],
         gt,
         ver,
       },

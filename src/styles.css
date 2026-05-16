@@ -1127,21 +1127,42 @@ select:focus-visible {
 
 .shift-card__face--back {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  align-content: start;
   transform: rotateY(180deg);
-  border: 1px solid rgba(230, 81, 0, 0.34);
+  border: 1px solid rgba(45, 109, 151, 0.5);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 12px;
   background:
-    linear-gradient(180deg, rgba(230, 81, 0, 0.1), rgba(230, 81, 0, 0.04)),
+    linear-gradient(180deg, rgba(21, 61, 91, 0.54), rgba(8, 24, 42, 0.18)),
     rgba(7, 24, 39, 0.96);
 }
 
 .development-back-header {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(45, 109, 151, 0.34);
+  border-radius: 9px;
+  background: rgba(9, 32, 54, 0.74);
+}
+
+.development-back-header h3 {
+  margin: 1px 0 0;
+  color: #ffffff;
+  font-size: 1.03rem;
+  line-height: 1.08;
+}
+
+.development-back-header span {
+  display: block;
+  margin-top: 3px;
+  color: #9fb4cb;
+  font-size: 0.72rem;
+  font-weight: 850;
 }
 
 .shift-card__main {
@@ -1804,9 +1825,9 @@ select:focus-visible {
 }
 
 .flip-action--ghost {
-  min-width: 130px;
+  min-width: 112px;
   border-color: var(--line);
-  background: transparent;
+  background: rgba(13, 45, 73, 0.66);
   color: #d9ecff;
 }
 
@@ -1818,22 +1839,27 @@ select:focus-visible {
 }
 
 .shift-development--expanded {
+  gap: 8px;
   padding-top: 0;
   border-top: 0;
 }
 
 .shift-development--expanded h4 {
-  font-size: 0.92rem;
+  color: #34c3ff;
+  font-size: 0.84rem;
 }
 
 .shift-development--expanded .shift-segment {
-  grid-template-columns: 30px minmax(130px, 0.42fr) minmax(0, 1fr) minmax(120px, 0.35fr);
-  min-height: 54px;
+  grid-template-columns: 28px minmax(116px, 0.42fr) minmax(0, 1fr) minmax(112px, 0.34fr);
+  min-height: 46px;
+  padding: 9px 10px;
+  border-color: rgba(45, 109, 151, 0.44);
+  background: rgba(13, 38, 62, 0.72);
 }
 
 .shift-development--expanded .segment-index {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
 .shift-development--expanded .split-pause {
@@ -1864,8 +1890,8 @@ select:focus-visible {
 }
 
 .shift-segment.is-split {
-  border-color: rgba(230, 81, 0, 0.28);
-  background: rgba(230, 81, 0, 0.07);
+  border-color: rgba(230, 81, 0, 0.24);
+  background: rgba(40, 31, 36, 0.82);
 }
 
 .segment-index {
@@ -1897,7 +1923,7 @@ select:focus-visible {
 
 .shift-segment .segment-vehicle {
   justify-self: end;
-  padding: 5px 8px;
+  padding: 4px 7px;
   border: 1px solid rgba(28, 192, 236, 0.22);
   border-radius: 8px;
   background: rgba(10, 48, 78, 0.45);

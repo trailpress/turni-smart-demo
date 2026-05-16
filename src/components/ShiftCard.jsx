@@ -289,9 +289,10 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
             <div className="development-back-header">
               <div>
                 <p className="shift-date">{shift.date}</p>
-                <h3>
-                  Sviluppo turno · Linea {getLineDisplayName(dayData?.lineaNorm || shift.line)} / Turno {shift.number}
-                </h3>
+                <h3>Sviluppo turno</h3>
+                <span>
+                  Linea {getLineDisplayName(dayData?.lineaNorm || shift.line)} · Turno {shift.number}
+                </span>
               </div>
               <button className="flip-action flip-action--ghost" onClick={() => setIsFlipped(false)} type="button">
                 Torna al turno
