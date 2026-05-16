@@ -246,18 +246,18 @@ select:focus-visible {
 /* Onboarding */
 .onboarding-home {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .onboarding-hero {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 22px;
-  min-height: 330px;
+  gap: 18px;
+  min-height: 300px;
   overflow: hidden;
   border-radius: 28px;
-  padding: 44px 28px 34px;
+  padding: 22px 24px 32px;
   background:
     linear-gradient(135deg, rgba(0, 61, 112, 0.96), rgba(9, 80, 134, 0.92)),
     #073865;
@@ -287,22 +287,67 @@ select:focus-visible {
   top: -36px;
 }
 
+.onboarding-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-self: stretch;
+  gap: 12px;
+  min-width: 0;
+}
+
+.onboarding-brand__icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+}
+
+.onboarding-brand__icon .asset-icon {
+  display: block;
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.onboarding-brand__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.onboarding-brand__text strong {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.onboarding-brand__text small {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1.15;
+}
+
 .onboarding-hero__mark {
   position: relative;
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 154px;
-  height: 154px;
-  border-radius: 34px;
+  width: 132px;
+  height: 132px;
+  border-radius: 30px;
   background: transparent;
   filter: drop-shadow(0 18px 34px rgba(255, 209, 0, 0.18));
 }
 
 .onboarding-hero__mark img {
   display: block;
-  width: 154px;
-  height: 154px;
+  width: 132px;
+  height: 132px;
   object-fit: contain;
 }
 
@@ -2224,24 +2269,47 @@ select:focus-visible {
   }
 
   .onboarding-home {
-    gap: 14px;
+    gap: 12px;
   }
 
   .onboarding-hero {
-    min-height: 260px;
+    min-height: 286px;
     border-radius: 22px;
-    padding: 30px 18px 26px;
+    padding: 18px 16px 24px;
+    gap: 16px;
+  }
+
+  .onboarding-brand {
+    gap: 10px;
+  }
+
+  .onboarding-brand__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .onboarding-brand__icon .asset-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .onboarding-brand__text strong {
+    font-size: 1.35rem;
+  }
+
+  .onboarding-brand__text small {
+    font-size: 0.76rem;
   }
 
   .onboarding-hero__mark {
-    width: 118px;
-    height: 118px;
-    border-radius: 28px;
+    width: 112px;
+    height: 112px;
+    border-radius: 26px;
   }
 
   .onboarding-hero__mark img {
-    width: 118px;
-    height: 118px;
+    width: 112px;
+    height: 112px;
   }
 
   .onboarding-upload {

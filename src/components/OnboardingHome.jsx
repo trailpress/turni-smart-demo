@@ -4,8 +4,17 @@ export function OnboardingHome({ error = '', loading = false, onLoadDemo, onPrim
   return (
     <section className="onboarding-home" aria-labelledby="onboarding-title">
       <div className="onboarding-hero">
+        <div className="onboarding-brand">
+          <span className="onboarding-brand__icon" aria-hidden="true">
+            <AssetIcon name="bus" size={54} />
+          </span>
+          <span className="onboarding-brand__text">
+            <strong>Turni Smart</strong>
+            <small>Turni GTT · Deposito Gerbido</small>
+          </span>
+        </div>
         <div className="onboarding-hero__mark" aria-hidden="true">
-          <AssetIcon name="bus" size={154} />
+          <AssetIcon name="bus" size={132} />
         </div>
         <div className="onboarding-hero__copy">
           <h2 id="onboarding-title">Benvenuto!</h2>

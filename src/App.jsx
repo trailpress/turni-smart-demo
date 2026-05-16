@@ -698,7 +698,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Header orariLoaded={orariLoaded} pdfLoaded={pdfLoaded} period={periodLabel} person={personLabel} stats={preconoscenzaSummary} />
+      {pdfLoaded ? <Header orariLoaded={orariLoaded} pdfLoaded={pdfLoaded} period={periodLabel} person={personLabel} stats={preconoscenzaSummary} /> : null}
 
       <main className={pdfLoaded ? 'app-frame' : 'app-frame app-frame--onboarding'}>
         <input

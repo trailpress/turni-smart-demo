@@ -46,7 +46,7 @@
           await Promise.all(keys.filter((key) => key.startsWith('turni-smart')).map((key) => caches.delete(key)));
         }
 
-        window.location.replace('/?cache-reset=' + Date.now());
+        window.location.replace('./?cache-reset=' + Date.now());
       }
 
       reset();
