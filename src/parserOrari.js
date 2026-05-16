@@ -191,7 +191,8 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     if (!isSplitCandidate || !previous || !item.segment.start) return;
 
     const gap = gapMinutes(previous.end, item.segment.start);
-    const canAttach = (gap >= 0 && gap <= 240) || (gap <= 480 && previous.loc === item.segment.loc_s);
+    const sameLine = item.segment.lineaNorm === developments[lastExplicitCode]?.[0]?.lineaNorm;
+    const canAttach = (gap >= 0 && gap <= 720) || sameLine || previous.loc === item.segment.loc_s;
     if (!canAttach) return;
 
     item.segment.run_id = previous.run_id;
@@ -215,9 +216,6 @@ export function parseOrariPageLines(text, gt, ver, developments) {
         Object.keys(codeEnds).find((code) => codeEnds[code].end === item.segment.start);
 
       if (!bestCode) return;
-
-      const shiftNumber = Number.parseInt(bestCode.split(' ')[1] || '999', 10);
-      if (shiftNumber < 100 && developments[bestCode]?.length >= 2) return;
 
       item.done = true;
       changed = true;

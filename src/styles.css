@@ -1114,6 +1114,12 @@ select:focus-visible {
   transform: rotateY(180deg);
 }
 
+.shift-card__flipper.is-flipped .shift-card__face--front {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .shift-card__face {
   grid-area: 1 / 1;
   min-width: 0;
@@ -1136,6 +1142,10 @@ select:focus-visible {
   background:
     linear-gradient(180deg, rgba(21, 61, 91, 0.54), rgba(8, 24, 42, 0.18)),
     rgba(7, 24, 39, 0.96);
+}
+
+.shift-card__flipper.is-flipped .shift-card__face--back {
+  grid-area: auto;
 }
 
 .development-back-header {
@@ -2565,7 +2575,12 @@ select:focus-visible {
   }
 
   .development-back-header {
-    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .development-back-header h3 {
+    font-size: 1.5rem;
   }
 
   .shift-badge-row {
@@ -2631,12 +2646,13 @@ select:focus-visible {
   }
 
   .shift-segment {
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 24px minmax(98px, 0.8fr) minmax(0, 1fr);
+    min-height: 42px;
+    gap: 8px;
   }
 
-  .shift-segment > span:not(.segment-index),
   .shift-segment .segment-vehicle {
-    grid-column: 2;
+    grid-column: 2 / -1;
   }
 
   .shift-segment .segment-vehicle {
