@@ -1,11 +1,14 @@
 import { timeToMinutes } from './utils/timeUtils.js';
 import { normalizeLineCode } from './constants/depotGerbido.js';
 
+const TIME_TOKEN_RE = /\d{2}[.:]?\d{2}/;
 const SEGMENT_RE =
-  /(?:([A-Z0-9/() ]{1,12}\s+\d{1,3})\s+)?([A-Z0-9/() ]{1,12})\s*\/\s*(\d+)\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})/g;
+  /(?:([A-Z0-9/() ]{1,12}\s+\d{1,3})\s+)?([A-Z0-9/() ]{1,12})\s*\/\s*(\d+)\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]?\d{2})\s+([A-Z]{2,4})/g;
 
 function normalizeTime(value) {
-  return value.replace('.', ':');
+  const raw = String(value || '').replace(/\D/g, '');
+  if (raw.length === 4) return `${raw.slice(0, 2)}:${raw.slice(2)}`;
+  return String(value || '').replace('.', ':');
 }
 
 function normalizeLine(line, { pad = true } = {}) {
@@ -29,6 +32,78 @@ function normalizeCode(code) {
   const parts = String(code || '').trim().split(/\s+/);
   if (parts.length !== 2) return code;
   return normalizeShiftKey(parts[0], parts[1]);
+}
+
+function extractCodeFromTokens(tokens, index) {
+  if (index < 2) return null;
+  const line = tokens[index - 2];
+  const shift = tokens[index - 1];
+  if (!/^[A-Z0-9/()]+$/.test(line) || !/^\d{1,3}$/.test(shift)) return null;
+  return normalizeCode(`${line} ${shift}`);
+}
+
+function extractSegmentsFromLine(line, gt, ver) {
+  const segments = [];
+  SEGMENT_RE.lastIndex = 0;
+  let match;
+
+  while ((match = SEGMENT_RE.exec(line)) !== null) {
+    const code = match[1] ? normalizeCode(match[1]) : null;
+    segments.push({
+      code,
+      segment: {
+        ln: match[2],
+        lineaNorm: normalizeLineCode(match[2]),
+        vett: match[3],
+        turnoVettura: code || '',
+        start: normalizeTime(match[4]),
+        loc_s: match[5],
+        dir: match[6] !== '-' ? match[6] : '',
+        end: normalizeTime(match[7]),
+        loc_e: match[8],
+        gt,
+        ver,
+      },
+    });
+  }
+
+  if (segments.length) return segments;
+
+  const tokens = String(line || '')
+    .trim()
+    .toUpperCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  for (let index = 0; index < tokens.length - 5; index += 1) {
+    if (!/^[A-Z0-9/()]+\/\d+$/.test(tokens[index])) continue;
+    if (!TIME_TOKEN_RE.test(tokens[index + 1])) continue;
+    if (!/^[A-Z]{2,4}$/.test(tokens[index + 2])) continue;
+    if (!/^[AR-]$/.test(tokens[index + 3])) continue;
+    if (!TIME_TOKEN_RE.test(tokens[index + 4])) continue;
+    if (!/^[A-Z]{2,4}$/.test(tokens[index + 5])) continue;
+
+    const [lineCode, vehicle] = tokens[index].split('/');
+    const code = extractCodeFromTokens(tokens, index);
+    segments.push({
+      code,
+      segment: {
+        ln: lineCode,
+        lineaNorm: normalizeLineCode(lineCode),
+        vett: vehicle,
+        turnoVettura: code || '',
+        start: normalizeTime(tokens[index + 1]),
+        loc_s: tokens[index + 2],
+        dir: tokens[index + 3] !== '-' ? tokens[index + 3] : '',
+        end: normalizeTime(tokens[index + 4]),
+        loc_e: tokens[index + 5],
+        gt,
+        ver,
+      },
+    });
+  }
+
+  return segments;
 }
 
 function gapMinutes(end, start) {
@@ -69,28 +144,13 @@ export function parseOrariPageLines(text, gt, ver, developments) {
   String(text || '')
     .split('\n')
     .forEach((line) => {
-      SEGMENT_RE.lastIndex = 0;
-      let match;
-      while ((match = SEGMENT_RE.exec(line)) !== null) {
-        const code = match[1] ? normalizeCode(match[1]) : null;
+      extractSegmentsFromLine(line, gt, ver).forEach((item) => {
         pageSegments.push({
-          code,
+          code: item.code,
           done: false,
-          segment: {
-            ln: match[2],
-            lineaNorm: normalizeLineCode(match[2]),
-            vett: match[3],
-            turnoVettura: code || '',
-            start: normalizeTime(match[4]),
-            loc_s: match[5],
-            dir: match[6] !== '-' ? match[6] : '',
-            end: normalizeTime(match[7]),
-            loc_e: match[8],
-            gt,
-            ver,
-          },
+          segment: item.segment,
         });
-      }
+      });
     });
 
   const codeEnds = {};
@@ -174,8 +234,7 @@ export function parseOrari(pagesText) {
   pages.forEach((pageText) => {
     const { gt, ver } = detectGt(pageText, lastGt);
     if (gt) lastGt = gt;
-    if (!gt) return;
-    parseOrariPageLines(pageText, gt, ver, developments);
+    parseOrariPageLines(pageText, gt || lastGt || 'TUTTI', ver, developments);
   });
 
   return developments;
