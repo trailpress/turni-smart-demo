@@ -5,6 +5,7 @@ import {
   REST_CODES,
   SPECIAL_CODES,
   formatCompactTime,
+  parseCommunicatedShift,
   parsePreconoscenza,
   toIso,
 } from './parserPreconoscenza.js';
@@ -76,6 +77,7 @@ function buildShiftCard(day, prefix = '', enrichment = null) {
     const info = SPECIAL_CODES[day.t] || { label: day.t, description: '' };
     return {
       type: 'special',
+      iso: day.iso,
       date: baseDate,
       title: info.label,
       code: day.t,
@@ -478,6 +480,31 @@ export default function App() {
     setOrariError('');
   }
 
+  function applyCommunicatedShift(day, text) {
+    const parsed = parseCommunicatedShift(text, day?.date);
+    if (!parsed) {
+      throw new Error('Formato turno non riconosciuto. Incolla la riga completa comunicata con data, linea, turno, orari e posti cambio.');
+    }
+
+    const targetIso = day?.iso || parsed.iso;
+    const nextDay = {
+      ...parsed,
+      iso: targetIso,
+      date: day?.date || parsed.date,
+      g: day?.g || parsed.g || '',
+      assignedFromBallot: day?.ball || true,
+    };
+    const nextDays = { ...days, [targetIso]: nextDay };
+    setDays(nextDays);
+    if (pdfInfo?.dIn) {
+      savePreconoscenza({ ...pdfInfo, days: nextDays });
+      refreshHistory();
+    }
+    setSelectedDate(nextDay.date);
+    setActiveTab('Home');
+    return nextDay;
+  }
+
   const enrichedDays = useMemo(() => (pdfLoaded ? enrichShiftDays(days, developments) : {}), [days, developments, pdfLoaded]);
 
   const homeSelection = useMemo(() => (pdfLoaded ? pickHomeDay(days) : { day: null, prefix: '' }), [days, pdfLoaded]);
@@ -548,6 +575,7 @@ export default function App() {
         enrichment={enrichedDays[day?.iso]}
         key={day?.iso || shift.date}
         calendarActions={(dayForExport) => buildCalendarActions([dayForExport], `turno-${dayForExport?.iso || 'turno'}.ics`)}
+        onAssignTurn={applyCommunicatedShift}
         shift={shift}
       />
     );

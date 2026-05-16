@@ -69,15 +69,25 @@ function getCategoryIconName(category, shift) {
   return 'busMark';
 }
 
-export function ShiftCard({ calendarActions, date, developments = {}, enrichment = null, shift, dayData }) {
+export function ShiftCard({ calendarActions, date, developments = {}, enrichment = null, onAssignTurn, shift, dayData }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [assignedTurn, setAssignedTurn] = useState('');
+  const [assignedTurnError, setAssignedTurnError] = useState('');
   const [isBallotInfoOpen, setIsBallotInfoOpen] = useState(false);
 
   if (shift.type === 'special') {
     const isBallot = Boolean(shift.ballot);
     const ballotInfo = shift.ballot ? BALLOTTAGGI[shift.ballot] : null;
     const shareText = buildShareText(shift, [], assignedTurn.trim());
+    function confirmAssignedTurn() {
+      setAssignedTurnError('');
+      try {
+        onAssignTurn?.(dayData, assignedTurn);
+      } catch (error) {
+        setAssignedTurnError(error.message || 'Formato turno non riconosciuto.');
+      }
+    }
+
     return (
       <article className="shift-card shift-card--special dc">
         <div className="shift-special-layout">
@@ -120,6 +130,10 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
               rows={4}
               value={assignedTurn}
             />
+            {assignedTurnError ? <p className="ballot-assignment-error">{assignedTurnError}</p> : null}
+            <button className="ballot-insert-button" disabled={!assignedTurn.trim()} onClick={confirmAssignedTurn} type="button">
+              Inserisci turno
+            </button>
           </div>
         ) : (
           <p className="shift-special-note">{shift.description || shift.note || 'Giornata senza turno'}</p>

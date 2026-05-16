@@ -80,6 +80,71 @@ export function parseShift(rest) {
   };
 }
 
+export function parseCommunicatedShift(text, fallbackDate = null) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+
+  const normalized = raw.replace(/\r/g, '\n');
+  const dateMatch = normalized.match(/(\d{2})[./](\d{2})[./](\d{4})/);
+  const date = dateMatch
+    ? new Date(Number(dateMatch[3]), Number(dateMatch[2]) - 1, Number(dateMatch[1]))
+    : fallbackDate
+      ? new Date(fallbackDate)
+      : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+
+  const tokens = normalized
+    .replace(/(\d{2})[./](\d{2})[./](\d{4})/, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim().toUpperCase())
+    .filter(Boolean);
+
+  const geIndex = tokens.findIndex((token) => token === 'GE');
+  if (geIndex < 3) return null;
+
+  const line = tokens[geIndex - 2];
+  const number = tokens[geIndex - 1];
+  const code = tokens[geIndex - 3] || '';
+  const after = tokens.slice(geIndex + 1);
+  const times = [];
+  const places = [];
+  const directions = [];
+
+  after.forEach((token) => {
+    if (/^\d{4}$/.test(token)) {
+      times.push(token);
+    } else if (/^[A-Z]{2,4}$/.test(token)) {
+      places.push(token);
+      directions.push('');
+    } else if (/^[AR]$/.test(token) && directions.length > 0) {
+      directions[directions.length - 1] = token;
+    }
+  });
+
+  if (!line || !number || !times[0] || !places[0] || !times[1] || !places[1]) return null;
+
+  return {
+    iso: toIso(date),
+    date,
+    g: '',
+    t: 'turno',
+    l: line,
+    linea: line,
+    lineaNorm: normalizeLineCode(line),
+    isGerbidoLine: checkGerbidoLine(line),
+    n: number,
+    c: code,
+    i: times[0] || '',
+    li: places[0] || '',
+    di: directions[0] || '',
+    e: times[1] || '',
+    le: places[1] || '',
+    de: directions[1] || '',
+    d: times[2] || '',
+    communicated: true,
+  };
+}
+
 export function parsePreconoscenza(text) {
   const lines = String(text || '').split('\n');
   const days = {};
