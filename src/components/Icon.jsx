@@ -105,15 +105,17 @@ const ICONS = {
   ),
 };
 
+const assetPath = (fileName) => `${import.meta.env.BASE_URL}assets-webp/${fileName}`;
+
 const ASSET_ICONS = {
-  bus: '/assets-webp/bus-front-icon.webp',
-  busMark: '/assets-webp/bus-front-mark.webp',
-  upload: '/assets-webp/icon-upload.webp',
-  route: '/assets-webp/icon-route.webp',
-  calendar: '/assets-webp/icon-calendar.webp',
-  search: '/assets-webp/icon-search.webp',
-  stats: '/assets-webp/icon-stats.webp',
-  rest: '/assets-webp/icon-rest.webp',
+  bus: assetPath('bus-front-icon.webp'),
+  busMark: assetPath('bus-front-mark.webp'),
+  upload: assetPath('icon-upload.webp'),
+  route: assetPath('icon-route.webp'),
+  calendar: assetPath('icon-calendar.webp'),
+  search: assetPath('icon-search.webp'),
+  stats: assetPath('icon-stats.webp'),
+  rest: assetPath('icon-rest.webp'),
 };
 
 export function AssetIcon({ name, className = '', size = 40 }) {
