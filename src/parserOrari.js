@@ -305,6 +305,21 @@ function pickRun(segments, preShift) {
   return runs[bestKey];
 }
 
+function sortSegments(segments) {
+  return segments.slice().sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+}
+
+function shouldKeepFullDevelopment(segments, preShift) {
+  if (!segments?.length) return false;
+  if (preShift?.communicated) return true;
+  if (segments.length <= 1) return false;
+
+  const preStart = compactTime(preShift?.i);
+  if (!preStart) return false;
+  const sorted = sortSegments(segments);
+  return sorted[0]?.start === preStart;
+}
+
 function compactTime(value) {
   const raw = String(value || '').replace(/\D/g, '');
   if (raw.length !== 4) return '';
@@ -387,7 +402,8 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
   const candidates = filtered.length ? filtered : allSegments;
-  return pickRun(candidates, preShift).slice().sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+  if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
+  return sortSegments(pickRun(candidates, preShift));
 }
 
 export function summarizeDevelopments(developments) {
