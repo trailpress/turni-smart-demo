@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.js?url';
 import {
   REST_CODES,
   SPECIAL_CODES,
