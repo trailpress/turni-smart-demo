@@ -42,40 +42,47 @@ function extractCodeFromTokens(tokens, index) {
   return normalizeCode(`${line} ${shift}`);
 }
 
-function extractSegmentsFromLine(line, gt, ver) {
-  const segments = [];
-  SEGMENT_RE.lastIndex = 0;
-  let match;
-
-  while ((match = SEGMENT_RE.exec(line)) !== null) {
-    const code = match[1] ? normalizeCode(match[1]) : null;
-    segments.push({
-      code,
-      segment: {
-        ln: match[2],
-        lineaNorm: normalizeLineCode(match[2]),
-        vett: match[3],
-        turnoVettura: code || '',
-        start: normalizeTime(match[4]),
-        loc_s: match[5],
-        dir: match[6] !== '-' ? match[6] : '',
-        end: normalizeTime(match[7]),
-        loc_e: match[8],
-        gt,
-        ver,
-      },
-    });
-  }
-
-  if (segments.length) return segments;
-
-  const tokens = String(line || '')
+function normalizeTokens(text) {
+  const rawTokens = String(text || '')
     .trim()
     .toUpperCase()
     .split(/\s+/)
     .filter(Boolean);
+  const tokens = [];
 
-  for (let index = 0; index < tokens.length - 5; index += 1) {
+  for (let index = 0; index < rawTokens.length; index += 1) {
+    const current = rawTokens[index];
+    const next = rawTokens[index + 1];
+    const afterNext = rawTokens[index + 2];
+
+    if (/^[A-Z0-9/()]+$/.test(current) && next === '/' && /^\d+$/.test(afterNext)) {
+      tokens.push(`${current}/${afterNext}`);
+      index += 2;
+      continue;
+    }
+
+    if (/^[A-Z0-9/()]+\/$/.test(current) && /^\d+$/.test(next)) {
+      tokens.push(`${current}${next}`);
+      index += 1;
+      continue;
+    }
+
+    if (current === '/' && tokens.length && /^\d+$/.test(next)) {
+      tokens[tokens.length - 1] = `${tokens[tokens.length - 1]}/${next}`;
+      index += 1;
+      continue;
+    }
+
+    tokens.push(current);
+  }
+
+  return tokens;
+}
+
+function extractSegmentsFromTokens(tokens, gt, ver) {
+  const segments = [];
+
+  for (let index = 0; index < tokens.length - 4; index += 1) {
     if (!/^[A-Z0-9/()]+\/\d+$/.test(tokens[index])) continue;
     if (!TIME_TOKEN_RE.test(tokens[index + 1])) continue;
     if (!/^[A-Z]{2,4}$/.test(tokens[index + 2])) continue;
@@ -107,6 +114,34 @@ function extractSegmentsFromLine(line, gt, ver) {
   }
 
   return segments;
+}
+
+function extractSegmentsFromLine(line, gt, ver) {
+  const segments = [];
+  SEGMENT_RE.lastIndex = 0;
+  let match;
+
+  while ((match = SEGMENT_RE.exec(line)) !== null) {
+    const code = match[1] ? normalizeCode(match[1]) : null;
+    segments.push({
+      code,
+      segment: {
+        ln: match[2],
+        lineaNorm: normalizeLineCode(match[2]),
+        vett: match[3],
+        turnoVettura: code || '',
+        start: normalizeTime(match[4]),
+        loc_s: match[5],
+        dir: match[6] !== '-' ? match[6] : '',
+        end: normalizeTime(match[7]),
+        loc_e: match[8],
+        gt,
+        ver,
+      },
+    });
+  }
+
+  return segments.length ? segments : extractSegmentsFromTokens(normalizeTokens(line), gt, ver);
 }
 
 function gapMinutes(end, start) {
@@ -142,19 +177,26 @@ function addSegment(developments, code, segment) {
 }
 
 export function parseOrariPageLines(text, gt, ver, developments) {
-  const pageSegments = [];
+  const lineSegments = [];
 
   String(text || '')
     .split('\n')
     .forEach((line) => {
       extractSegmentsFromLine(line, gt, ver).forEach((item) => {
-        pageSegments.push({
+        lineSegments.push({
           code: item.code,
           done: false,
           segment: item.segment,
         });
       });
     });
+
+  const streamSegments = extractSegmentsFromTokens(normalizeTokens(text), gt, ver).map((item) => ({
+    code: item.code,
+    done: false,
+    segment: item.segment,
+  }));
+  const pageSegments = streamSegments.length > lineSegments.length ? streamSegments : lineSegments;
 
   const codeEnds = {};
   const runCounters = {};
