@@ -299,11 +299,32 @@ function findFallbackSegments(developments, line, shiftNumber, date, preShift) {
   return filtered.length ? filtered : best.segments;
 }
 
+function buildCommunicatedSegment(preShift) {
+  if (!preShift?.communicated || !preShift.i || !preShift.e || !preShift.li || !preShift.le) return [];
+  return [
+    {
+      ln: preShift.l || '',
+      lineaNorm: normalizeLineCode(preShift.l),
+      vett: '',
+      turnoVettura: normalizeShiftKey(preShift.l, preShift.n),
+      start: compactTime(preShift.i),
+      loc_s: preShift.li,
+      dir: preShift.di || '',
+      end: compactTime(preShift.e),
+      loc_e: preShift.le,
+      gt: '',
+      ver: '',
+      run_id: 1,
+      source: 'communicated',
+    },
+  ];
+}
+
 export function getDevSegments(developments, line, shiftNumber, date, preShift = null) {
   const keys = buildDevKeyVariants(line, shiftNumber);
   const matchedKey = keys.find((key) => developments?.[key]?.length);
   const allSegments = matchedKey ? developments[matchedKey] : findFallbackSegments(developments, line, shiftNumber, date, preShift);
-  if (!allSegments.length) return [];
+  if (!allSegments.length) return buildCommunicatedSegment(preShift);
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
   const candidates = filtered.length ? filtered : allSegments;

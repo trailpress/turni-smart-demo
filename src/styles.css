@@ -2232,6 +2232,11 @@ select:focus-visible {
   cursor: pointer;
 }
 
+.month-day--empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .month-day.has-shift {
   border-color: var(--blue);
   background: var(--blue);

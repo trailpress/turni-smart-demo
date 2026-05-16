@@ -13,6 +13,8 @@ function getMonthLength(date) {
 export function MonthView({ days: parsedDays = {}, monthDate = new Date(), onNextMonth, onPrevMonth, onSelectDay }) {
   const monthLength = getMonthLength(monthDate);
   const days = Array.from({ length: monthLength }, (_, index) => index + 1);
+  const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).getDay();
+  const leadingEmptyDays = firstDay === 0 ? 6 : firstDay - 1;
   const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   const today = new Date();
 
@@ -51,6 +53,9 @@ export function MonthView({ days: parsedDays = {}, monthDate = new Date(), onNex
         ))}
       </div>
       <div className="month-grid" aria-label="Vista mese preconoscenza">
+        {Array.from({ length: leadingEmptyDays }, (_, index) => (
+          <span className="month-day month-day--empty" key={`empty-${index}`} aria-hidden="true" />
+        ))}
         {days.map((day) => {
           const state = dayState(day);
           return (
