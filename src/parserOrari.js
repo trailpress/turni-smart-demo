@@ -80,6 +80,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
             ln: match[2],
             lineaNorm: normalizeLineCode(match[2]),
             vett: match[3],
+            turnoVettura: code || '',
             start: normalizeTime(match[4]),
             loc_s: match[5],
             dir: match[6] !== '-' ? match[6] : '',
@@ -112,6 +113,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
       }
 
       item.done = true;
+      item.segment.turnoVettura = code;
       addSegment(developments, code, item.segment);
       codeEnds[code] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
       lastExplicitCode = code;
@@ -130,6 +132,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     if (!canAttach) return;
 
     item.segment.run_id = previous.run_id;
+    item.segment.turnoVettura = lastExplicitCode;
     item.done = true;
     addSegment(developments, lastExplicitCode, item.segment);
     codeEnds[lastExplicitCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
@@ -156,6 +159,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
       item.done = true;
       changed = true;
       item.segment.run_id = codeEnds[bestCode].run_id;
+      item.segment.turnoVettura = bestCode;
       addSegment(developments, bestCode, item.segment);
       codeEnds[bestCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
     });
@@ -242,10 +246,63 @@ function pickRun(segments, preShift) {
   return runs[bestKey];
 }
 
+function compactTime(value) {
+  const raw = String(value || '').replace(/\D/g, '');
+  if (raw.length !== 4) return '';
+  return `${raw.slice(0, 2)}:${raw.slice(2)}`;
+}
+
+function normalizePlace(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function scoreFallbackSegments(key, segments, line, shiftNumber, date, preShift) {
+  if (!segments?.length) return 0;
+
+  const candidates = segments.filter((segment) => matchesServiceDay(segment.gt, date));
+  const list = candidates.length ? candidates : segments;
+  const sorted = list.slice().sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const lineNorm = normalizeLineCode(line);
+  const startTime = compactTime(preShift?.i);
+  const endTime = compactTime(preShift?.e);
+  const startPlace = normalizePlace(preShift?.li);
+  const endPlace = normalizePlace(preShift?.le);
+  const normalizedShift = String(Number.parseInt(shiftNumber, 10));
+  let score = 0;
+
+  if (list.some((segment) => segment.lineaNorm === lineNorm || normalizeLineCode(segment.ln) === lineNorm)) score += 4;
+  if (normalizedShift !== 'NaN' && String(key).split(' ')[1] === normalizedShift) score += 5;
+  if (first?.start === startTime) score += 3;
+  if (last?.end === endTime) score += 3;
+  if (normalizePlace(first?.loc_s) === startPlace) score += 2;
+  if (normalizePlace(last?.loc_e) === endPlace) score += 2;
+
+  return score;
+}
+
+function findFallbackSegments(developments, line, shiftNumber, date, preShift) {
+  if (!preShift) return [];
+
+  const best = Object.entries(developments || {})
+    .map(([key, segments]) => ({
+      key,
+      segments,
+      score: scoreFallbackSegments(key, segments, line, shiftNumber, date, preShift),
+    }))
+    .filter((item) => item.score >= 7)
+    .sort((a, b) => b.score - a.score || a.segments.length - b.segments.length)[0];
+
+  if (!best) return [];
+  const filtered = best.segments.filter((segment) => matchesServiceDay(segment.gt, date));
+  return filtered.length ? filtered : best.segments;
+}
+
 export function getDevSegments(developments, line, shiftNumber, date, preShift = null) {
   const keys = buildDevKeyVariants(line, shiftNumber);
   const matchedKey = keys.find((key) => developments?.[key]?.length);
-  const allSegments = matchedKey ? developments[matchedKey] : [];
+  const allSegments = matchedKey ? developments[matchedKey] : findFallbackSegments(developments, line, shiftNumber, date, preShift);
   if (!allSegments.length) return [];
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));

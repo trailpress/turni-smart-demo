@@ -27,7 +27,9 @@ function formatDevelopmentLines(segments = []) {
     'Sviluppo turno:',
     ...segments.map((segment, index) => {
       const direction = DIRECTION_LABELS[segment.dir] || segment.dir || '-';
-      return `${index + 1}. ${segment.start} - ${segment.end} | ${segment.loc_s} ${direction} ${segment.loc_e}`;
+      const vehicle = segment.vett ? ` | Vett. ${segment.vett}` : '';
+      const vehicleShift = segment.turnoVettura ? ` | Turno vett. ${segment.turnoVettura}` : '';
+      return `${index + 1}. ${segment.start} - ${segment.end} | ${segment.loc_s} ${direction} ${segment.loc_e}${vehicle}${vehicleShift}`;
     }),
   ];
 }
@@ -59,6 +61,13 @@ function formatPlaceDirection(place, direction) {
   const normalized = DIRECTION_LABELS[direction] || direction || '';
   if (!normalized || normalized === '-') return place;
   return `${place} ${normalized}`;
+}
+
+function formatVehicleShift(value = '') {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  const [, shift] = normalized.split(/\s+/);
+  return shift || normalized;
 }
 
 function getCategoryIconName(category, shift) {
@@ -311,6 +320,13 @@ function DevelopmentPanel({ expanded = false, hasSegments, isSplit, segments, sp
               <span>
                 {segment.loc_s} {DIRECTION_LABELS[segment.dir] || segment.dir || '-'} {segment.loc_e}
               </span>
+              {segment.vett || segment.turnoVettura ? (
+                <small className="segment-vehicle">
+                  {segment.vett ? `Vett. ${segment.vett}` : ''}
+                  {segment.vett && segment.turnoVettura ? ' · ' : ''}
+                  {segment.turnoVettura ? `Turno vett. ${formatVehicleShift(segment.turnoVettura)}` : ''}
+                </small>
+              ) : null}
             </div>
           ))}
           {splitPause !== null ? <p className="split-pause">Pausa tra le riprese: {formatMinutes(splitPause)}</p> : null}
