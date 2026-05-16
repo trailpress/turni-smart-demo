@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import {
   REST_CODES,
   SPECIAL_CODES,
@@ -26,7 +25,7 @@ import { AdvancedTools } from './components/AdvancedTools.jsx';
 import { OnboardingHome } from './components/OnboardingHome.jsx';
 import { Icon } from './components/Icon.jsx';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 const TABS = ['Home', 'Mese'];
 const MONTH_NAMES = [
@@ -297,7 +296,7 @@ async function extractTextFromPage(page) {
 
 async function extractTextPagesFromPdf(file) {
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), disableWorker: true }).promise;
 
   const pages = [];
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
