@@ -81,9 +81,12 @@ function normalizeTokens(text) {
 
 function extractSegmentsFromTokens(tokens, gt, ver) {
   const segments = [];
+  let lastLineCode = '';
 
   for (let index = 0; index < tokens.length - 4; index += 1) {
-    if (!/^[A-Z0-9/()]+\/\d+$/.test(tokens[index])) continue;
+    const explicitLineVehicle = /^[A-Z0-9/()]+\/\d+$/.test(tokens[index]);
+    const vehicleOnly = !explicitLineVehicle && lastLineCode && /^\d{1,3}$/.test(tokens[index]);
+    if (!explicitLineVehicle && !vehicleOnly) continue;
     if (!TIME_TOKEN_RE.test(tokens[index + 1])) continue;
     if (!/^[A-Z]{2,4}$/.test(tokens[index + 2])) continue;
 
@@ -93,8 +96,9 @@ function extractSegmentsFromTokens(tokens, gt, ver) {
     if (!TIME_TOKEN_RE.test(tokens[endTimeIndex])) continue;
     if (!/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
 
-    const [lineCode, vehicle] = tokens[index].split('/');
-    const code = extractCodeFromTokens(tokens, index);
+    const [lineCode, vehicle] = explicitLineVehicle ? tokens[index].split('/') : [lastLineCode, tokens[index]];
+    if (explicitLineVehicle) lastLineCode = lineCode;
+    const code = explicitLineVehicle ? extractCodeFromTokens(tokens, index) : null;
     segments.push({
       code,
       segment: {
