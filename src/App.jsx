@@ -93,8 +93,10 @@ function buildShiftCard(day, prefix = '', enrichment = null) {
     number: day.n || '-',
     start: formatCompactTime(day.i),
     startPlace: day.li || '-',
+    startDirection: day.di || '',
     end: formatCompactTime(day.e),
     endPlace: day.le || '-',
+    endDirection: day.de || '',
     direction: day.di || '-',
     code: day.c || '-',
     status: 'Turno',
@@ -698,7 +700,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {pdfLoaded ? <Header orariLoaded={orariLoaded} pdfLoaded={pdfLoaded} period={periodLabel} person={personLabel} stats={preconoscenzaSummary} /> : null}
+      {pdfLoaded ? <Header pdfLoaded={pdfLoaded} period={periodLabel} person={personLabel} /> : null}
 
       <main className={pdfLoaded ? 'app-frame' : 'app-frame app-frame--onboarding'}>
         <input

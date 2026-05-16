@@ -1,6 +1,6 @@
 import { AssetIcon } from './Icon.jsx';
 
-export function Header({ orariLoaded = false, pdfLoaded = false, period, person }) {
+export function Header({ pdfLoaded = false, period, person }) {
   if (!pdfLoaded) {
     return (
       <header className="app-header app-header--empty">
@@ -43,10 +43,6 @@ export function Header({ orariLoaded = false, pdfLoaded = false, period, person 
         <strong>{period || 'Nessun periodo caricato'}</strong>
       </div>
 
-      <div className="header-status" aria-label="Stato dati">
-        <span className={pdfLoaded ? 'status-pill is-ok' : 'status-pill'}>Preconoscenza {pdfLoaded ? 'caricata' : 'non caricata'}</span>
-        <span className={orariLoaded ? 'status-pill is-ok' : 'status-pill'}>Orari Linee {orariLoaded ? 'caricati' : 'non caricati'}</span>
-      </div>
     </header>
   );
 }

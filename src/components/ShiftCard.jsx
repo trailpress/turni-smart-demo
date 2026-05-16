@@ -55,6 +55,12 @@ function buildShareText(shift, segments = [], assignedTurn = '') {
   ].join('\n');
 }
 
+function formatPlaceDirection(place, direction) {
+  const normalized = DIRECTION_LABELS[direction] || direction || '';
+  if (!normalized || normalized === '-') return place;
+  return `${place} ${normalized}`;
+}
+
 function getCategoryIconName(category, shift) {
   const text = `${category?.label || ''} ${category?.badge || ''}`.toLowerCase();
   if (shift?.isShortRest || text.includes('riposo')) return 'rest';
@@ -206,7 +212,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
                   <strong>{shift.start}</strong>
                   <span>
                     <Icon name="mapPin" size={14} />
-                    {shift.startPlace}
+                    {formatPlaceDirection(shift.startPlace, shift.startDirection || shift.direction)}
                   </span>
                   <small>Partenza</small>
                 </div>
@@ -215,7 +221,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
                   <strong>{shift.end}</strong>
                   <span>
                     <Icon name="mapPin" size={14} />
-                    {shift.endPlace}
+                    {formatPlaceDirection(shift.endPlace, shift.endDirection)}
                   </span>
                   <small>Termine</small>
                 </div>

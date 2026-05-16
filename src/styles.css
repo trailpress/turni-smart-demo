@@ -131,8 +131,8 @@ select:focus-visible {
 /* Header */
 .app-header {
   display: grid;
-  grid-template-columns: minmax(200px, 250px) minmax(150px, 1fr) minmax(250px, 320px) minmax(260px, 340px);
-  grid-template-areas: "brand driver period status";
+  grid-template-columns: minmax(200px, 250px) minmax(150px, 1fr) minmax(250px, 360px);
+  grid-template-areas: "brand driver period";
   gap: var(--s3);
   align-items: center;
   width: min(1500px, 100%);
@@ -2235,7 +2235,7 @@ select:focus-visible {
     grid-template-columns: minmax(190px, 1fr) minmax(250px, 1fr);
     grid-template-areas:
       "brand period"
-      "driver status";
+      "driver driver";
   }
 }
 
@@ -2246,8 +2246,7 @@ select:focus-visible {
     grid-template-areas:
       "brand"
       "driver"
-      "period"
-      "status";
+      "period";
   }
 
   .header-empty-note {
