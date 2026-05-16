@@ -33,6 +33,7 @@ export function UploadPanel({
 
   const hasPreconoscenza = Boolean(preconoscenzaSummary?.totalDays);
   const hasOrari = Boolean(debugInfo?.hasOrari);
+  const missingDevelopments = debugInfo?.missingDevelopments || [];
   const statusText =
     loading || orariLoading
       ? `Elaborazione ${orariLoading ? 'Orari Linee' : 'Preconoscenza'} in corso...`
@@ -111,7 +112,27 @@ export function UploadPanel({
             <h3>Orari Linee</h3>
             <span>{hasOrari ? 'Caricati' : 'Opzionali'}</span>
           </div>
-          {hasOrari ? <p>{debugInfo.keyCount} turni · {debugInfo.associations || 0} associazioni</p> : <p>Completano lo sviluppo del turno.</p>}
+          {hasOrari ? (
+            <>
+              <p>{debugInfo.keyCount} turni Orari · {debugInfo.associations || 0} sviluppi collegati</p>
+              {missingDevelopments.length ? (
+                <details className="missing-development-list">
+                  <summary>{debugInfo.missingDevelopmentCount} turni senza sviluppo</summary>
+                  <ul>
+                    {missingDevelopments.slice(0, 10).map((item) => (
+                      <li key={`${item.iso}-${item.line}-${item.shift}`}>
+                        <strong>{item.label}</strong>
+                        <span>
+                          Linea {item.line} · Turno {item.shift} · {item.start} {item.startPlace} - {item.end} {item.endPlace}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {missingDevelopments.length > 10 ? <p>Altri {missingDevelopments.length - 10} non mostrati.</p> : null}
+                </details>
+              ) : null}
+            </>
+          ) : <p>Completano lo sviluppo del turno.</p>}
         </div>
         <button className="upload-document__action upload-document__action--secondary" disabled={orariLoading} onClick={() => orariInputRef.current?.click()} type="button">
           {orariLoading ? 'Elaboro...' : hasOrari ? 'Sostituisci' : 'Carica'}

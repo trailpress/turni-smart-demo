@@ -536,13 +536,29 @@ export default function App() {
     const keys = Object.keys(developments);
     const lineSet = new Set();
     const unknownLineSet = new Set();
+    const missingDevelopments = [];
     let associations = 0;
 
     Object.values(days).forEach((day) => {
       if (day?.t !== 'turno') return;
       if (day.lineaNorm) lineSet.add(day.lineaNorm);
       if (!day.isGerbidoLine && day.lineaNorm) unknownLineSet.add(day.lineaNorm);
-      if (getDevSegments(developments, day.l, day.n, day.date, day).length) associations += 1;
+      const matchedSegments = getDevSegments(developments, day.l, day.n, day.date, day);
+      if (matchedSegments.length) {
+        associations += 1;
+      } else if (orariLoaded && keys.length > 0) {
+        missingDevelopments.push({
+          iso: day.iso,
+          label: dateFormatter.format(day.date || new Date(`${day.iso}T00:00:00`)),
+          line: day.l || '-',
+          shift: day.n || '-',
+          start: formatCompactTime(day.i),
+          end: formatCompactTime(day.e),
+          startPlace: day.li || '-',
+          endPlace: day.le || '-',
+          searchedKey: normalizeShiftKey(day.l, day.n),
+        });
+      }
     });
 
     return {
@@ -555,6 +571,8 @@ export default function App() {
       linesFound: [...lineSet].sort(),
       unknownLines: [...unknownLineSet].sort(),
       associations,
+      missingDevelopments,
+      missingDevelopmentCount: missingDevelopments.length,
     };
   }, [days, developments, homeSelection.day, orariLoaded, preconoscenzaSummary.totalShifts]);
 

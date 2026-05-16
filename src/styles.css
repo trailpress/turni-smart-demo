@@ -714,6 +714,45 @@ select:focus-visible {
   line-height: 1.25;
 }
 
+.missing-development-list {
+  margin-top: 8px;
+  color: #cfe1f4;
+  font-size: 0.72rem;
+}
+
+.missing-development-list summary {
+  cursor: pointer;
+  color: #ffd100;
+  font-weight: 900;
+}
+
+.missing-development-list ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missing-development-list li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid rgba(255, 209, 0, 0.18);
+  border-radius: 8px;
+  background: rgba(4, 24, 42, 0.38);
+}
+
+.missing-development-list strong {
+  color: #ffffff;
+  font-size: 0.73rem;
+}
+
+.missing-development-list span {
+  color: #b9c8da;
+  font-weight: 760;
+}
+
 .upload-document__action,
 .upload-document__clear {
   grid-column: 2;
