@@ -147,7 +147,7 @@ function parseManualDevelopment(text, date, fallbackDay = null) {
       ln: line,
       lineaNorm: normalizeLineCode(line),
       vett: hasLineVehicle ? lineVehicle[2] : '',
-      turnoVettura: fallbackDay?.n ? normalizeLineCode(line) + ' ' + String(Number.parseInt(fallbackDay.n, 10)) : '',
+      turnoVettura: hasLineVehicle ? lineVehicle[2] : '',
       start: compactToClock(tokens[startIndex]),
       loc_s: tokens[placeIndex],
       dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',

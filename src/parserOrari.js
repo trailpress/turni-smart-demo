@@ -38,6 +38,7 @@ function extractCodeFromTokens(tokens, index) {
   if (index < 2) return null;
   const line = tokens[index - 2];
   const shift = tokens[index - 1];
+  if (/^[A-Z0-9/()]+\/\d+$/.test(line)) return null;
   if (!/^[A-Z0-9/()]+$/.test(line) || !/^\d{1,3}$/.test(shift)) return null;
   return normalizeCode(`${line} ${shift}`);
 }
@@ -111,7 +112,7 @@ function extractSegmentsFromTokens(tokens, gt, ver) {
         ln: lineCode,
         lineaNorm: normalizeLineCode(lineCode),
         vett: vehicle,
-        turnoVettura: code || '',
+        turnoVettura: vehicle,
         start: normalizeTime(tokens[startTimeIndex]),
         loc_s: tokens[startPlaceIndex],
         dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
@@ -139,7 +140,7 @@ function extractSegmentsFromLine(line, gt, ver) {
         ln: match[2],
         lineaNorm: normalizeLineCode(match[2]),
         vett: match[3],
-        turnoVettura: code || '',
+        turnoVettura: match[3],
         start: normalizeTime(match[4]),
         loc_s: match[5],
         dir: match[6] !== '-' ? match[6] : '',
@@ -228,7 +229,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
       }
 
       item.done = true;
-      item.segment.turnoVettura = code;
+      item.segment.turnoVettura = item.segment.vett || code;
       addSegment(developments, code, item.segment);
       codeEnds[code] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
       lastExplicitCode = code;
@@ -248,7 +249,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     if (!canAttach) return;
 
     item.segment.run_id = previous.run_id;
-    item.segment.turnoVettura = lastExplicitCode;
+    item.segment.turnoVettura = item.segment.vett || lastExplicitCode;
     item.done = true;
     addSegment(developments, lastExplicitCode, item.segment);
     codeEnds[lastExplicitCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
@@ -272,7 +273,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
       item.done = true;
       changed = true;
       item.segment.run_id = codeEnds[bestCode].run_id;
-      item.segment.turnoVettura = bestCode;
+      item.segment.turnoVettura = item.segment.vett || bestCode;
       addSegment(developments, bestCode, item.segment);
       codeEnds[bestCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
     });
