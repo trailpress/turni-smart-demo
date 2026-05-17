@@ -1979,7 +1979,7 @@ select:focus-visible {
 }
 
 .shift-development--expanded .shift-segment {
-  grid-template-columns: 28px minmax(116px, 0.42fr) minmax(0, 1fr) minmax(112px, 0.34fr);
+  grid-template-columns: 28px minmax(116px, max-content) minmax(0, 1fr) auto;
   min-height: 46px;
   padding: 9px 10px;
   border-color: rgba(45, 109, 151, 0.44);
@@ -2009,7 +2009,7 @@ select:focus-visible {
 
 .shift-segment {
   display: grid;
-  grid-template-columns: 24px minmax(86px, 0.58fr) minmax(0, 1fr) minmax(92px, 0.38fr);
+  grid-template-columns: 24px minmax(86px, max-content) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--s2);
   padding: 8px 10px;
@@ -2048,6 +2048,11 @@ select:focus-visible {
   color: var(--muted);
   font-size: 0.77rem;
   font-weight: 750;
+}
+
+.shift-segment > span:not(.segment-index) {
+  justify-self: start;
+  text-align: left;
 }
 
 .shift-segment .segment-vehicle {
@@ -2771,16 +2776,27 @@ select:focus-visible {
   }
 
   .shift-segment {
-    grid-template-columns: 24px minmax(98px, 0.8fr) minmax(0, 1fr);
+    grid-template-columns: 26px minmax(0, 1fr);
     min-height: 42px;
-    gap: 8px;
+    gap: 8px 12px;
+    align-items: start;
+  }
+
+  .shift-segment strong {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .shift-segment > span:not(.segment-index) {
+    grid-column: 2;
+    grid-row: 2;
+    display: block;
+    line-height: 1.25;
   }
 
   .shift-segment .segment-vehicle {
-    grid-column: 2 / -1;
-  }
-
-  .shift-segment .segment-vehicle {
+    grid-column: 2;
+    grid-row: 3;
     justify-self: start;
     white-space: normal;
   }
