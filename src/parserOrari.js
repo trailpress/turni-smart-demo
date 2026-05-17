@@ -155,6 +155,42 @@ function extractSegmentsFromLine(line, gt, ver) {
   return segments.length ? segments : extractSegmentsFromTokens(normalizeTokens(line), gt, ver);
 }
 
+function extractContinuationFromLine(line, currentCode, gt, ver) {
+  const [lineCode = ''] = String(currentCode || '').split(/\s+/);
+  if (!lineCode) return null;
+  const tokens = normalizeTokens(line);
+  if (tokens.length < 4) return null;
+
+  const vehicleOnly = /^\d{1,3}$/.test(tokens[0]) && TIME_TOKEN_RE.test(tokens[1]);
+  const timeOnly = TIME_TOKEN_RE.test(tokens[0]);
+  if (!vehicleOnly && !timeOnly) return null;
+
+  const startTimeIndex = vehicleOnly ? 1 : 0;
+  const startPlaceIndex = vehicleOnly ? 2 : 1;
+  const directionIndex = vehicleOnly ? 3 : 2;
+  if (!/^[A-Z]{2,4}$/.test(tokens[startPlaceIndex])) return null;
+
+  const hasDirection = /^[AR-]$/.test(tokens[directionIndex]);
+  const endTimeIndex = hasDirection ? directionIndex + 1 : directionIndex;
+  const endPlaceIndex = hasDirection ? directionIndex + 2 : directionIndex + 1;
+  if (!TIME_TOKEN_RE.test(tokens[endTimeIndex])) return null;
+  if (!/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) return null;
+
+  return {
+    ln: lineCode,
+    lineaNorm: normalizeLineCode(lineCode),
+    vett: vehicleOnly ? tokens[0] : '',
+    turnoVettura: vehicleOnly ? tokens[0] : '',
+    start: normalizeTime(tokens[startTimeIndex]),
+    loc_s: tokens[startPlaceIndex],
+    dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
+    end: normalizeTime(tokens[endTimeIndex]),
+    loc_e: tokens[endPlaceIndex],
+    gt,
+    ver,
+  };
+}
+
 function gapMinutes(end, start) {
   const gap = timeToMinutes(start) - timeToMinutes(end);
   return gap < 0 ? gap + 1440 : gap;
@@ -203,7 +239,16 @@ export function parseOrariPageLines(text, gt, ver, developments) {
         return;
       }
 
-      extractSegmentsFromLine(line, gt, ver).forEach((item) => {
+      const extracted = extractSegmentsFromLine(line, gt, ver);
+      if (!extracted.length) {
+        lineSegments.push({
+          rawLine: line,
+          done: false,
+        });
+        return;
+      }
+
+      extracted.forEach((item) => {
         lineSegments.push({
           code: item.code,
           done: false,
@@ -256,6 +301,15 @@ export function parseOrariPageLines(text, gt, ver, developments) {
       const code = startExplicitBlock(item.code);
       item.done = true;
       addToCode(code, item.segment, { explicit: true });
+      return;
+    }
+
+    if (item.rawLine && currentCode) {
+      const continuation = extractContinuationFromLine(item.rawLine, currentCode, gt, ver);
+      if (continuation) {
+        item.done = true;
+        addToCode(currentCode, continuation);
+      }
       return;
     }
 
