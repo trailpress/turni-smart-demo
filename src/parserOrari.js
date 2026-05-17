@@ -270,6 +270,10 @@ export function parseOrariPageLines(text, gt, ver, developments) {
 
       if (!bestCode) return;
 
+      const shiftNumber = Number.parseInt(bestCode.split(' ')[1] || '999', 10);
+      if (shiftNumber >= 100) return;
+      if (developments[bestCode]?.length >= 2) return;
+
       item.done = true;
       changed = true;
       item.segment.run_id = codeEnds[bestCode].run_id;
