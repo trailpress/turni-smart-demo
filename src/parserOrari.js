@@ -245,7 +245,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
 
     const gap = gapMinutes(previous.end, item.segment.start);
     const samePlace = previous.loc === item.segment.loc_s;
-    const canAttach = (gap >= 0 && gap <= 240) || (gap >= 0 && gap <= 480 && samePlace);
+    const canAttach = gap >= 0 && gap <= 480 && samePlace;
     if (!canAttach) return;
 
     item.segment.run_id = previous.run_id;
@@ -264,9 +264,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     pageSegments.forEach((item) => {
       if (item.done) return;
 
-      const bestCode =
-        Object.keys(codeEnds).find((code) => codeEnds[code].end === item.segment.start && codeEnds[code].loc === item.segment.loc_s) ||
-        Object.keys(codeEnds).find((code) => codeEnds[code].end === item.segment.start);
+      const bestCode = Object.keys(codeEnds).find((code) => codeEnds[code].end === item.segment.start && codeEnds[code].loc === item.segment.loc_s);
 
       if (!bestCode) return;
 
@@ -392,7 +390,7 @@ function isAfterOrAt(previous, next) {
 function isCompletionCandidate(previous, next, preShift, isFormalSplit) {
   const gap = gapMinutes(previous.end, next.start);
   if (gap < 0) return false;
-  if (isFormalSplit) return gap <= 240 || (gap <= 480 && normalizePlace(previous.loc_e) === normalizePlace(next.loc_s));
+  if (isFormalSplit) return gap <= 480 && normalizePlace(previous.loc_e) === normalizePlace(next.loc_s);
 
   const endTime = compactTime(preShift?.e);
   const endPlace = normalizePlace(preShift?.le);
@@ -414,12 +412,13 @@ function completeShiftFromWindow(developments, line, date, preShift, baseSegment
   const isFormalSplit = shiftNumber < 100;
 
   const existingKeys = new Set(sortedBase.map((segment) => `${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`));
-  const extras = Object.values(developments || {})
+  const basePool = Object.values(developments || {})
     .flat()
-    .filter((segment) => matchesServiceDay(segment.gt, date))
     .filter((segment) => (segment.lineaNorm || normalizeLineCode(segment.ln)) === lineNorm)
     .filter((segment) => isWithinShiftWindow(segment, preShift))
-    .filter((segment) => !existingKeys.has(`${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`))
+    .filter((segment) => !existingKeys.has(`${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`));
+  const dayPool = basePool.filter((segment) => matchesServiceDay(segment.gt, date));
+  const extras = (dayPool.length ? dayPool : basePool)
     .filter((segment) => isCompletionCandidate(lastBase, segment, preShift, isFormalSplit))
     .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
