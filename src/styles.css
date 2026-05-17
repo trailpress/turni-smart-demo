@@ -624,6 +624,79 @@ select:focus-visible {
   font-weight: 850;
 }
 
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 12, 22, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.loading-card {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: min(420px, 100%);
+  padding: 16px;
+  border: 1px solid rgba(141, 216, 255, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(15, 58, 91, 0.96), rgba(5, 20, 33, 0.96));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+.loading-card strong {
+  display: block;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.loading-card p {
+  margin: 4px 0 0;
+  color: #b9c8da;
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.progress-ball {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background:
+    conic-gradient(from 0deg, var(--yellow), var(--accent), rgba(141, 216, 255, 0.08), var(--yellow));
+  animation: progress-spin 900ms linear infinite;
+}
+
+.progress-ball::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: inherit;
+  background: #082038;
+}
+
+.progress-ball span {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: inherit;
+  background: var(--yellow);
+  box-shadow: 0 0 18px rgba(255, 209, 0, 0.5);
+}
+
+@keyframes progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .upload-section {
   display: grid;
   gap: 10px;
@@ -1024,6 +1097,30 @@ select:focus-visible {
 .month-controls {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
+}
+
+.month-filter-group {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.filter-chip {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 24, 39, 0.88);
+  color: #b9c8da;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.filter-chip.is-active {
+  border-color: rgba(0, 167, 225, 0.65);
+  background: rgba(0, 114, 206, 0.78);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .range-panel .small-button,
@@ -2292,6 +2389,12 @@ select:focus-visible {
 
 .month-day--empty {
   visibility: hidden;
+  pointer-events: none;
+}
+
+.month-day--hidden {
+  opacity: 0.18;
+  filter: grayscale(1);
   pointer-events: none;
 }
 

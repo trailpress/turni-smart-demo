@@ -30,6 +30,12 @@ import { Icon } from './components/Icon.jsx';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const TABS = ['Home', 'Mese'];
+const DEFAULT_MONTH_FILTERS = {
+  turni: true,
+  riposi: true,
+  ballottaggi: true,
+  altro: true,
+};
 const MONTH_NAMES = [
   'Gennaio',
   'Febbraio',
@@ -331,12 +337,15 @@ export default function App() {
   const [rangeTo, setRangeTo] = useState(toIsoDate(new Date()));
   const [hideRests, setHideRests] = useState(false);
   const [onlyWorkShifts, setOnlyWorkShifts] = useState(false);
+  const [monthFilters, setMonthFilters] = useState(DEFAULT_MONTH_FILTERS);
+  const [monthOrder, setMonthOrder] = useState('asc');
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [orariLoading, setOrariLoading] = useState(false);
   const [error, setError] = useState('');
   const [orariError, setOrariError] = useState('');
+  const [uploadPhase, setUploadPhase] = useState('');
   const [history, setHistory] = useState(() => getHistory());
   const [preferences, setPreferences] = useState(() => ({ autoRestore: true, ...savedPrefs }));
   const [backupMessage, setBackupMessage] = useState('');
@@ -402,6 +411,7 @@ export default function App() {
 
   async function handlePreconoscenzaUpload(file) {
     setLoading(true);
+    setUploadPhase('Lettura Preconoscenza');
     setError('');
 
     try {
@@ -410,6 +420,7 @@ export default function App() {
       }
 
       const { pages, pageCount } = await extractTextPagesFromPdf(file);
+      setUploadPhase('Analisi turni');
       if (pageCount > 20) {
         throw new Error(`Questo sembra gli Orari Linee (${pageCount} pag.), non la Preconoscenza.`);
       }
@@ -423,6 +434,7 @@ export default function App() {
       }
 
       applyPreconoscenza({ ...result, fileName: file.name });
+      setUploadPhase('Preconoscenza caricata');
     } catch (caughtError) {
       setPdfLoaded(false);
       setPdfInfo(null);
@@ -430,11 +442,13 @@ export default function App() {
       setError(caughtError.message || 'Errore durante la lettura del PDF.');
     } finally {
       setLoading(false);
+      setUploadPhase('');
     }
   }
 
   async function handleOrariUpload(file) {
     setOrariLoading(true);
+    setUploadPhase('Lettura Orari Linee');
     setOrariError('');
 
     try {
@@ -443,6 +457,7 @@ export default function App() {
       }
 
       const { pages, pageCount } = await extractTextPagesFromPdf(file);
+      setUploadPhase('Ricostruzione sviluppi turno');
       if (pageCount < 5) {
         throw new Error('Questo sembra la Preconoscenza, non gli Orari Deposito.');
       }
@@ -454,6 +469,7 @@ export default function App() {
       }
 
       applyOrari(parsedDevelopments, { ...pdfInfo, fileName: file.name });
+      setUploadPhase('Orari Linee caricati');
     } catch (caughtError) {
       setDevelopments({});
       setOrariInfo(null);
@@ -461,6 +477,7 @@ export default function App() {
       setOrariError(caughtError.message || 'Errore durante la lettura degli Orari Deposito.');
     } finally {
       setOrariLoading(false);
+      setUploadPhase('');
     }
   }
 
@@ -581,6 +598,18 @@ export default function App() {
     if (onlyWorkShifts) return day.t === 'turno';
     if (hideRests) return !REST_CODES[day.t];
     return true;
+  }
+
+  function shouldShowMonthDay(day) {
+    if (!day) return false;
+    if (day.t === 'turno') return monthFilters.turni;
+    if (REST_CODES[day.t]) return monthFilters.riposi;
+    if (day.t === 'RIS') return monthFilters.ballottaggi;
+    return monthFilters.altro;
+  }
+
+  function toggleMonthFilter(key) {
+    setMonthFilters((current) => ({ ...current, [key]: !current[key] }));
   }
 
   function cardForDay(day, prefix = '') {
@@ -741,12 +770,14 @@ export default function App() {
       .sort()
       .map((iso) => days[iso])
       .filter((day) => day?.date?.getFullYear() === viewYear && day?.date?.getMonth() === viewMonth)
-      .filter(shouldShowDay);
-  }, [days, hideRests, onlyWorkShifts, viewMonth, viewYear]);
+      .filter(shouldShowMonthDay)
+      .sort((a, b) => (monthOrder === 'desc' ? b.date - a.date : a.date - b.date));
+  }, [days, monthFilters, monthOrder, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
 
   return (
     <div className="app-shell">
+      {loading || orariLoading ? <LoadingOverlay label={uploadPhase || 'Caricamento PDF'} detail={orariLoading ? 'Sto collegando gli sviluppi turno.' : 'Sto leggendo i turni del mese.'} /> : null}
       {pdfLoaded ? <Header pdfLoaded={pdfLoaded} period={periodLabel} person={personLabel} /> : null}
 
       <main className={pdfLoaded ? 'app-frame' : 'app-frame app-frame--onboarding'}>
@@ -873,14 +904,25 @@ export default function App() {
                   Anno
                   <input onChange={(event) => setViewYear(Number(event.target.value))} type="number" value={viewYear} />
                 </label>
-                <label className="check-row">
-                  <input checked={hideRests} onChange={(event) => setHideRests(event.target.checked)} type="checkbox" />
-                  Nascondi riposi
+                <label>
+                  Ordine
+                  <select value={monthOrder} onChange={(event) => setMonthOrder(event.target.value)}>
+                    <option value="asc">Dal primo giorno</option>
+                    <option value="desc">Dal fondo mese</option>
+                  </select>
                 </label>
-                <label className="check-row">
-                  <input checked={onlyWorkShifts} onChange={(event) => setOnlyWorkShifts(event.target.checked)} type="checkbox" />
-                  Solo turni
-                </label>
+                <div className="month-filter-group" aria-label="Mostra nel calendario">
+                  {[
+                    ['turni', 'Turni'],
+                    ['riposi', 'Riposi'],
+                    ['ballottaggi', 'Ballott.'],
+                    ['altro', 'Altro'],
+                  ].map(([key, label]) => (
+                    <button className={monthFilters[key] ? 'filter-chip is-active' : 'filter-chip'} key={key} onClick={() => toggleMonthFilter(key)} type="button">
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
                   Aggiungi periodo
                 </button>
@@ -893,6 +935,7 @@ export default function App() {
               </div>
               <MonthView
                 days={days}
+                filters={monthFilters}
                 monthDate={monthDate}
                 onNextMonth={() => changeMonth(1)}
                 onPrevMonth={() => changeMonth(-1)}
@@ -930,6 +973,22 @@ export default function App() {
           ) : null}
         </section>
       </main>
+    </div>
+  );
+}
+
+function LoadingOverlay({ label, detail }) {
+  return (
+    <div className="loading-overlay" role="status" aria-live="polite">
+      <div className="loading-card">
+        <div className="progress-ball" aria-hidden="true">
+          <span />
+        </div>
+        <div>
+          <strong>{label}</strong>
+          <p>{detail}</p>
+        </div>
+      </div>
     </div>
   );
 }

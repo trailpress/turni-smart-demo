@@ -10,7 +10,22 @@ function getMonthLength(date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
-export function MonthView({ days: parsedDays = {}, monthDate = new Date(), onNextMonth, onPrevMonth, onSelectDay }) {
+function getDayKind(item) {
+  if (!item) return 'empty';
+  if (item.t === 'turno') return 'turni';
+  if (REST_CODES[item.t]) return 'riposi';
+  if (item.t === 'RIS') return 'ballottaggi';
+  return 'altro';
+}
+
+export function MonthView({
+  days: parsedDays = {},
+  filters = { turni: true, riposi: true, ballottaggi: true, altro: true },
+  monthDate = new Date(),
+  onNextMonth,
+  onPrevMonth,
+  onSelectDay,
+}) {
   const monthLength = getMonthLength(monthDate);
   const days = Array.from({ length: monthLength }, (_, index) => index + 1);
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).getDay();
@@ -23,12 +38,15 @@ export function MonthView({ days: parsedDays = {}, monthDate = new Date(), onNex
       day,
     ).padStart(2, '0')}`;
     const item = parsedDays[iso];
+    const kind = getDayKind(item);
+    const isVisible = kind === 'empty' || filters[kind] !== false;
 
     return {
       hasShift: item?.t === 'turno',
       hasRest: Boolean(item && REST_CODES[item.t]),
       hasBallot: item?.t === 'RIS',
       hasOther: Boolean(item && item.t !== 'turno' && !REST_CODES[item.t] && item.t !== 'RIS'),
+      isVisible,
       isToday:
         today.getFullYear() === monthDate.getFullYear() &&
         today.getMonth() === monthDate.getMonth() &&
@@ -67,9 +85,11 @@ export function MonthView({ days: parsedDays = {}, monthDate = new Date(), onNex
                 state.hasBallot ? 'has-ballot' : '',
                 state.hasOther ? 'has-other' : '',
                 state.isToday ? 'is-today' : '',
+                !state.isVisible ? 'month-day--hidden' : '',
               ]
                 .filter(Boolean)
               .join(' ')}
+              disabled={!state.isVisible}
               key={day}
               onClick={() => onSelectDay?.(new Date(monthDate.getFullYear(), monthDate.getMonth(), day))}
               type="button"

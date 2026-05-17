@@ -27,9 +27,8 @@ function formatDevelopmentLines(segments = []) {
     'Sviluppo turno:',
     ...segments.map((segment, index) => {
       const direction = DIRECTION_LABELS[segment.dir] || segment.dir || '-';
-      const vehicle = segment.vett ? ` | Vett. ${segment.vett}` : '';
-      const vehicleShift = segment.turnoVettura ? ` | Turno vett. ${segment.turnoVettura}` : '';
-      return `${index + 1}. ${segment.start} - ${segment.end} | ${segment.loc_s} ${direction} ${segment.loc_e}${vehicle}${vehicleShift}`;
+      const vehicleShift = getVehicleShiftLabel(segment);
+      return `${index + 1}. ${segment.start} - ${segment.end} | ${segment.loc_s} ${direction} ${segment.loc_e}${vehicleShift ? ` | ${vehicleShift}` : ''}`;
     }),
   ];
 }
@@ -68,6 +67,11 @@ function formatVehicleShift(value = '') {
   if (!normalized) return '';
   const [, shift] = normalized.split(/\s+/);
   return shift || normalized;
+}
+
+function getVehicleShiftLabel(segment = {}) {
+  const value = formatVehicleShift(segment.turnoVettura || segment.vett || '');
+  return value ? `Turno vettura ${value}` : '';
 }
 
 function getCategoryIconName(category, shift) {
@@ -325,13 +329,7 @@ function DevelopmentPanel({ expanded = false, hasSegments, isSplit, segments, sp
               <span>
                 {segment.loc_s} {DIRECTION_LABELS[segment.dir] || segment.dir || '-'} {segment.loc_e}
               </span>
-              {segment.vett || segment.turnoVettura ? (
-                <small className="segment-vehicle">
-                  {segment.vett ? `Vett. ${segment.vett}` : ''}
-                  {segment.vett && segment.turnoVettura ? ' · ' : ''}
-                  {segment.turnoVettura ? `Turno vett. ${formatVehicleShift(segment.turnoVettura)}` : ''}
-                </small>
-              ) : null}
+              {getVehicleShiftLabel(segment) ? <small className="segment-vehicle">{getVehicleShiftLabel(segment)}</small> : null}
             </div>
           ))}
           {splitPause !== null ? <p className="split-pause">Pausa tra le riprese: {formatMinutes(splitPause)}</p> : null}
