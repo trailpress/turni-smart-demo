@@ -228,15 +228,17 @@ export function parseOrariPageLines(text, gt, ver, developments) {
   const runCounters = {};
   let currentCode = null;
   let currentRunByCode = {};
+  let currentIsDutyBlock = false;
 
   function startExplicitBlock(code) {
     currentCode = normalizeCode(code);
+    currentIsDutyBlock = true;
     runCounters[currentCode] = (runCounters[currentCode] || 0) + 1;
     currentRunByCode[currentCode] = runCounters[currentCode];
     return currentCode;
   }
 
-  function addToCode(code, segment) {
+  function addToCode(code, segment, { keepDutyBlock = false } = {}) {
     const normalizedCode = normalizeCode(code);
     if (!currentRunByCode[normalizedCode]) {
       runCounters[normalizedCode] = (runCounters[normalizedCode] || 0) + 1;
@@ -247,6 +249,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     segment.turnoVettura = segment.vett || normalizedCode;
     addSegment(developments, normalizedCode, segment);
     currentCode = normalizedCode;
+    currentIsDutyBlock = keepDutyBlock;
   }
 
   function isBoundaryAt(index) {
@@ -278,11 +281,15 @@ export function parseOrariPageLines(text, gt, ver, developments) {
 
     const [lineCode, vehicle] = explicitLineVehicle ? tokens[index].split('/') : [String(currentCode).split(/\s+/)[0], timeOnly ? '' : tokens[index]];
     const inferredCode = explicitLineVehicle ? extractCodeFromTokens(tokens, index) : null;
-    const code = inferredCode || currentCode;
+    const usesCurrentDutyBlock = Boolean(currentIsDutyBlock && currentCode);
+    const code = explicitLineVehicle
+      ? inferredCode || (usesCurrentDutyBlock ? currentCode : normalizeShiftKey(lineCode, vehicle))
+      : currentCode || normalizeShiftKey(lineCode, vehicle);
     if (!code) return null;
 
     return {
       code,
+      dutyBlock: Boolean(inferredCode || usesCurrentDutyBlock),
       nextIndex: endPlaceIndex + 1,
       segment: {
         ln: lineCode,
@@ -309,8 +316,8 @@ export function parseOrariPageLines(text, gt, ver, developments) {
 
     const item = readSegmentAt(index);
     if (item) {
-      if (item.code && item.code !== currentCode) startExplicitBlock(item.code);
-      addToCode(item.code, item.segment);
+      if (item.code && item.code !== currentCode && item.dutyBlock) startExplicitBlock(item.code);
+      addToCode(item.code, item.segment, { keepDutyBlock: item.dutyBlock && currentIsDutyBlock });
       index = item.nextIndex;
       continue;
     }
@@ -426,6 +433,18 @@ function reachesPreShiftEnd(segment, preShift) {
   return Boolean(endTime && segment?.end === endTime && (!endPlace || normalizePlace(segment?.loc_e) === endPlace));
 }
 
+function startsAtPreShift(segment, preShift) {
+  const startTime = compactTime(preShift?.i);
+  const startPlace = normalizePlace(preShift?.li);
+  return Boolean(startTime && segment?.start === startTime && (!startPlace || normalizePlace(segment?.loc_s) === startPlace));
+}
+
+function coversPreShift(segments, preShift) {
+  if (!segments?.length) return false;
+  const sorted = sortSegments(segments);
+  return startsAtPreShift(sorted[0], preShift) && reachesPreShiftEnd(sorted[sorted.length - 1], preShift);
+}
+
 function segmentKey(segment) {
   return `${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}|${segment.vett || ''}`;
 }
@@ -478,6 +497,74 @@ function pickBestWindowChain(segments, preShift) {
     })
     .filter((item) => item.reachesEnd)
     .sort((a, b) => b.covered - a.covered || a.gaps - b.gaps || b.count - a.count)[0]?.chain || [];
+}
+
+function findExactShiftPath(developments, line, date, preShift) {
+  const lineNorm = normalizeLineCode(line);
+  const shiftStart = compactToMinutes(preShift?.i);
+  let shiftEnd = compactToMinutes(preShift?.e);
+  const startTime = compactTime(preShift?.i);
+  const endTime = compactTime(preShift?.e);
+  const startPlace = normalizePlace(preShift?.li);
+  const endPlace = normalizePlace(preShift?.le);
+  if (!lineNorm || shiftStart === null || shiftEnd === null || !startTime || !endTime) return [];
+  if (shiftEnd < shiftStart) shiftEnd += 24 * 60;
+
+  const seen = new Set();
+  const candidates = Object.values(developments || {})
+    .flat()
+    .filter((segment) => (segment.lineaNorm || normalizeLineCode(segment.ln)) === lineNorm)
+    .filter((segment) => matchesServiceDay(segment.gt, date))
+    .filter((segment) => isWithinShiftWindow(segment, preShift))
+    .filter((segment) => {
+      const key = segmentKey(segment);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => segmentStartAbsolute(a, preShift) - segmentStartAbsolute(b, preShift) || segmentEndAbsolute(a, preShift) - segmentEndAbsolute(b, preShift));
+
+  const starts = candidates.filter((segment) => segment.start === startTime && (!startPlace || normalizePlace(segment.loc_s) === startPlace));
+  if (!starts.length) return [];
+
+  const completePaths = [];
+  const maxSegments = 6;
+
+  function walk(path) {
+    const last = path[path.length - 1];
+    if (last.end === endTime && (!endPlace || normalizePlace(last.loc_e) === endPlace)) {
+      completePaths.push(path);
+      return;
+    }
+    if (path.length >= maxSegments) return;
+
+    const lastEnd = segmentEndAbsolute(last, preShift);
+    candidates.forEach((next) => {
+      if (path.some((segment) => segmentKey(segment) === segmentKey(next))) return;
+      const nextStart = segmentStartAbsolute(next, preShift);
+      const gap = nextStart - lastEnd;
+      if (gap < 0 || gap > 180) return;
+      if (segmentEndAbsolute(next, preShift) <= lastEnd) return;
+      walk([...path, next]);
+    });
+  }
+
+  starts.forEach((segment) => walk([segment]));
+  if (!completePaths.length) return [];
+
+  return completePaths
+    .map((path) => {
+      const covered = path.reduce((sum, segment) => sum + (segmentEndAbsolute(segment, preShift) - segmentStartAbsolute(segment, preShift)), 0);
+      const first = path[0];
+      const last = path[path.length - 1];
+      const span = segmentEndAbsolute(last, preShift) - segmentStartAbsolute(first, preShift);
+      return {
+        path,
+        covered,
+        idle: span - covered,
+      };
+    })
+    .sort((a, b) => a.idle - b.idle || b.covered - a.covered || a.path.length - b.path.length)[0].path;
 }
 
 function completeShiftFromWindow(developments, line, date, preShift, baseSegments) {
@@ -595,12 +682,16 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
   const keys = buildDevKeyVariants(line, shiftNumber);
   const matchedKey = keys.find((key) => developments?.[key]?.length);
   const allSegments = matchedKey ? developments[matchedKey] : [];
-  if (!allSegments.length) return buildCommunicatedSegment(preShift);
-
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
-  const candidates = pickRun(filtered.length ? filtered : allSegments, preShift);
-  if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
-  return sortSegments(candidates);
+  const candidates = allSegments.length ? pickRun(filtered.length ? filtered : allSegments, preShift) : [];
+  const sortedCandidates = sortSegments(candidates);
+  if (coversPreShift(sortedCandidates, preShift) || shouldKeepFullDevelopment(sortedCandidates, preShift)) return sortedCandidates;
+
+  const exactPath = findExactShiftPath(developments, line, date, preShift);
+  if (exactPath.length) return sortSegments(exactPath);
+
+  if (sortedCandidates.length) return sortedCandidates;
+  return buildCommunicatedSegment(preShift);
 }
 
 export function summarizeDevelopments(developments) {
