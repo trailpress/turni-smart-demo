@@ -385,6 +385,43 @@ function isWithinShiftWindow(segment, preShift) {
   return segmentStart >= shiftStart && segmentEnd <= shiftEnd;
 }
 
+function isAfterOrAt(previous, next) {
+  return gapMinutes(previous.end, next.start) >= 0 && gapMinutes(previous.end, next.start) < 720;
+}
+
+function completeSplitFromWindow(developments, line, date, preShift, baseSegments) {
+  const shiftNumber = Number.parseInt(preShift?.n, 10);
+  const lineNorm = normalizeLineCode(line);
+  const endTime = compactTime(preShift?.e);
+  const endPlace = normalizePlace(preShift?.le);
+  if (!lineNorm || Number.isNaN(shiftNumber) || shiftNumber >= 100 || !baseSegments?.length || !endTime) return baseSegments;
+
+  const sortedBase = sortSegments(baseSegments);
+  const lastBase = sortedBase[sortedBase.length - 1];
+  if (lastBase?.end === endTime && normalizePlace(lastBase?.loc_e) === endPlace) return sortedBase;
+
+  const existingKeys = new Set(sortedBase.map((segment) => `${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`));
+  const extras = Object.values(developments || {})
+    .flat()
+    .filter((segment) => matchesServiceDay(segment.gt, date))
+    .filter((segment) => (segment.lineaNorm || normalizeLineCode(segment.ln)) === lineNorm)
+    .filter((segment) => isWithinShiftWindow(segment, preShift))
+    .filter((segment) => !existingKeys.has(`${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`))
+    .filter((segment) => isAfterOrAt(lastBase, segment))
+    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+
+  const chosen = [];
+  let cursor = lastBase;
+  for (const segment of extras) {
+    if (!isAfterOrAt(cursor, segment)) continue;
+    chosen.push(segment);
+    cursor = segment;
+    if (segment.end === endTime && (!endPlace || normalizePlace(segment.loc_e) === endPlace)) break;
+  }
+
+  return sortSegments([...sortedBase, ...chosen]);
+}
+
 function shouldKeepFullDevelopment(segments, preShift) {
   if (!segments?.length) return false;
   if (preShift?.communicated) return true;
@@ -478,8 +515,9 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
   const candidates = pickRun(filtered.length ? filtered : allSegments, preShift);
-  if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
-  return sortSegments(candidates);
+  const completed = completeSplitFromWindow(developments, line, date, preShift, candidates);
+  if (shouldKeepFullDevelopment(completed, preShift)) return sortSegments(completed);
+  return sortSegments(completed);
 }
 
 export function summarizeDevelopments(developments) {

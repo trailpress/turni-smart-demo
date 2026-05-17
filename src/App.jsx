@@ -936,6 +936,7 @@ export default function App() {
               <MonthView
                 days={days}
                 hiddenFilters={monthFilters}
+                highlightDate={nextWorkingShift?.day?.date}
                 monthDate={monthDate}
                 onNextMonth={() => changeMonth(1)}
                 onPrevMonth={() => changeMonth(-1)}

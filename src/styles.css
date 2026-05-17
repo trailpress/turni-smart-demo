@@ -2431,7 +2431,7 @@ select:focus-visible {
   font-weight: 900;
 }
 
-.month-day.is-today {
+.month-day.is-highlighted {
   box-shadow: 0 0 0 2px #00897b, 0 0 0 4px rgba(0, 137, 123, 0.2);
 }
 

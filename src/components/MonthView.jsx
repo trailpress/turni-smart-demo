@@ -21,6 +21,7 @@ function getDayKind(item) {
 export function MonthView({
   days: parsedDays = {},
   hiddenFilters = { turni: false, riposi: false, ballottaggi: false, altro: false },
+  highlightDate = null,
   monthDate = new Date(),
   onNextMonth,
   onPrevMonth,
@@ -31,7 +32,8 @@ export function MonthView({
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).getDay();
   const leadingEmptyDays = firstDay === 0 ? 6 : firstDay - 1;
   const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-  const today = new Date();
+  const highlighted =
+    highlightDate && !Number.isNaN(new Date(highlightDate).getTime()) ? new Date(highlightDate) : null;
 
   function dayState(day) {
     const iso = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}-${String(
@@ -47,10 +49,11 @@ export function MonthView({
       hasBallot: item?.t === 'RIS',
       hasOther: Boolean(item && item.t !== 'turno' && !REST_CODES[item.t] && item.t !== 'RIS'),
       isVisible,
-      isToday:
-        today.getFullYear() === monthDate.getFullYear() &&
-        today.getMonth() === monthDate.getMonth() &&
-        today.getDate() === day,
+      isHighlighted:
+        highlighted &&
+        highlighted.getFullYear() === monthDate.getFullYear() &&
+        highlighted.getMonth() === monthDate.getMonth() &&
+        highlighted.getDate() === day,
     };
   }
 
@@ -84,7 +87,7 @@ export function MonthView({
                 state.hasRest ? 'has-rest' : '',
                 state.hasBallot ? 'has-ballot' : '',
                 state.hasOther ? 'has-other' : '',
-                state.isToday ? 'is-today' : '',
+                state.isHighlighted ? 'is-highlighted' : '',
                 !state.isVisible ? 'month-day--hidden' : '',
               ]
                 .filter(Boolean)
@@ -101,7 +104,7 @@ export function MonthView({
       </div>
       <div className="month-legend">
         <span>
-          <i className="legend-dot legend-dot--today" /> Oggi
+          <i className="legend-dot legend-dot--today" /> In evidenza
         </span>
         <span>
           <i className="legend-dot legend-dot--shift" /> Turno
