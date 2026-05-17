@@ -83,20 +83,26 @@ function extractSegmentsFromTokens(tokens, gt, ver) {
   const segments = [];
   let lastLineCode = '';
 
-  for (let index = 0; index < tokens.length - 4; index += 1) {
+  for (let index = 0; index <= tokens.length - 4; index += 1) {
     const explicitLineVehicle = /^[A-Z0-9/()]+\/\d+$/.test(tokens[index]);
     const vehicleOnly = !explicitLineVehicle && lastLineCode && /^\d{1,3}$/.test(tokens[index]);
-    if (!explicitLineVehicle && !vehicleOnly) continue;
-    if (!TIME_TOKEN_RE.test(tokens[index + 1])) continue;
-    if (!/^[A-Z]{2,4}$/.test(tokens[index + 2])) continue;
+    const timeOnly = !explicitLineVehicle && !vehicleOnly && lastLineCode && TIME_TOKEN_RE.test(tokens[index]);
+    if (!explicitLineVehicle && !vehicleOnly && !timeOnly) continue;
+    if (timeOnly && segments[segments.length - 1]?.segment.end === normalizeTime(tokens[index])) continue;
 
-    const hasDirection = /^[AR-]$/.test(tokens[index + 3]);
-    const endTimeIndex = hasDirection ? index + 4 : index + 3;
-    const endPlaceIndex = hasDirection ? index + 5 : index + 4;
+    const startTimeIndex = timeOnly ? index : index + 1;
+    const startPlaceIndex = timeOnly ? index + 1 : index + 2;
+    const directionIndex = timeOnly ? index + 2 : index + 3;
+    if (!TIME_TOKEN_RE.test(tokens[startTimeIndex])) continue;
+    if (!/^[A-Z]{2,4}$/.test(tokens[startPlaceIndex])) continue;
+
+    const hasDirection = /^[AR-]$/.test(tokens[directionIndex]);
+    const endTimeIndex = hasDirection ? directionIndex + 1 : directionIndex;
+    const endPlaceIndex = hasDirection ? directionIndex + 2 : directionIndex + 1;
     if (!TIME_TOKEN_RE.test(tokens[endTimeIndex])) continue;
     if (!/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
 
-    const [lineCode, vehicle] = explicitLineVehicle ? tokens[index].split('/') : [lastLineCode, tokens[index]];
+    const [lineCode, vehicle] = explicitLineVehicle ? tokens[index].split('/') : [lastLineCode, timeOnly ? '' : tokens[index]];
     if (explicitLineVehicle) lastLineCode = lineCode;
     const code = explicitLineVehicle ? extractCodeFromTokens(tokens, index) : null;
     segments.push({
@@ -106,9 +112,9 @@ function extractSegmentsFromTokens(tokens, gt, ver) {
         lineaNorm: normalizeLineCode(lineCode),
         vett: vehicle,
         turnoVettura: code || '',
-        start: normalizeTime(tokens[index + 1]),
-        loc_s: tokens[index + 2],
-        dir: hasDirection && tokens[index + 3] !== '-' ? tokens[index + 3] : '',
+        start: normalizeTime(tokens[startTimeIndex]),
+        loc_s: tokens[startPlaceIndex],
+        dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
         end: normalizeTime(tokens[endTimeIndex]),
         loc_e: tokens[endPlaceIndex],
         gt,
