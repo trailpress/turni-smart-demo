@@ -387,16 +387,18 @@ function isAfterOrAt(previous, next) {
   return gapMinutes(previous.end, next.start) >= 0 && gapMinutes(previous.end, next.start) < 720;
 }
 
-function isCompletionCandidate(previous, next, preShift, isFormalSplit) {
-  const gap = gapMinutes(previous.end, next.start);
-  if (gap < 0) return false;
-  if (isFormalSplit) return gap <= 480 && normalizePlace(previous.loc_e) === normalizePlace(next.loc_s);
-
+function reachesPreShiftEnd(segment, preShift) {
   const endTime = compactTime(preShift?.e);
   const endPlace = normalizePlace(preShift?.le);
-  const reachesShiftEnd = next.end === endTime && (!endPlace || normalizePlace(next.loc_e) === endPlace);
+  return Boolean(endTime && segment?.end === endTime && (!endPlace || normalizePlace(segment?.loc_e) === endPlace));
+}
+
+function isContinuationCandidate(previous, next, isFormalSplit) {
+  const gap = gapMinutes(previous.end, next.start);
+  if (gap < 0) return false;
   const startsFromPreviousEndPlace = normalizePlace(previous.loc_e) === normalizePlace(next.loc_s);
-  return reachesShiftEnd && startsFromPreviousEndPlace && gap <= 90;
+  if (!startsFromPreviousEndPlace) return false;
+  return isFormalSplit ? gap <= 480 : gap <= 120;
 }
 
 function completeShiftFromWindow(developments, line, date, preShift, baseSegments) {
@@ -418,20 +420,25 @@ function completeShiftFromWindow(developments, line, date, preShift, baseSegment
     .filter((segment) => isWithinShiftWindow(segment, preShift))
     .filter((segment) => !existingKeys.has(`${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`));
   const dayPool = basePool.filter((segment) => matchesServiceDay(segment.gt, date));
-  const extras = (dayPool.length ? dayPool : basePool)
-    .filter((segment) => isCompletionCandidate(lastBase, segment, preShift, isFormalSplit))
-    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+  const extras = (dayPool.length ? dayPool : basePool).sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
   const chosen = [];
   let cursor = lastBase;
+  const used = new Set(existingKeys);
   for (const segment of extras) {
-    if (!isCompletionCandidate(cursor, segment, preShift, isFormalSplit)) continue;
+    const key = `${segment.start}|${segment.end}|${segment.loc_s}|${segment.loc_e}`;
+    if (used.has(key)) continue;
+    if (!isContinuationCandidate(cursor, segment, isFormalSplit)) continue;
     chosen.push(segment);
+    used.add(key);
     cursor = segment;
-    if (segment.end === endTime && (!endPlace || normalizePlace(segment.loc_e) === endPlace)) break;
+    if (reachesPreShiftEnd(segment, preShift)) break;
   }
 
-  return sortSegments([...sortedBase, ...chosen]);
+  const completed = sortSegments([...sortedBase, ...chosen]);
+  const lastCompleted = completed[completed.length - 1];
+  if (chosen.length && !reachesPreShiftEnd(lastCompleted, preShift)) return sortedBase;
+  return completed;
 }
 
 function shouldKeepFullDevelopment(segments, preShift) {

@@ -1,5 +1,5 @@
 const LEGACY_PRECO_PREFIX = 'ts_preco_';
-const LEGACY_ORARI_PREFIX = 'ts_orari_v9_';
+const LEGACY_ORARI_PREFIX = 'ts_orari_v10_';
 const INDEX_KEY = 'ts_index';
 const LAST_PRECO_KEY = 'ts_last_preco';
 const LAST_ORARI_KEY = 'ts_last_orari';
