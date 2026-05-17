@@ -381,89 +381,6 @@ function isWithinShiftWindow(segment, preShift) {
   return segmentStart >= shiftStart && segmentEnd <= shiftEnd;
 }
 
-function mergeUniqueSegments(primary, extra) {
-  const merged = [...primary];
-  extra.forEach((segment) => {
-    const exists = merged.some(
-      (item) =>
-        item.start === segment.start &&
-        item.end === segment.end &&
-        item.loc_s === segment.loc_s &&
-        item.loc_e === segment.loc_e &&
-        item.lineaNorm === segment.lineaNorm,
-    );
-    if (!exists) merged.push(segment);
-  });
-  return merged;
-}
-
-function segmentIdentity(segment) {
-  return [
-    segment.start,
-    segment.end,
-    normalizePlace(segment.loc_s),
-    normalizePlace(segment.loc_e),
-    segment.lineaNorm || normalizeLineCode(segment.ln),
-    segment.vett || '',
-  ].join('|');
-}
-
-function segmentGapMinutes(previous, next) {
-  let start = timeToMinutes(next.start);
-  const end = timeToMinutes(previous.end);
-  if (start < end) start += 24 * 60;
-  return start - end;
-}
-
-function hasRouteContinuity(previous, next) {
-  const previousEnd = normalizePlace(previous.loc_e);
-  const nextStart = normalizePlace(next.loc_s);
-  if (previousEnd && nextStart && previousEnd === nextStart) return true;
-
-  const previousVehicle = String(previous.vett || previous.turnoVettura || '').trim();
-  const nextVehicle = String(next.vett || next.turnoVettura || '').trim();
-  return Boolean(previousVehicle && nextVehicle && previousVehicle === nextVehicle);
-}
-
-function isChainCandidate(previous, next) {
-  const gap = segmentGapMinutes(previous, next);
-  if (gap < 0) return false;
-  if (!hasRouteContinuity(previous, next)) return false;
-
-  const samePlace = normalizePlace(previous.loc_e) === normalizePlace(next.loc_s);
-  const previousVehicle = String(previous.vett || previous.turnoVettura || '').trim();
-  const nextVehicle = String(next.vett || next.turnoVettura || '').trim();
-  const sameVehicle = Boolean(previousVehicle && nextVehicle && previousVehicle === nextVehicle);
-
-  if (gap <= 35) return true;
-  return samePlace && sameVehicle && gap <= 90;
-}
-
-function collectChainedSegments(developments, line, date, preShift, baseSegments) {
-  const lineNorm = normalizeLineCode(line);
-  if (!lineNorm || !preShift?.i || !preShift?.e || !baseSegments?.length) return [];
-
-  const used = new Set(baseSegments.map(segmentIdentity));
-  const chain = sortSegments(baseSegments);
-  const pool = Object.values(developments || {})
-    .flat()
-    .filter((segment) => matchesServiceDay(segment.gt, date))
-    .filter((segment) => segment.lineaNorm === lineNorm || normalizeLineCode(segment.ln) === lineNorm)
-    .filter((segment) => isWithinShiftWindow(segment, preShift))
-    .filter((segment) => !used.has(segmentIdentity(segment)))
-    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-
-  while (chain.length) {
-    const last = chain[chain.length - 1];
-    const next = pool.find((segment) => !used.has(segmentIdentity(segment)) && isChainCandidate(last, segment));
-    if (!next) break;
-    used.add(segmentIdentity(next));
-    chain.push(next);
-  }
-
-  return chain.filter((segment) => !baseSegments.some((item) => segmentIdentity(item) === segmentIdentity(segment)));
-}
-
 function shouldKeepFullDevelopment(segments, preShift) {
   if (!segments?.length) return false;
   if (preShift?.communicated) return true;
@@ -556,9 +473,7 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
   if (!allSegments.length) return buildCommunicatedSegment(preShift);
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
-  const baseSegments = filtered.length ? filtered : allSegments;
-  const baseRun = pickRun(baseSegments, preShift);
-  const candidates = mergeUniqueSegments(baseRun, collectChainedSegments(developments, line, date, preShift, baseRun));
+  const candidates = pickRun(filtered.length ? filtered : allSegments, preShift);
   if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
   return sortSegments(candidates);
 }

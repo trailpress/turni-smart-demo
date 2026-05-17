@@ -31,10 +31,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const TABS = ['Home', 'Mese'];
 const DEFAULT_MONTH_FILTERS = {
-  turni: true,
-  riposi: true,
-  ballottaggi: true,
-  altro: true,
+  turni: false,
+  riposi: false,
+  ballottaggi: false,
+  altro: false,
 };
 const MONTH_NAMES = [
   'Gennaio',
@@ -602,10 +602,10 @@ export default function App() {
 
   function shouldShowMonthDay(day) {
     if (!day) return false;
-    if (day.t === 'turno') return monthFilters.turni;
-    if (REST_CODES[day.t]) return monthFilters.riposi;
-    if (day.t === 'RIS') return monthFilters.ballottaggi;
-    return monthFilters.altro;
+    if (day.t === 'turno') return !monthFilters.turni;
+    if (REST_CODES[day.t]) return !monthFilters.riposi;
+    if (day.t === 'RIS') return !monthFilters.ballottaggi;
+    return !monthFilters.altro;
   }
 
   function toggleMonthFilter(key) {
@@ -911,7 +911,7 @@ export default function App() {
                     <option value="desc">Dal fondo mese</option>
                   </select>
                 </label>
-                <div className="month-filter-group" aria-label="Mostra nel calendario">
+                <div className="month-filter-group" aria-label="Nascondi nel calendario">
                   {[
                     ['turni', 'Turni'],
                     ['riposi', 'Riposi'],
@@ -919,7 +919,7 @@ export default function App() {
                     ['altro', 'Altro'],
                   ].map(([key, label]) => (
                     <button className={monthFilters[key] ? 'filter-chip is-active' : 'filter-chip'} key={key} onClick={() => toggleMonthFilter(key)} type="button">
-                      {label}
+                      Nascondi {label}
                     </button>
                   ))}
                 </div>
@@ -935,7 +935,7 @@ export default function App() {
               </div>
               <MonthView
                 days={days}
-                filters={monthFilters}
+                hiddenFilters={monthFilters}
                 monthDate={monthDate}
                 onNextMonth={() => changeMonth(1)}
                 onPrevMonth={() => changeMonth(-1)}

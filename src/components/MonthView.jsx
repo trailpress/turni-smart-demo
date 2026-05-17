@@ -20,7 +20,7 @@ function getDayKind(item) {
 
 export function MonthView({
   days: parsedDays = {},
-  filters = { turni: true, riposi: true, ballottaggi: true, altro: true },
+  hiddenFilters = { turni: false, riposi: false, ballottaggi: false, altro: false },
   monthDate = new Date(),
   onNextMonth,
   onPrevMonth,
@@ -39,7 +39,7 @@ export function MonthView({
     ).padStart(2, '0')}`;
     const item = parsedDays[iso];
     const kind = getDayKind(item);
-    const isVisible = kind === 'empty' || filters[kind] !== false;
+    const isVisible = kind === 'empty' || hiddenFilters[kind] !== true;
 
     return {
       hasShift: item?.t === 'turno',

@@ -1117,9 +1117,9 @@ select:focus-visible {
 }
 
 .filter-chip.is-active {
-  border-color: rgba(0, 167, 225, 0.65);
-  background: rgba(0, 114, 206, 0.78);
-  color: #ffffff;
+  border-color: rgba(255, 99, 99, 0.56);
+  background: rgba(127, 33, 44, 0.72);
+  color: #ffd8d8;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
