@@ -224,99 +224,99 @@ function addSegment(developments, code, segment) {
 }
 
 export function parseOrariPageLines(text, gt, ver, developments) {
-  const lineSegments = [];
-
-  String(text || '')
-    .split('\n')
-    .forEach((line) => {
-      const codeLine = line.trim().match(/^([A-Z0-9/()]{1,12})\s+(\d{1,3})$/);
-      if (codeLine) {
-        lineSegments.push({
-          boundary: true,
-          code: normalizeCode(`${codeLine[1]} ${codeLine[2]}`),
-          done: false,
-        });
-        return;
-      }
-
-      const extracted = extractSegmentsFromLine(line, gt, ver);
-      if (!extracted.length) {
-        lineSegments.push({
-          rawLine: line,
-          done: false,
-        });
-        return;
-      }
-
-      extracted.forEach((item) => {
-        lineSegments.push({
-          code: item.code,
-          done: false,
-          segment: item.segment,
-        });
-      });
-    });
-
-  const streamSegments = extractSegmentsFromTokens(normalizeTokens(text), gt, ver).map((item) => ({
-    code: item.code,
-    done: false,
-    segment: item.segment,
-  }));
-  const pageSegments = lineSegments.length ? lineSegments : streamSegments;
-
-  const codeEnds = {};
+  const tokens = normalizeTokens(text);
   const runCounters = {};
   let currentCode = null;
-  let currentRun = null;
+  let currentRunByCode = {};
 
   function startExplicitBlock(code) {
     currentCode = normalizeCode(code);
-    currentRun = null;
+    runCounters[currentCode] = (runCounters[currentCode] || 0) + 1;
+    currentRunByCode[currentCode] = runCounters[currentCode];
     return currentCode;
   }
 
-  function addToCode(code, segment, { explicit = false } = {}) {
+  function addToCode(code, segment) {
     const normalizedCode = normalizeCode(code);
-    const previous = codeEnds[normalizedCode];
-
-    if (explicit || !previous || currentRun === null) {
+    if (!currentRunByCode[normalizedCode]) {
       runCounters[normalizedCode] = (runCounters[normalizedCode] || 0) + 1;
-      currentRun = runCounters[normalizedCode];
+      currentRunByCode[normalizedCode] = runCounters[normalizedCode];
     }
 
-    segment.run_id = currentRun || previous?.run_id || 1;
+    segment.run_id = currentRunByCode[normalizedCode];
     segment.turnoVettura = segment.vett || normalizedCode;
     addSegment(developments, normalizedCode, segment);
-    codeEnds[normalizedCode] = { end: segment.end, loc: segment.loc_e, run_id: segment.run_id };
     currentCode = normalizedCode;
   }
 
-  pageSegments.forEach((item) => {
-    if (item.boundary && item.code) {
-      startExplicitBlock(item.code);
-      return;
+  function isBoundaryAt(index) {
+    const line = tokens[index];
+    const shift = tokens[index + 1];
+    const next = tokens[index + 2];
+    if (!/^[A-Z0-9/()]+$/.test(line) || !/^\d{1,3}$/.test(shift)) return false;
+    if (/^[A-Z0-9/()]+\/\d+$/.test(line)) return false;
+    return Boolean(next && (/^[A-Z0-9/()]+\/\d+$/.test(next) || TIME_TOKEN_RE.test(next)));
+  }
+
+  function readSegmentAt(index) {
+    const explicitLineVehicle = /^[A-Z0-9/()]+\/\d+$/.test(tokens[index]);
+    const vehicleOnly = !explicitLineVehicle && currentCode && /^\d{1,3}$/.test(tokens[index]) && TIME_TOKEN_RE.test(tokens[index + 1]);
+    const timeOnly = !explicitLineVehicle && !vehicleOnly && currentCode && TIME_TOKEN_RE.test(tokens[index]);
+    if (!explicitLineVehicle && !vehicleOnly && !timeOnly) return null;
+
+    const startTimeIndex = timeOnly ? index : index + 1;
+    const startPlaceIndex = timeOnly ? index + 1 : index + 2;
+    const directionIndex = timeOnly ? index + 2 : index + 3;
+    if (!TIME_TOKEN_RE.test(tokens[startTimeIndex])) return null;
+    if (!/^[A-Z]{2,4}$/.test(tokens[startPlaceIndex])) return null;
+
+    const hasDirection = /^[AR-]$/.test(tokens[directionIndex]);
+    const endTimeIndex = hasDirection ? directionIndex + 1 : directionIndex;
+    const endPlaceIndex = hasDirection ? directionIndex + 2 : directionIndex + 1;
+    if (!TIME_TOKEN_RE.test(tokens[endTimeIndex])) return null;
+    if (!/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) return null;
+
+    const [lineCode, vehicle] = explicitLineVehicle ? tokens[index].split('/') : [String(currentCode).split(/\s+/)[0], timeOnly ? '' : tokens[index]];
+    const inferredCode = explicitLineVehicle ? extractCodeFromTokens(tokens, index) : null;
+    const code = inferredCode || currentCode;
+    if (!code) return null;
+
+    return {
+      code,
+      nextIndex: endPlaceIndex + 1,
+      segment: {
+        ln: lineCode,
+        lineaNorm: normalizeLineCode(lineCode),
+        vett: vehicle,
+        turnoVettura: vehicle,
+        start: normalizeTime(tokens[startTimeIndex]),
+        loc_s: tokens[startPlaceIndex],
+        dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
+        end: normalizeTime(tokens[endTimeIndex]),
+        loc_e: tokens[endPlaceIndex],
+        gt,
+        ver,
+      },
+    };
+  }
+
+  for (let index = 0; index < tokens.length; ) {
+    if (isBoundaryAt(index)) {
+      startExplicitBlock(`${tokens[index]} ${tokens[index + 1]}`);
+      index += 2;
+      continue;
     }
 
-    if (item.code) {
-      const code = startExplicitBlock(item.code);
-      item.done = true;
-      addToCode(code, item.segment, { explicit: true });
-      return;
+    const item = readSegmentAt(index);
+    if (item) {
+      if (item.code && item.code !== currentCode) startExplicitBlock(item.code);
+      addToCode(item.code, item.segment);
+      index = item.nextIndex;
+      continue;
     }
 
-    if (item.rawLine && currentCode) {
-      const continuation = extractContinuationFromLine(item.rawLine, currentCode, gt, ver);
-      if (continuation) {
-        item.done = true;
-        addToCode(currentCode, continuation);
-      }
-      return;
-    }
-
-    if (!currentCode || !item.segment) return;
-    item.done = true;
-    addToCode(currentCode, item.segment);
-  });
+    index += 1;
+  }
 }
 
 export function parseOrari(pagesText) {
@@ -594,7 +594,7 @@ function buildCommunicatedSegment(preShift) {
 export function getDevSegments(developments, line, shiftNumber, date, preShift = null) {
   const keys = buildDevKeyVariants(line, shiftNumber);
   const matchedKey = keys.find((key) => developments?.[key]?.length);
-  const allSegments = matchedKey ? developments[matchedKey] : findFallbackSegments(developments, line, shiftNumber, date, preShift);
+  const allSegments = matchedKey ? developments[matchedKey] : [];
   if (!allSegments.length) return buildCommunicatedSegment(preShift);
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
