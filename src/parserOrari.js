@@ -193,6 +193,16 @@ export function parseOrariPageLines(text, gt, ver, developments) {
   String(text || '')
     .split('\n')
     .forEach((line) => {
+      const codeLine = line.trim().match(/^([A-Z0-9/()]{1,12})\s+(\d{1,3})$/);
+      if (codeLine) {
+        lineSegments.push({
+          boundary: true,
+          code: normalizeCode(`${codeLine[1]} ${codeLine[2]}`),
+          done: false,
+        });
+        return;
+      }
+
       extractSegmentsFromLine(line, gt, ver).forEach((item) => {
         lineSegments.push({
           code: item.code,
@@ -211,75 +221,48 @@ export function parseOrariPageLines(text, gt, ver, developments) {
 
   const codeEnds = {};
   const runCounters = {};
-  let lastExplicitCode = null;
+  let currentCode = null;
+  let currentRun = null;
+
+  function startExplicitBlock(code) {
+    currentCode = normalizeCode(code);
+    currentRun = null;
+    return currentCode;
+  }
+
+  function addToCode(code, segment, { explicit = false } = {}) {
+    const normalizedCode = normalizeCode(code);
+    const previous = codeEnds[normalizedCode];
+
+    if (explicit || !previous || currentRun === null) {
+      runCounters[normalizedCode] = (runCounters[normalizedCode] || 0) + 1;
+      currentRun = runCounters[normalizedCode];
+    }
+
+    segment.run_id = currentRun || previous?.run_id || 1;
+    segment.turnoVettura = segment.vett || normalizedCode;
+    addSegment(developments, normalizedCode, segment);
+    codeEnds[normalizedCode] = { end: segment.end, loc: segment.loc_e, run_id: segment.run_id };
+    currentCode = normalizedCode;
+  }
 
   pageSegments.forEach((item) => {
-    if (item.code) {
-      const code = normalizeCode(item.code);
-      const shiftNumber = Number.parseInt(code.split(' ')[1] || '999', 10);
-      const isSplitCandidate = shiftNumber < 100;
-      const previous = codeEnds[code];
-      const canContinue = previous ? gapMinutes(previous.end, item.segment.start) <= 480 : false;
-
-      if (isSplitCandidate && previous && canContinue) {
-        item.segment.run_id = previous.run_id;
-      } else {
-        runCounters[code] = (runCounters[code] || 0) + 1;
-        item.segment.run_id = runCounters[code];
-      }
-
-      item.done = true;
-      item.segment.turnoVettura = item.segment.vett || code;
-      addSegment(developments, code, item.segment);
-      codeEnds[code] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
-      lastExplicitCode = code;
+    if (item.boundary && item.code) {
+      startExplicitBlock(item.code);
       return;
     }
 
-    if (!lastExplicitCode) return;
-
-    const shiftNumber = Number.parseInt(lastExplicitCode.split(' ')[1] || '999', 10);
-    const isSplitCandidate = shiftNumber < 100;
-    const previous = codeEnds[lastExplicitCode];
-    if (!isSplitCandidate || !previous || !item.segment.start) return;
-
-    const gap = gapMinutes(previous.end, item.segment.start);
-    const samePlace = previous.loc === item.segment.loc_s;
-    const canAttach = gap >= 0 && gap <= 480 && samePlace;
-    if (!canAttach) return;
-
-    item.segment.run_id = previous.run_id;
-    item.segment.turnoVettura = item.segment.vett || lastExplicitCode;
-    item.done = true;
-    addSegment(developments, lastExplicitCode, item.segment);
-    codeEnds[lastExplicitCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
-  });
-
-  let changed = true;
-  let maxIterations = 15;
-  while (changed && maxIterations > 0) {
-    changed = false;
-    maxIterations -= 1;
-
-    pageSegments.forEach((item) => {
-      if (item.done) return;
-
-      const bestCode = Object.keys(codeEnds).find((code) => codeEnds[code].end === item.segment.start && codeEnds[code].loc === item.segment.loc_s);
-
-      if (!bestCode) return;
-
-      const shiftNumber = Number.parseInt(bestCode.split(' ')[1] || '999', 10);
-      if (shiftNumber >= 100) return;
-      if (developments[bestCode]?.length >= 2) return;
-
+    if (item.code) {
+      const code = startExplicitBlock(item.code);
       item.done = true;
-      changed = true;
-      item.segment.run_id = codeEnds[bestCode].run_id;
-      item.segment.turnoVettura = item.segment.vett || bestCode;
-      addSegment(developments, bestCode, item.segment);
-      codeEnds[bestCode] = { end: item.segment.end, loc: item.segment.loc_e, run_id: item.segment.run_id };
-    });
-  }
+      addToCode(code, item.segment, { explicit: true });
+      return;
+    }
+
+    if (!currentCode || !item.segment) return;
+    item.done = true;
+    addToCode(currentCode, item.segment);
+  });
 }
 
 export function parseOrari(pagesText) {
@@ -562,9 +545,8 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
   const candidates = pickRun(filtered.length ? filtered : allSegments, preShift);
-  const completed = completeShiftFromWindow(developments, line, date, preShift, candidates);
-  if (shouldKeepFullDevelopment(completed, preShift)) return sortSegments(completed);
-  return sortSegments(completed);
+  if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
+  return sortSegments(candidates);
 }
 
 export function summarizeDevelopments(developments) {
