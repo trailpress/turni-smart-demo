@@ -1105,7 +1105,8 @@ select:focus-visible {
 }
 
 .shift-card__flipper {
-  display: grid;
+  position: relative;
+  display: block;
   transform-style: preserve-3d;
   transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -1121,21 +1122,24 @@ select:focus-visible {
 }
 
 .shift-card__face {
-  grid-area: 1 / 1;
   min-width: 0;
   backface-visibility: hidden;
 }
 
 .shift-card__face--front {
   display: grid;
+  align-content: start;
   gap: 10px;
 }
 
 .shift-card__face--back {
+  position: absolute;
+  inset: 0;
   display: grid;
   gap: 12px;
   align-content: start;
   transform: rotateY(180deg);
+  pointer-events: none;
   border: 1px solid rgba(45, 109, 151, 0.5);
   border-radius: var(--radius);
   padding: 12px;
@@ -1145,7 +1149,9 @@ select:focus-visible {
 }
 
 .shift-card__flipper.is-flipped .shift-card__face--back {
-  grid-area: auto;
+  position: relative;
+  inset: auto;
+  pointer-events: auto;
 }
 
 .development-back-header {
@@ -1413,9 +1419,9 @@ select:focus-visible {
 
 .shift-route {
   display: grid;
-  grid-template-columns: minmax(118px, 0.74fr) minmax(260px, 1.8fr) minmax(118px, 0.74fr);
+  grid-template-columns: minmax(118px, max-content) minmax(0, 1fr) minmax(118px, max-content);
   align-items: start;
-  gap: 12px;
+  gap: 6px;
   padding: 8px 10px;
   border-radius: var(--radius);
   border: 1px solid rgba(141, 216, 255, 0.12);
@@ -1426,6 +1432,12 @@ select:focus-visible {
   display: grid;
   gap: 2px;
   min-width: 0;
+  width: max-content;
+  max-width: 190px;
+}
+
+.shift-route div:not(.route-line):last-child {
+  justify-self: end;
 }
 
 .shift-route strong {
@@ -1458,6 +1470,7 @@ select:focus-visible {
   height: 4px;
   align-self: center;
   margin-top: 22px;
+  min-width: 72px;
   border-radius: 999px;
   background: var(--accent);
   box-shadow: 0 0 12px rgba(0, 190, 232, 0.28);
@@ -1495,7 +1508,9 @@ select:focus-visible {
 .shift-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  margin-top: 0;
 }
 
 .shift-meta-chip,
@@ -1503,6 +1518,9 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
   min-height: 38px;
   padding: 6px 10px 6px 7px;
   border: 1px solid rgba(141, 216, 255, 0.14);
