@@ -207,7 +207,7 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     done: false,
     segment: item.segment,
   }));
-  const pageSegments = streamSegments.length > lineSegments.length ? streamSegments : lineSegments;
+  const pageSegments = lineSegments.length ? lineSegments : streamSegments;
 
   const codeEnds = {};
   const runCounters = {};
