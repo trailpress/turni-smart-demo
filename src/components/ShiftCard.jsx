@@ -182,7 +182,11 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
   }
 
   const lookupSegments =
-    dayData?.t === 'turno' ? getDevSegments(developments, dayData.l, dayData.n, date || dayData.date, dayData) : [];
+    dayData?.t === 'turno'
+      ? dayData.manualSegments?.length
+        ? dayData.manualSegments
+        : getDevSegments(developments, dayData.l, dayData.n, date || dayData.date, dayData)
+      : [];
   const segments = lookupSegments.length ? lookupSegments : shift.segments || [];
   const isSplit = segments.length > 1 || shift.isSplit;
   const isEvening = Boolean(enrichment?.isEvening ?? shift.isEvening);

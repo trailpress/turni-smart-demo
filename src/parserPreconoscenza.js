@@ -80,7 +80,121 @@ export function parseShift(rest) {
   };
 }
 
-export function parseCommunicatedShift(text, fallbackDate = null) {
+function normalizeCommunicatedTokens(text) {
+  const rawTokens = String(text || '')
+    .trim()
+    .toUpperCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  const tokens = [];
+
+  for (let index = 0; index < rawTokens.length; index += 1) {
+    const current = rawTokens[index];
+    const next = rawTokens[index + 1];
+    const afterNext = rawTokens[index + 2];
+
+    if (/^[A-Z0-9/()]+$/.test(current) && next === '/' && /^\d+$/.test(afterNext)) {
+      tokens.push(`${current}/${afterNext}`);
+      index += 2;
+    } else if (/^[A-Z0-9/()]+\/$/.test(current) && /^\d+$/.test(next)) {
+      tokens.push(`${current}${next}`);
+      index += 1;
+    } else {
+      tokens.push(current);
+    }
+  }
+
+  return tokens;
+}
+
+function compactToClock(value) {
+  const raw = String(value || '').replace(/\D/g, '');
+  return raw.length === 4 ? `${raw.slice(0, 2)}:${raw.slice(2)}` : '';
+}
+
+function parseManualDevelopment(text, date, fallbackDay = null) {
+  const tokens = normalizeCommunicatedTokens(text);
+  const segments = [];
+  let line = fallbackDay?.l || '';
+  let firstVehicle = '';
+
+  for (let index = 0; index <= tokens.length - 4; index += 1) {
+    const lineVehicle = tokens[index].match(/^([A-Z0-9/()]+)\/(\d+)$/);
+    const hasLineVehicle = Boolean(lineVehicle);
+    const startsWithTime = /^\d{4}$/.test(tokens[index]);
+    if (!hasLineVehicle && !startsWithTime) continue;
+    if (startsWithTime && !hasLineVehicle) {
+      const previous = segments[segments.length - 1];
+      const currentTime = compactToClock(tokens[index]);
+      if (previous && (previous.start === currentTime || previous.end === currentTime)) continue;
+    }
+
+    const startIndex = hasLineVehicle ? index + 1 : index;
+    const placeIndex = hasLineVehicle ? index + 2 : index + 1;
+    const directionIndex = hasLineVehicle ? index + 3 : index + 2;
+    const hasDirection = /^[AR-]$/.test(tokens[directionIndex]);
+    const endIndex = hasDirection ? directionIndex + 1 : directionIndex;
+    const endPlaceIndex = hasDirection ? directionIndex + 2 : directionIndex + 1;
+    if (!/^\d{4}$/.test(tokens[startIndex]) || !/^[A-Z]{2,4}$/.test(tokens[placeIndex])) continue;
+    if (!/^\d{4}$/.test(tokens[endIndex]) || !/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
+
+    if (hasLineVehicle) {
+      line = lineVehicle[1];
+      firstVehicle ||= lineVehicle[2];
+    }
+
+    const nextSegment = {
+      ln: line,
+      lineaNorm: normalizeLineCode(line),
+      vett: hasLineVehicle ? lineVehicle[2] : '',
+      turnoVettura: fallbackDay?.n ? normalizeLineCode(line) + ' ' + String(Number.parseInt(fallbackDay.n, 10)) : '',
+      start: compactToClock(tokens[startIndex]),
+      loc_s: tokens[placeIndex],
+      dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
+      end: compactToClock(tokens[endIndex]),
+      loc_e: tokens[endPlaceIndex],
+      gt: '',
+      ver: '',
+      run_id: 1,
+      source: 'manual',
+    };
+    const duplicate = segments.some(
+      (segment) =>
+        segment.start === nextSegment.start &&
+        segment.end === nextSegment.end &&
+        segment.loc_s === nextSegment.loc_s &&
+        segment.loc_e === nextSegment.loc_e,
+    );
+    if (!duplicate) segments.push(nextSegment);
+  }
+
+  if (!date || !line || !segments.length) return null;
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  return {
+    iso: toIso(date),
+    date,
+    g: fallbackDay?.g || '',
+    t: 'turno',
+    l: line,
+    linea: line,
+    lineaNorm: normalizeLineCode(line),
+    isGerbidoLine: checkGerbidoLine(line),
+    n: fallbackDay?.n && fallbackDay.t === 'turno' ? fallbackDay.n : firstVehicle || fallbackDay?.n || '-',
+    c: fallbackDay?.c || 'MAN',
+    i: first.start.replace(':', ''),
+    li: first.loc_s,
+    di: first.dir || '',
+    e: last.end.replace(':', ''),
+    le: last.loc_e,
+    de: last.dir || '',
+    d: '',
+    communicated: true,
+    manualSegments: segments,
+  };
+}
+
+export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = null) {
   const raw = String(text || '').trim();
   if (!raw) return null;
 
@@ -100,7 +214,7 @@ export function parseCommunicatedShift(text, fallbackDate = null) {
     .filter(Boolean);
 
   const geIndex = tokens.findIndex((token) => token === 'GE');
-  if (geIndex < 3) return null;
+  if (geIndex < 3) return parseManualDevelopment(normalized, date, fallbackDay);
 
   const line = tokens[geIndex - 2];
   const number = tokens[geIndex - 1];

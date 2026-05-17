@@ -481,9 +481,9 @@ export default function App() {
   }
 
   function applyCommunicatedShift(day, text) {
-    const parsed = parseCommunicatedShift(text, day?.date);
+    const parsed = parseCommunicatedShift(text, day?.date, day);
     if (!parsed) {
-      throw new Error('Formato turno non riconosciuto. Incolla la riga completa comunicata con data, linea, turno, orari e posti cambio.');
+      throw new Error('Formato turno non riconosciuto. Incolla la riga completa o lo sviluppo con linea/vettura, orari e posti cambio.');
     }
 
     const targetIso = day?.iso || parsed.iso;
@@ -850,9 +850,7 @@ export default function App() {
               </section>
 
               <div className="result-list">
-                {(advancedQuery ? advancedResults : searchResults.length ? searchResults : homeSelection.day ? [homeSelection.day] : []).map((day) =>
-                  cardForDay(day),
-                )}
+                {(advancedQuery ? advancedResults : searchResults).map((day) => cardForDay(day))}
                 {searchMessage ? <p className="result-message">{searchMessage}</p> : null}
               </div>
             </section>

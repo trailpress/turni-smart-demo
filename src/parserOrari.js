@@ -362,6 +362,52 @@ function sortSegments(segments) {
   return segments.slice().sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 }
 
+function compactToMinutes(value) {
+  const time = compactTime(value);
+  return time ? timeToMinutes(time) : null;
+}
+
+function isWithinShiftWindow(segment, preShift) {
+  const shiftStart = compactToMinutes(preShift?.i);
+  const shiftEnd = compactToMinutes(preShift?.e);
+  const segmentStart = timeToMinutes(segment.start);
+  const segmentEnd = timeToMinutes(segment.end);
+  if (shiftStart === null || shiftEnd === null) return false;
+
+  if (shiftEnd >= shiftStart) {
+    return segmentStart >= shiftStart && segmentEnd <= shiftEnd;
+  }
+
+  return segmentStart >= shiftStart || segmentEnd <= shiftEnd;
+}
+
+function mergeUniqueSegments(primary, extra) {
+  const merged = [...primary];
+  extra.forEach((segment) => {
+    const exists = merged.some(
+      (item) =>
+        item.start === segment.start &&
+        item.end === segment.end &&
+        item.loc_s === segment.loc_s &&
+        item.loc_e === segment.loc_e &&
+        item.lineaNorm === segment.lineaNorm,
+    );
+    if (!exists) merged.push(segment);
+  });
+  return merged;
+}
+
+function collectWindowSegments(developments, line, date, preShift) {
+  const lineNorm = normalizeLineCode(line);
+  if (!lineNorm || !preShift?.i || !preShift?.e) return [];
+
+  return Object.values(developments || {})
+    .flat()
+    .filter((segment) => matchesServiceDay(segment.gt, date))
+    .filter((segment) => segment.lineaNorm === lineNorm || normalizeLineCode(segment.ln) === lineNorm)
+    .filter((segment) => isWithinShiftWindow(segment, preShift));
+}
+
 function shouldKeepFullDevelopment(segments, preShift) {
   if (!segments?.length) return false;
   if (preShift?.communicated) return true;
@@ -454,7 +500,7 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
   if (!allSegments.length) return buildCommunicatedSegment(preShift);
 
   const filtered = allSegments.filter((segment) => matchesServiceDay(segment.gt, date));
-  const candidates = filtered.length ? filtered : allSegments;
+  const candidates = mergeUniqueSegments(filtered.length ? filtered : allSegments, collectWindowSegments(developments, line, date, preShift));
   if (shouldKeepFullDevelopment(candidates, preShift)) return sortSegments(candidates);
   return sortSegments(pickRun(candidates, preShift));
 }
