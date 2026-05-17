@@ -584,6 +584,7 @@ export default function App() {
       firstKeys: keys.slice(0, 5),
       searchedKey,
       foundSegments: segments.length,
+      firstSegments: segments,
       turniEstratti: preconoscenzaSummary.totalShifts,
       linesFound: [...lineSet].sort(),
       unknownLines: [...unknownLineSet].sort(),
@@ -960,6 +961,7 @@ export default function App() {
           {pdfLoaded || history.length ? (
             <AdvancedTools
               backupMessage={backupMessage}
+              debugInfo={debugInfo}
               history={history}
               onDeleteHistoryEntry={(key) => {
                 deleteHistoryEntry(key);

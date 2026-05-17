@@ -2278,6 +2278,38 @@ select:focus-visible {
   font-size: 0.95rem;
 }
 
+.advanced-block--wide {
+  grid-column: 1 / -1;
+}
+
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.diagnostic-grid strong {
+  color: #ffffff;
+  text-align: right;
+}
+
+.diagnostic-segments {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.diagnostic-segments p {
+  margin: 0;
+  color: #dcecff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
 .history-list {
   display: grid;
   gap: var(--s2);

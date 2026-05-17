@@ -12,6 +12,7 @@ function entryLabel(entry) {
 
 export function AdvancedTools({
   backupMessage,
+  debugInfo,
   history,
   onDeleteHistoryEntry,
   onExportBackup,
@@ -106,6 +107,33 @@ export function AdvancedTools({
               </div>
               {backupMessage ? <p className="muted-text">{backupMessage}</p> : null}
             </section>
+
+            {debugInfo?.hasOrari ? (
+              <section className="advanced-block advanced-block--wide">
+                <h3>Diagnosi sviluppo turni</h3>
+                <div className="diagnostic-grid">
+                  <span>Turni Orari estratti</span>
+                  <strong>{debugInfo.keyCount}</strong>
+                  <span>Sviluppi collegati</span>
+                  <strong>{debugInfo.associations}</strong>
+                  <span>Chiave cercata</span>
+                  <strong>{debugInfo.searchedKey || '-'}</strong>
+                  <span>Segmenti trovati</span>
+                  <strong>{debugInfo.foundSegments}</strong>
+                </div>
+                {debugInfo.firstSegments?.length ? (
+                  <div className="diagnostic-segments">
+                    {debugInfo.firstSegments.map((segment, index) => (
+                      <p key={`${segment.start}-${segment.end}-${index}`}>
+                        {index + 1}. {segment.start} {segment.loc_s} {segment.dir || '-'} {segment.end} {segment.loc_e} · vett. {segment.turnoVettura || segment.vett || '-'}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted-text">Nessun segmento trovato per il turno evidenziato.</p>
+                )}
+              </section>
+            ) : null}
           </div>
         </div>
       ) : null}
