@@ -244,8 +244,8 @@ export function parseOrariPageLines(text, gt, ver, developments) {
     if (!isSplitCandidate || !previous || !item.segment.start) return;
 
     const gap = gapMinutes(previous.end, item.segment.start);
-    const sameLine = item.segment.lineaNorm === developments[lastExplicitCode]?.[0]?.lineaNorm;
-    const canAttach = (gap >= 0 && gap <= 720) || sameLine || previous.loc === item.segment.loc_s;
+    const samePlace = previous.loc === item.segment.loc_s;
+    const canAttach = (gap >= 0 && gap <= 240) || (gap >= 0 && gap <= 480 && samePlace);
     if (!canAttach) return;
 
     item.segment.run_id = previous.run_id;
