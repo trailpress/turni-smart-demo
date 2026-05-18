@@ -225,10 +225,11 @@ function addSegment(developments, code, segment) {
 
 const TABLE_SEGMENT_RE =
   /([A-Z0-9/()]+)\s*\/\s*(\d+)\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})/i;
+const TABLE_CONTINUATION_RE =
+  /^([A-Z0-9/()]+)\s+(?:\/\s*)?(\d+)\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})/i;
 
-function parseOrariTableRows(text, gt, ver, developments) {
-  let currentCode = '';
-  let currentRun = 0;
+function parseOrariTableRows(text, gt, ver, developments, tableState) {
+  const state = tableState || { currentCode: '', currentRun: 0 };
 
   String(text || '')
     .split('\n')
@@ -237,16 +238,17 @@ function parseOrariTableRows(text, gt, ver, developments) {
       if (!line) return;
 
       const rowStart = line.match(/^([A-Z0-9/()]+)\s+(\d{1,3})\s+(.*)$/);
-      const segmentSource = rowStart ? rowStart[3] : line;
-      const segmentMatch = segmentSource.match(TABLE_SEGMENT_RE);
+      const rowStartIsContinuation = Boolean(rowStart && TIME_TOKEN_RE.test(rowStart[3]?.split(/\s+/)[0]));
+      const segmentSource = rowStart && !rowStartIsContinuation ? rowStart[3] : line;
+      const segmentMatch = segmentSource.match(TABLE_SEGMENT_RE) || (rowStartIsContinuation || !rowStart ? segmentSource.match(TABLE_CONTINUATION_RE) : null);
       if (!segmentMatch) return;
 
-      if (rowStart) {
-        currentCode = normalizeShiftKey(rowStart[1], rowStart[2]);
-        currentRun += 1;
+      if (rowStart && !rowStartIsContinuation) {
+        state.currentCode = normalizeShiftKey(rowStart[1], rowStart[2]);
+        state.currentRun += 1;
       }
 
-      if (!currentCode) return;
+      if (!state.currentCode) return;
 
       const segment = {
         ln: segmentMatch[1],
@@ -260,15 +262,17 @@ function parseOrariTableRows(text, gt, ver, developments) {
         loc_e: segmentMatch[7],
         gt,
         ver,
-        run_id: currentRun || 1,
+        run_id: state.currentRun || 1,
       };
 
-      addSegment(developments, currentCode, segment);
+      addSegment(developments, state.currentCode, segment);
     });
+
+  return state;
 }
 
-export function parseOrariPageLines(text, gt, ver, developments) {
-  parseOrariTableRows(text, gt, ver, developments);
+export function parseOrariPageLines(text, gt, ver, developments, tableState = null) {
+  parseOrariTableRows(text, gt, ver, developments, tableState);
 
   const tokens = normalizeTokens(text);
   const runCounters = {};
@@ -376,11 +380,14 @@ export function parseOrari(pagesText) {
   const pages = Array.isArray(pagesText) ? pagesText : [pagesText];
   const developments = {};
   let lastGt = '';
+  const tableStateByService = {};
 
   pages.forEach((pageText) => {
     const { gt, ver } = detectGt(pageText, lastGt);
     if (gt) lastGt = gt;
-    parseOrariPageLines(pageText, gt || lastGt || 'TUTTI', ver, developments);
+    const serviceKey = `${gt || lastGt || 'TUTTI'}|${ver || ''}`;
+    tableStateByService[serviceKey] = tableStateByService[serviceKey] || { currentCode: '', currentRun: 0 };
+    parseOrariPageLines(pageText, gt || lastGt || 'TUTTI', ver, developments, tableStateByService[serviceKey]);
   });
 
   return developments;
