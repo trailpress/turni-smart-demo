@@ -421,6 +421,8 @@ function matchesServiceDay(segmentGt, date) {
   const gt = segmentGt.toUpperCase();
   const day = date.getDay();
 
+  if (isItalianHoliday(date)) return gt.includes('FEST') || gt.includes('DOM');
+
   if (day === 6) return gt.includes('SAB');
   if (day === 0) return gt.includes('FEST') || gt.includes('DOM');
 
@@ -433,6 +435,35 @@ function matchesServiceDay(segmentGt, date) {
     gt.includes('FERIALE') ||
     gt.includes('FERIALI')
   );
+}
+
+function easterDate(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+function isItalianHoliday(date) {
+  if (!date || Number.isNaN(date.getTime())) return false;
+  const year = date.getFullYear();
+  const monthDay = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const fixed = new Set(['01-01', '01-06', '04-25', '05-01', '06-02', '08-15', '11-01', '12-08', '12-25', '12-26']);
+  if (fixed.has(monthDay)) return true;
+  const easterMonday = easterDate(year);
+  easterMonday.setDate(easterMonday.getDate() + 1);
+  return date.getMonth() === easterMonday.getMonth() && date.getDate() === easterMonday.getDate();
 }
 
 function pickRun(segments, preShift) {
@@ -744,6 +775,10 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
   const candidates = allSegments.length ? pickRun(filtered.length ? filtered : allSegments, preShift) : [];
   const sortedCandidates = sortSegments(candidates);
   if (coversPreShift(sortedCandidates, preShift) || shouldKeepFullDevelopment(sortedCandidates, preShift)) return sortedCandidates;
+
+  const crossServiceSameTurn = allSegments.length ? pickRun(allSegments, preShift) : [];
+  const sortedCrossServiceSameTurn = sortSegments(crossServiceSameTurn);
+  if (coversPreShift(sortedCrossServiceSameTurn, preShift)) return sortedCrossServiceSameTurn;
 
   const exactPath = findExactShiftPath(developments, line, date, preShift);
   if (exactPath.length) return sortSegments(exactPath);
