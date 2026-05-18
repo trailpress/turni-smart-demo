@@ -17,6 +17,7 @@ export const REST_CODES = {
 };
 
 const SHIFT_LINE_RE = /(\d{2}\/\d{2}\/\d{4})\s+(DOM|LUN|MAR|MER|GIO|VEN|SAB)\s+(.*)/;
+const CONTINUATION_RE = /^(?:[A-Z0-9/()]+\s*\/\s*)?\d{1,3}?\s*\d{4}\s+[A-Z]{2,4}(?:\s+[AR-])?\s+\d{4}\s+[A-Z]{2,4}/i;
 
 export function parseDMY(value) {
   const [day, month, year] = value.split('/').map(Number);
@@ -90,6 +91,34 @@ export function parseShift(rest) {
     de: lastStop.direction || '',
     d: duration,
   };
+}
+
+function collectShiftRows(lines) {
+  const rows = [];
+  let current = null;
+
+  lines.forEach((raw) => {
+    const line = raw.trim();
+    const match = line.match(SHIFT_LINE_RE);
+    if (match) {
+      if (current) rows.push(current);
+      current = {
+        dateString: match[1],
+        weekday: match[2],
+        rest: match[3].trim(),
+      };
+      return;
+    }
+
+    if (!current || !line) return;
+    if (/^(Data\s|Nominativo|Codice|Stabilimento|Totale|Pagina)/i.test(line)) return;
+    if (CONTINUATION_RE.test(line) || /^\d{4}\s+[A-Z]{2,4}/i.test(line)) {
+      current.rest = `${current.rest} ${line}`;
+    }
+  });
+
+  if (current) rows.push(current);
+  return rows;
 }
 
 function normalizeCommunicatedTokens(text) {
@@ -312,11 +341,7 @@ export function parsePreconoscenza(text) {
     if (endMatch) dTe = parseDMY(endMatch[1]);
   });
 
-  lines.forEach((raw) => {
-    const match = raw.trim().match(SHIFT_LINE_RE);
-    if (!match) return;
-
-    const [, dateString, weekday, restRaw] = match;
+  collectShiftRows(lines).forEach(({ dateString, weekday, rest: restRaw }) => {
     const date = parseDMY(dateString);
     const iso = toIso(date);
     const rest = restRaw.trim();
