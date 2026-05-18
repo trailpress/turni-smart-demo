@@ -511,10 +511,9 @@ function findExactShiftPath(developments, line, date, preShift) {
   if (shiftEnd < shiftStart) shiftEnd += 24 * 60;
 
   const seen = new Set();
-  const candidates = Object.values(developments || {})
+  const baseCandidates = Object.values(developments || {})
     .flat()
     .filter((segment) => (segment.lineaNorm || normalizeLineCode(segment.ln)) === lineNorm)
-    .filter((segment) => matchesServiceDay(segment.gt, date))
     .filter((segment) => isWithinShiftWindow(segment, preShift))
     .filter((segment) => {
       const key = segmentKey(segment);
@@ -523,48 +522,54 @@ function findExactShiftPath(developments, line, date, preShift) {
       return true;
     })
     .sort((a, b) => segmentStartAbsolute(a, preShift) - segmentStartAbsolute(b, preShift) || segmentEndAbsolute(a, preShift) - segmentEndAbsolute(b, preShift));
+  const dayCandidates = baseCandidates.filter((segment) => matchesServiceDay(segment.gt, date));
 
-  const starts = candidates.filter((segment) => segment.start === startTime && (!startPlace || normalizePlace(segment.loc_s) === startPlace));
-  if (!starts.length) return [];
+  function buildPath(candidates) {
+    const starts = candidates.filter((segment) => segment.start === startTime && (!startPlace || normalizePlace(segment.loc_s) === startPlace));
+    if (!starts.length) return [];
 
-  const completePaths = [];
-  const maxSegments = 6;
+    const completePaths = [];
+    const maxSegments = 6;
 
-  function walk(path) {
-    const last = path[path.length - 1];
-    if (last.end === endTime && (!endPlace || normalizePlace(last.loc_e) === endPlace)) {
-      completePaths.push(path);
-      return;
+    function walk(path) {
+      const last = path[path.length - 1];
+      if (last.end === endTime && (!endPlace || normalizePlace(last.loc_e) === endPlace)) {
+        completePaths.push(path);
+        return;
+      }
+      if (path.length >= maxSegments) return;
+
+      const lastEnd = segmentEndAbsolute(last, preShift);
+      candidates.forEach((next) => {
+        if (path.some((segment) => segmentKey(segment) === segmentKey(next))) return;
+        const nextStart = segmentStartAbsolute(next, preShift);
+        const gap = nextStart - lastEnd;
+        if (gap < 0 || gap > 240) return;
+        if (segmentEndAbsolute(next, preShift) <= lastEnd) return;
+        walk([...path, next]);
+      });
     }
-    if (path.length >= maxSegments) return;
 
-    const lastEnd = segmentEndAbsolute(last, preShift);
-    candidates.forEach((next) => {
-      if (path.some((segment) => segmentKey(segment) === segmentKey(next))) return;
-      const nextStart = segmentStartAbsolute(next, preShift);
-      const gap = nextStart - lastEnd;
-      if (gap < 0 || gap > 180) return;
-      if (segmentEndAbsolute(next, preShift) <= lastEnd) return;
-      walk([...path, next]);
-    });
+    starts.forEach((segment) => walk([segment]));
+    if (!completePaths.length) return [];
+
+    return completePaths
+      .map((path) => {
+        const covered = path.reduce((sum, segment) => sum + (segmentEndAbsolute(segment, preShift) - segmentStartAbsolute(segment, preShift)), 0);
+        const first = path[0];
+        const last = path[path.length - 1];
+        const span = segmentEndAbsolute(last, preShift) - segmentStartAbsolute(first, preShift);
+        return {
+          path,
+          covered,
+          idle: span - covered,
+        };
+      })
+      .sort((a, b) => a.idle - b.idle || b.covered - a.covered || a.path.length - b.path.length)[0].path;
   }
 
-  starts.forEach((segment) => walk([segment]));
-  if (!completePaths.length) return [];
-
-  return completePaths
-    .map((path) => {
-      const covered = path.reduce((sum, segment) => sum + (segmentEndAbsolute(segment, preShift) - segmentStartAbsolute(segment, preShift)), 0);
-      const first = path[0];
-      const last = path[path.length - 1];
-      const span = segmentEndAbsolute(last, preShift) - segmentStartAbsolute(first, preShift);
-      return {
-        path,
-        covered,
-        idle: span - covered,
-      };
-    })
-    .sort((a, b) => a.idle - b.idle || b.covered - a.covered || a.path.length - b.path.length)[0].path;
+  const dayPath = buildPath(dayCandidates);
+  return dayPath.length ? dayPath : buildPath(baseCandidates);
 }
 
 function completeShiftFromWindow(developments, line, date, preShift, baseSegments) {
