@@ -223,7 +223,53 @@ function addSegment(developments, code, segment) {
   if (!exists) developments[code].push(segment);
 }
 
+const TABLE_SEGMENT_RE =
+  /([A-Z0-9/()]+)\s*\/\s*(\d+)\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})\s+([AR-])\s+(\d{2}[.:]\d{2})\s+([A-Z]{2,4})/i;
+
+function parseOrariTableRows(text, gt, ver, developments) {
+  let currentCode = '';
+  let currentRun = 0;
+
+  String(text || '')
+    .split('\n')
+    .forEach((rawLine) => {
+      const line = rawLine.trim().toUpperCase();
+      if (!line) return;
+
+      const rowStart = line.match(/^([A-Z0-9/()]+)\s+(\d{1,3})\s+(.*)$/);
+      const segmentSource = rowStart ? rowStart[3] : line;
+      const segmentMatch = segmentSource.match(TABLE_SEGMENT_RE);
+      if (!segmentMatch) return;
+
+      if (rowStart) {
+        currentCode = normalizeShiftKey(rowStart[1], rowStart[2]);
+        currentRun += 1;
+      }
+
+      if (!currentCode) return;
+
+      const segment = {
+        ln: segmentMatch[1],
+        lineaNorm: normalizeLineCode(segmentMatch[1]),
+        vett: segmentMatch[2],
+        turnoVettura: segmentMatch[2],
+        start: normalizeTime(segmentMatch[3]),
+        loc_s: segmentMatch[4],
+        dir: segmentMatch[5] !== '-' ? segmentMatch[5] : '',
+        end: normalizeTime(segmentMatch[6]),
+        loc_e: segmentMatch[7],
+        gt,
+        ver,
+        run_id: currentRun || 1,
+      };
+
+      addSegment(developments, currentCode, segment);
+    });
+}
+
 export function parseOrariPageLines(text, gt, ver, developments) {
+  parseOrariTableRows(text, gt, ver, developments);
+
   const tokens = normalizeTokens(text);
   const runCounters = {};
   let currentCode = null;
