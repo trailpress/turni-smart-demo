@@ -2398,30 +2398,60 @@ select:focus-visible {
 
 .history-list {
   display: grid;
-  gap: var(--s2);
+  gap: 10px;
 }
 
-.history-row {
+.history-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(76, 149, 197, 0.36);
+  border-radius: var(--radius);
+  background: rgba(5, 24, 41, 0.7);
+  padding: 10px;
+}
+
+.history-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.history-card header strong {
+  font-size: 0.92rem;
+}
+
+.history-card header span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-docs {
+  display: grid;
+  gap: 8px;
+}
+
+.history-doc {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--s2);
-  border-top: 1px solid var(--line);
-  padding-top: var(--s2);
+  gap: 10px;
+  border-radius: 12px;
+  background: rgba(28, 62, 93, 0.55);
+  padding: 10px;
 }
 
-.history-row:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.history-row > div:first-child {
+.history-doc > div:first-child {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.history-row span {
+.history-doc span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 750;
@@ -2744,7 +2774,7 @@ select:focus-visible {
   .range-panel,
   .month-controls,
   .advanced-grid,
-  .history-row,
+  .history-doc,
   .shift-route {
     grid-template-columns: 1fr;
   }

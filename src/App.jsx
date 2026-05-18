@@ -330,7 +330,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(savedPrefs.activeTab && TABS.includes(savedPrefs.activeTab) ? savedPrefs.activeTab : 'Home');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
-  const [advancedQuery, setAdvancedQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchMessage, setSearchMessage] = useState('');
   const [rangeFrom, setRangeFrom] = useState(toIsoDate(new Date()));
@@ -765,19 +764,6 @@ export default function App() {
   }
 
   const rangeItems = useMemo(() => findDaysBetween(rangeFrom, rangeTo), [days, rangeFrom, rangeTo, hideRests, onlyWorkShifts]);
-  const advancedResults = useMemo(() => {
-    const query = advancedQuery.trim().toLowerCase();
-    if (!query) return [];
-
-    return Object.keys(days)
-      .sort()
-      .map((iso) => days[iso])
-      .filter((day) => {
-        const info = [day?.iso, day?.t, day?.l, day?.n, day?.li, day?.le, day?.c, day?.ball].filter(Boolean).join(' ').toLowerCase();
-        return info.includes(query);
-      })
-      .slice(0, 20);
-  }, [advancedQuery, days]);
   const monthDate = useMemo(() => new Date(viewYear, viewMonth, 1), [viewMonth, viewYear]);
   const monthItems = useMemo(() => {
     return Object.keys(days)
@@ -870,23 +856,8 @@ export default function App() {
                 </div>
               </form>
 
-              <details className="advanced-search dc">
-                <summary>Ricerca avanzata</summary>
-                <label htmlFor="advanced-search">Linea, turno, luogo o ballottaggio</label>
-                <input
-                  id="advanced-search"
-                  onChange={(event) => setAdvancedQuery(event.target.value)}
-                  placeholder="es. 05, 203, GERB, B03"
-                  type="search"
-                  value={advancedQuery}
-                />
-                {advancedQuery ? (
-                  <p className="result-message">{advancedResults.length} risultati trovati</p>
-                ) : null}
-              </details>
-
               <div className="result-list">
-                {(advancedQuery ? advancedResults : searchResults).map((day) => cardForDay(day))}
+                {searchResults.map((day) => cardForDay(day))}
                 {searchMessage ? <p className="result-message">{searchMessage}</p> : null}
               </div>
 
