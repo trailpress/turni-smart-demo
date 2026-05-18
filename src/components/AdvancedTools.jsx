@@ -111,18 +111,22 @@ export function AdvancedTools({
             {debugInfo?.hasOrari ? (
               <section className="advanced-block advanced-block--wide">
                 <h3>Diagnosi sviluppo turni</h3>
+                <p className="muted-text">
+                  Questa sezione controlla il collegamento tra Preconoscenza e Orari Linee. I segmenti mostrati in alto sono solo quelli del turno in evidenza.
+                </p>
                 <div className="diagnostic-grid">
                   <span>Turni Orari estratti</span>
                   <strong>{debugInfo.keyCount}</strong>
-                  <span>Sviluppi collegati</span>
+                  <span>Turni Preconoscenza collegati</span>
                   <strong>{debugInfo.associations}</strong>
-                  <span>Chiave cercata</span>
+                  <span>Turno in evidenza</span>
                   <strong>{debugInfo.searchedKey || '-'}</strong>
-                  <span>Segmenti trovati</span>
+                  <span>Segmenti del turno in evidenza</span>
                   <strong>{debugInfo.foundSegments}</strong>
                 </div>
                 {debugInfo.firstSegments?.length ? (
                   <div className="diagnostic-segments">
+                    <strong>Dettaglio turno in evidenza</strong>
                     {debugInfo.firstSegments.map((segment, index) => (
                       <p key={`${segment.start}-${segment.end}-${index}`}>
                         {index + 1}. {segment.start} {segment.loc_s} {segment.dir || '-'} {segment.end} {segment.loc_e} · vett. {segment.turnoVettura || segment.vett || '-'}
@@ -132,6 +136,24 @@ export function AdvancedTools({
                 ) : (
                   <p className="muted-text">Nessun segmento trovato per il turno evidenziato.</p>
                 )}
+                {debugInfo.checkedDevelopments?.length ? (
+                  <div className="diagnostic-list">
+                    <strong>Turni collegati nel periodo</strong>
+                    {debugInfo.checkedDevelopments.map((item) => (
+                      <p key={`${item.iso}-${item.searchedKey}`}>
+                        <span>{item.label}</span>
+                        <span>{item.searchedKey}</span>
+                        <span>{item.segmentCount} seg.</span>
+                        <small>
+                          {item.first?.start || '--:--'} {item.first?.loc_s || '-'} → {item.last?.end || '--:--'} {item.last?.loc_e || '-'}
+                        </small>
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {debugInfo.missingDevelopmentCount ? (
+                  <p className="muted-text">{debugInfo.missingDevelopmentCount} turni della Preconoscenza non hanno ancora uno sviluppo collegato.</p>
+                ) : null}
               </section>
             ) : null}
           </div>

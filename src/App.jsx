@@ -554,6 +554,7 @@ export default function App() {
     const lineSet = new Set();
     const unknownLineSet = new Set();
     const missingDevelopments = [];
+    const checkedDevelopments = [];
     let associations = 0;
 
     Object.values(days).forEach((day) => {
@@ -563,6 +564,14 @@ export default function App() {
       const matchedSegments = getDevSegments(developments, day.l, day.n, day.date, day);
       if (matchedSegments.length) {
         associations += 1;
+        checkedDevelopments.push({
+          iso: day.iso,
+          label: dateFormatter.format(day.date || new Date(`${day.iso}T00:00:00`)),
+          searchedKey: normalizeShiftKey(day.l, day.n),
+          segmentCount: matchedSegments.length,
+          first: matchedSegments[0],
+          last: matchedSegments[matchedSegments.length - 1],
+        });
       } else if (orariLoaded && keys.length > 0) {
         missingDevelopments.push({
           iso: day.iso,
@@ -586,6 +595,7 @@ export default function App() {
       foundSegments: segments.length,
       firstSegments: segments,
       turniEstratti: preconoscenzaSummary.totalShifts,
+      checkedDevelopments: checkedDevelopments.slice(0, 16),
       linesFound: [...lineSet].sort(),
       unknownLines: [...unknownLineSet].sort(),
       associations,
