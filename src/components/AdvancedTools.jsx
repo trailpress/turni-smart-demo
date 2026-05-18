@@ -121,6 +121,8 @@ export function AdvancedTools({
                   <strong>{debugInfo.associations}</strong>
                   <span>Turno in evidenza</span>
                   <strong>{debugInfo.searchedKey || '-'}</strong>
+                  <span>Finestra Preconoscenza</span>
+                  <strong>{debugInfo.expectedWindow || '-'}</strong>
                   <span>Segmenti del turno in evidenza</span>
                   <strong>{debugInfo.foundSegments}</strong>
                 </div>

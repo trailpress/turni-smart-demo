@@ -592,6 +592,9 @@ export default function App() {
       keyCount: keys.length,
       firstKeys: keys.slice(0, 5),
       searchedKey,
+      expectedWindow: firstShift
+        ? `${formatCompactTime(firstShift.i)} ${firstShift.li || '-'} → ${formatCompactTime(firstShift.e)} ${firstShift.le || '-'}`
+        : '',
       foundSegments: segments.length,
       firstSegments: segments,
       turniEstratti: preconoscenzaSummary.totalShifts,

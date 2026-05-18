@@ -42,25 +42,37 @@ export function parseShift(rest) {
   const geIndex = tokens.findIndex((token) => token === 'GE');
   if (geIndex < 0 || geIndex + 2 >= tokens.length) return null;
 
-  const line = tokens[0];
+  const hasLineBeforeGe =
+    geIndex >= 2 &&
+    /^[A-Z0-9/()]+$/.test(tokens[geIndex - 2]) &&
+    /^\d{1,3}$/.test(tokens[geIndex - 1]) &&
+    normalizeLineCode(tokens[geIndex - 2]);
+  const line = hasLineBeforeGe ? tokens[geIndex - 2] : tokens[0];
   const lineNorm = normalizeLineCode(line);
-  const number = tokens[geIndex + 1];
-  const code = tokens[geIndex + 2];
-  const after = tokens.slice(geIndex + 3);
-  const times = [];
-  const places = [];
-  const directions = [];
+  const number = hasLineBeforeGe ? tokens[geIndex - 1] : tokens[geIndex + 1];
+  const code = hasLineBeforeGe ? tokens[geIndex - 3] || '' : tokens[geIndex + 2];
+  const after = hasLineBeforeGe ? tokens.slice(geIndex + 1) : tokens.slice(geIndex + 3);
+  const stops = [];
+  let duration = '';
 
-  after.forEach((token) => {
-    if (/^\d{4}$/.test(token)) {
-      times.push(token);
-    } else if (/^[A-Z]{2,4}$/.test(token)) {
-      places.push(token);
-      directions.push('');
-    } else if (/^[AR]$/.test(token) && directions.length > 0) {
-      directions[directions.length - 1] = token;
+  for (let index = 0; index < after.length; index += 1) {
+    const token = after[index];
+    const next = after[index + 1];
+    if (/^\d{4}$/.test(token) && /^[A-Z]{2,4}$/.test(next)) {
+      const directionToken = after[index + 2];
+      stops.push({
+        time: token,
+        place: next,
+        direction: /^[AR]$/.test(directionToken) ? directionToken : '',
+      });
+      index += /^[AR]$/.test(directionToken) ? 2 : 1;
+    } else if (/^\d{4}$/.test(token)) {
+      duration = token;
     }
-  });
+  }
+
+  const firstStop = stops[0] || {};
+  const lastStop = stops[stops.length - 1] || {};
 
   return {
     t: 'turno',
@@ -70,13 +82,13 @@ export function parseShift(rest) {
     isGerbidoLine: checkGerbidoLine(line),
     n: number,
     c: code,
-    i: times[0] || '',
-    li: places[0] || '',
-    di: directions[0] || '',
-    e: times[1] || '',
-    le: places[1] || '',
-    de: directions[1] || '',
-    d: times[2] || '',
+    i: firstStop.time || '',
+    li: firstStop.place || '',
+    di: firstStop.direction || '',
+    e: lastStop.time || '',
+    le: lastStop.place || '',
+    de: lastStop.direction || '',
+    d: duration,
   };
 }
 
