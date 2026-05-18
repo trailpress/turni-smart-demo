@@ -1,66 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
-
-const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-const MONTHS_FULL = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-
-function monthLabel(entry) {
-  return `${MONTHS_FULL[(entry.month || 1) - 1] || MONTHS[(entry.month || 1) - 1] || 'Mese'} ${entry.year || ''}`.trim();
-}
-
-function entryLabel(entry) {
-  return entry.type === 'orari' ? 'Orari Linee' : 'Preconoscenza';
-}
-
-function savedLabel(entry) {
-  if (!entry.savedAt) return 'Salvataggio locale';
-  return new Date(entry.savedAt).toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function groupHistory(history) {
-  const groups = new Map();
-
-  history.forEach((entry) => {
-    const key = `${entry.year || '----'}-${String(entry.month || 0).padStart(2, '0')}`;
-    const group = groups.get(key) || {
-      key,
-      month: entry.month,
-      year: entry.year,
-      entries: [],
-      latest: 0,
-    };
-    group.entries.push(entry);
-    group.latest = Math.max(group.latest, entry.savedAt ? new Date(entry.savedAt).getTime() : 0);
-    groups.set(key, group);
-  });
-
-  return Array.from(groups.values())
-    .map((group) => ({
-      ...group,
-      entries: group.entries.sort((a, b) => (a.type === b.type ? (new Date(b.savedAt || 0) - new Date(a.savedAt || 0)) : a.type.localeCompare(b.type))),
-    }))
-    .sort((a, b) => b.latest - a.latest)
-    .slice(0, 6);
-}
+import { useRef, useState } from 'react';
 
 export function AdvancedTools({
   backupMessage,
   debugInfo,
-  history,
-  onDeleteHistoryEntry,
   onExportBackup,
-  onLoadHistoryEntry,
   onRestoreBackup,
   onToggleAutoRestore,
   preferences,
 }) {
   const fileRef = useRef(null);
   const [openPanel, setOpenPanel] = useState('');
-  const groupedHistory = useMemo(() => groupHistory(history), [history]);
 
   function toggle(panel) {
     setOpenPanel((current) => (current === panel ? '' : panel));
@@ -87,7 +36,7 @@ export function AdvancedTools({
       <button className="advanced-tools__summary" onClick={() => toggle('tools')} type="button" aria-expanded={openPanel === 'tools'}>
         <span>
           <strong id="advanced-title">Strumenti avanzati</strong>
-          <small>Storico, backup e preferenze</small>
+          <small>Backup, preferenze e diagnosi</small>
         </span>
         <span aria-hidden="true">{openPanel === 'tools' ? '−' : '+'}</span>
       </button>
@@ -95,42 +44,6 @@ export function AdvancedTools({
       {openPanel === 'tools' ? (
         <div className="advanced-tools__body">
           <div className="advanced-grid">
-            <section className="advanced-block">
-              <h3>Storico importazioni</h3>
-              {groupedHistory.length ? (
-                <div className="history-list">
-                  {groupedHistory.map((group) => (
-                    <article className="history-card" key={group.key}>
-                      <header>
-                        <strong>{monthLabel(group)}</strong>
-                        <span>{group.entries.length} documenti</span>
-                      </header>
-                      <div className="history-docs">
-                        {group.entries.map((entry) => (
-                          <div className="history-doc" key={entry.key}>
-                            <div>
-                              <strong>{entryLabel(entry)}</strong>
-                              <span>{savedLabel(entry)}</span>
-                            </div>
-                            <div className="history-actions">
-                              <button onClick={() => onLoadHistoryEntry(entry)} type="button">
-                                Apri
-                              </button>
-                              <button className="danger-action" onClick={() => onDeleteHistoryEntry(entry.key)} type="button" aria-label={`Rimuovi ${entryLabel(entry)}`}>
-                                Rimuovi
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="muted-text">Nessuna importazione salvata.</p>
-              )}
-            </section>
-
             <section className="advanced-block">
               <h3>Preferenze</h3>
               <label className="check-row">

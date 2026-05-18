@@ -95,11 +95,27 @@ export function deserializePreconoscenza(value) {
   };
 }
 
+function compactHistory(entries) {
+  const latest = new Map();
+  (entries || []).forEach((entry) => {
+    if (!entry?.key) return;
+    const groupKey = `${entry.type || 'doc'}:${entry.year || '----'}:${entry.month || '--'}`;
+    const current = latest.get(groupKey);
+    const currentTime = current?.savedAt ? new Date(current.savedAt).getTime() : 0;
+    const entryTime = entry.savedAt ? new Date(entry.savedAt).getTime() : 0;
+    if (!current || entryTime >= currentTime) latest.set(groupKey, entry);
+  });
+  return Array.from(latest.values()).sort((a, b) => {
+    const periodDiff = b.year * 100 + b.month - (a.year * 100 + a.month);
+    if (periodDiff) return periodDiff;
+    return new Date(b.savedAt || 0) - new Date(a.savedAt || 0);
+  });
+}
+
 function updateIndex(entry) {
-  const index = getHistory().filter((item) => item.key !== entry.key);
+  const index = getHistory().filter((item) => item.key !== entry.key && !(item.type === entry.type && item.year === entry.year && item.month === entry.month));
   index.push({ ...entry, savedAt: new Date().toISOString() });
-  index.sort((a, b) => b.year * 100 + b.month - (a.year * 100 + a.month));
-  writeJson(INDEX_KEY, index);
+  writeJson(INDEX_KEY, compactHistory(index));
 }
 
 export function savePreconoscenza(info) {
@@ -137,7 +153,7 @@ export function saveOrari(developments, info) {
 }
 
 export function getHistory() {
-  return readJson(INDEX_KEY, []);
+  return compactHistory(readJson(INDEX_KEY, []));
 }
 
 export function loadPreconoscenzaByKey(key) {

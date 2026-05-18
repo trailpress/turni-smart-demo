@@ -74,6 +74,20 @@ function formatDuration(value) {
   return `${Number(value.slice(0, 2))}h ${value.slice(2, 4)}m`;
 }
 
+function historyDocumentLabel(type) {
+  return type === 'orari' ? 'Orari Linee' : 'Preconoscenza';
+}
+
+function historySavedLabel(entry) {
+  if (!entry?.savedAt) return 'Salvato localmente';
+  return new Date(entry.savedAt).toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function buildShiftCard(day, prefix = '', enrichment = null) {
   if (!day) return null;
 
@@ -773,6 +787,18 @@ export default function App() {
       .filter(shouldShowMonthDay)
       .sort((a, b) => (monthOrder === 'desc' ? b.date - a.date : a.date - b.date));
   }, [days, monthFilters, monthOrder, viewMonth, viewYear]);
+  const monthArchive = useMemo(() => {
+    const latestByType = new Map();
+    history
+      .filter((entry) => entry.year === viewYear && entry.month === viewMonth + 1)
+      .forEach((entry) => {
+        const current = latestByType.get(entry.type);
+        const currentTime = current?.savedAt ? new Date(current.savedAt).getTime() : 0;
+        const nextTime = entry.savedAt ? new Date(entry.savedAt).getTime() : 0;
+        if (!current || nextTime >= currentTime) latestByType.set(entry.type, entry);
+      });
+    return ['preconoscenza', 'orari'].map((type) => latestByType.get(type)).filter(Boolean);
+  }, [history, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
 
   return (
@@ -919,6 +945,42 @@ export default function App() {
                   Esporta mese
                 </button>
               </div>
+              <section className="month-archive dc" aria-labelledby="month-archive-title">
+                <div>
+                  <h2 id="month-archive-title">Archivio mese</h2>
+                  <p>{MONTH_NAMES[viewMonth]} {viewYear}: documenti salvati per questo calendario.</p>
+                </div>
+                <div className="month-archive__docs">
+                  {['preconoscenza', 'orari'].map((type) => {
+                    const entry = monthArchive.find((item) => item.type === type);
+                    return (
+                      <article className={entry ? 'month-archive__doc is-ready' : 'month-archive__doc'} key={type}>
+                        <div>
+                          <strong>{historyDocumentLabel(type)}</strong>
+                          <span>{entry ? historySavedLabel(entry) : 'Non archiviati per questo mese'}</span>
+                        </div>
+                        {entry ? (
+                          <div className="month-archive__actions">
+                            <button onClick={() => loadHistoryEntry(entry)} type="button">
+                              Apri
+                            </button>
+                            <button
+                              className="danger-action"
+                              onClick={() => {
+                                deleteHistoryEntry(entry.key);
+                                refreshHistory();
+                              }}
+                              type="button"
+                            >
+                              Rimuovi
+                            </button>
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
               <MonthView
                 days={days}
                 hiddenFilters={monthFilters}
@@ -943,17 +1005,11 @@ export default function App() {
           ) : null}
 
           {pdfLoaded ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
-          {pdfLoaded || history.length ? (
+          {pdfLoaded ? (
             <AdvancedTools
               backupMessage={backupMessage}
               debugInfo={debugInfo}
-              history={history}
-              onDeleteHistoryEntry={(key) => {
-                deleteHistoryEntry(key);
-                refreshHistory();
-              }}
               onExportBackup={exportBackup}
-              onLoadHistoryEntry={loadHistoryEntry}
               onRestoreBackup={restoreBackupFile}
               onToggleAutoRestore={updateAutoRestore}
               preferences={preferences}
