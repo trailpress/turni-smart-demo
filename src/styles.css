@@ -605,6 +605,59 @@ select:focus-visible {
   letter-spacing: 0;
 }
 
+.next-shift-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.next-shift-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 900;
+  list-style: none;
+}
+
+.next-shift-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.next-shift-panel summary::after {
+  content: '+';
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 167, 225, 0.14);
+  color: var(--cyan);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.next-shift-panel[open] summary::after {
+  content: '−';
+}
+
+.next-shift-panel summary strong {
+  margin-left: auto;
+  color: #ffffff;
+  font-size: 0.88rem;
+}
+
+.next-shift-panel .shift-card {
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+}
+
 .upload-panel h2 {
   text-transform: uppercase;
   color: #b8c8d9;

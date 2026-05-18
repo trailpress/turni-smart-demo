@@ -885,19 +885,20 @@ export default function App() {
                 ) : null}
               </details>
 
-              <section className="next-shift-panel dc" aria-labelledby="next-shift-title">
-                <h2 id="next-shift-title">Prossimo turno lavorativo</h2>
-                {nextWorkingShift ? (
-                  cardForDay(nextWorkingShift.day, 'Prossimo · ')
-                ) : (
-                  <p className="result-message">Non ci sono turni lavorativi futuri nel periodo caricato.</p>
-                )}
-              </section>
-
               <div className="result-list">
                 {(advancedQuery ? advancedResults : searchResults).map((day) => cardForDay(day))}
                 {searchMessage ? <p className="result-message">{searchMessage}</p> : null}
               </div>
+
+              {nextWorkingShift ? (
+                <details className="next-shift-panel dc">
+                  <summary>
+                    <span>Prossimo turno</span>
+                    <strong>{dateFormatter.format(nextWorkingShift.day.date || new Date(`${nextWorkingShift.day.iso}T00:00:00`))}</strong>
+                  </summary>
+                  {cardForDay(nextWorkingShift.day, 'Prossimo · ')}
+                </details>
+              ) : null}
             </section>
           ) : null}
 
