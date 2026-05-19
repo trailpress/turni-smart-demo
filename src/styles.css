@@ -1146,7 +1146,7 @@ select:focus-visible {
 
 .range-panel,
 .month-controls {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(118px, 1.1fr) minmax(84px, 0.7fr) minmax(122px, 1fr);
   align-items: end;
 }
 
@@ -1177,73 +1177,6 @@ select:focus-visible {
 .range-panel .small-button,
 .month-controls .small-button {
   width: 100%;
-}
-
-.month-archive {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--s2);
-  border: 1px solid rgba(76, 149, 197, 0.26);
-  border-radius: var(--radius-lg);
-  background: rgba(6, 22, 37, 0.62);
-  padding: 12px;
-}
-
-.month-archive h2,
-.month-archive p {
-  margin: 0;
-}
-
-.month-archive h2 {
-  color: #ffffff;
-  font-size: 0.92rem;
-}
-
-.month-archive p {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 760;
-  line-height: 1.35;
-}
-
-.month-archive__docs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.month-archive__doc {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  border: 1px solid rgba(76, 149, 197, 0.26);
-  border-radius: 999px;
-  background: rgba(8, 27, 44, 0.72);
-  padding: 7px 11px;
-}
-
-.month-archive__doc.is-ready {
-  border-color: rgba(48, 191, 103, 0.42);
-  background: rgba(8, 62, 54, 0.56);
-}
-
-.month-archive__doc strong {
-  display: block;
-  color: #ffffff;
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-.month-archive__doc span {
-  display: block;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 780;
-  white-space: nowrap;
 }
 
 .search-row input,
@@ -1581,13 +1514,6 @@ select:focus-visible {
 
 .line-pill__mark {
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.22));
-}
-
-.shift-category-text {
-  margin: 7px 0 0;
-  color: var(--muted);
-  font-size: 0.77rem;
-  font-weight: 750;
 }
 
 .shift-badge-row {
@@ -2837,21 +2763,19 @@ select:focus-visible {
 
   .search-row,
   .range-panel,
-  .month-controls,
-  .month-archive,
   .advanced-grid,
   .history-doc,
   .shift-route {
     grid-template-columns: 1fr;
   }
 
-  .month-archive__docs {
-    justify-content: stretch;
+  .month-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .month-archive__doc {
-    width: 100%;
-    justify-content: space-between;
+  .month-controls label:nth-child(3),
+  .month-filter-group {
+    grid-column: 1 / -1;
   }
 
   .route-line {
@@ -2919,12 +2843,6 @@ select:focus-visible {
     width: 86px;
     height: 86px;
     border-radius: 20px;
-  }
-
-  .shift-category-text {
-    margin-top: 6px;
-    font-size: 0.78rem;
-    line-height: 1.35;
   }
 
   .development-back-header {

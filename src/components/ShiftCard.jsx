@@ -126,7 +126,6 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
                 </>
               ) : (
                 <span className="shift-meta-chip shift-meta-chip--rest">
-                  <AssetIcon name="rest" size={24} />
                   {shift.code || shift.title}
                 </span>
               )}

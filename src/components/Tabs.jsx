@@ -1,7 +1,7 @@
 import { Icon } from './Icon.jsx';
 
 const TAB_ICONS = {
-  Home: 'search',
+  Turno: 'search',
   Mese: 'calendar',
 };
 

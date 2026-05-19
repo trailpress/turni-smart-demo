@@ -29,7 +29,7 @@ import { Icon } from './components/Icon.jsx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const TABS = ['Home', 'Mese'];
+const TABS = ['Turno', 'Mese'];
 const DEFAULT_MONTH_FILTERS = {
   turni: false,
   riposi: false,
@@ -72,20 +72,6 @@ function addDays(date, amount) {
 function formatDuration(value) {
   if (!value) return '';
   return `${Number(value.slice(0, 2))}h ${value.slice(2, 4)}m`;
-}
-
-function historyDocumentLabel(type) {
-  return type === 'orari' ? 'Orari Linee' : 'Preconoscenza';
-}
-
-function historySavedLabel(entry) {
-  if (!entry?.savedAt) return 'Salvato localmente';
-  return new Date(entry.savedAt).toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function buildShiftCard(day, prefix = '', enrichment = null) {
@@ -341,7 +327,8 @@ export default function App() {
   const [developments, setDevelopments] = useState({});
   const [orariInfo, setOrariInfo] = useState(null);
   const [orariLoaded, setOrariLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState(savedPrefs.activeTab && TABS.includes(savedPrefs.activeTab) ? savedPrefs.activeTab : 'Home');
+  const initialTab = savedPrefs.activeTab === 'Home' ? 'Turno' : savedPrefs.activeTab;
+  const [activeTab, setActiveTab] = useState(initialTab && TABS.includes(initialTab) ? initialTab : 'Turno');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -532,7 +519,7 @@ export default function App() {
       refreshHistory();
     }
     setSelectedDate(nextDay.date);
-    setActiveTab('Home');
+    setActiveTab('Turno');
     return nextDay;
   }
 
@@ -795,18 +782,6 @@ export default function App() {
       .filter(shouldShowMonthDay)
       .sort((a, b) => (monthOrder === 'desc' ? b.date - a.date : a.date - b.date));
   }, [days, monthFilters, monthOrder, viewMonth, viewYear]);
-  const monthArchive = useMemo(() => {
-    const latestByType = new Map();
-    history
-      .filter((entry) => entry.year === viewYear && entry.month === viewMonth + 1)
-      .forEach((entry) => {
-        const current = latestByType.get(entry.type);
-        const currentTime = current?.savedAt ? new Date(current.savedAt).getTime() : 0;
-        const nextTime = entry.savedAt ? new Date(entry.savedAt).getTime() : 0;
-        if (!current || nextTime >= currentTime) latestByType.set(entry.type, entry);
-      });
-    return ['preconoscenza', 'orari'].map((type) => latestByType.get(type)).filter(Boolean);
-  }, [history, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
 
   return (
@@ -850,7 +825,7 @@ export default function App() {
             <OnboardingHome error={error} loading={loading} onLoadDemo={loadDemo} onPrimaryUpload={() => onboardingInputRef.current?.click()} />
           ) : null}
 
-          {pdfLoaded && activeTab === 'Home' ? (
+          {pdfLoaded && activeTab === 'Turno' ? (
             <section className="view-panel">
               <form
                 className="search-panel dc"
@@ -951,23 +926,6 @@ export default function App() {
                   Esporta mese
                 </button>
               </div>
-              <section className="month-archive" aria-labelledby="month-archive-title">
-                <div className="month-archive__title">
-                  <h2 id="month-archive-title">Archivio mese</h2>
-                  <p>{MONTH_NAMES[viewMonth]} {viewYear}</p>
-                </div>
-                <div className="month-archive__docs">
-                  {['preconoscenza', 'orari'].map((type) => {
-                    const entry = monthArchive.find((item) => item.type === type);
-                    return (
-                      <article className={entry ? 'month-archive__doc is-ready' : 'month-archive__doc'} key={type}>
-                        <strong>{historyDocumentLabel(type)}</strong>
-                        <span>{entry ? `Salvati · ${historySavedLabel(entry)}` : 'Non salvati per questo mese'}</span>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
               <MonthView
                 days={days}
                 hiddenFilters={monthFilters}
@@ -979,7 +937,7 @@ export default function App() {
                   setSelectedDate(date);
                   const item = days[toIsoDate(date)];
                   setSearchResults(item ? [item] : []);
-                  setActiveTab('Home');
+                  setActiveTab('Turno');
                 }}
               />
               <div className="result-toolbar">
