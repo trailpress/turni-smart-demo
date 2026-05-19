@@ -9,9 +9,16 @@
   "theme_color": "#003366",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23003366'/%3E%3Cpath d='M46 44h100a18 18 0 0 1 18 18v70a18 18 0 0 1-18 18H46a18 18 0 0 1-18-18V62a18 18 0 0 1 18-18Z' fill='%23ffd100'/%3E%3Cpath d='M52 68h88v38H52z' fill='%23061422'/%3E%3Ccircle cx='62' cy='132' r='12' fill='%23003366'/%3E%3Ccircle cx='130' cy='132' r='12' fill='%23003366'/%3E%3Cpath d='M66 56h60' stroke='%23003366' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E",
+      "src": "assets-webp/bus-front-icon.webp",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets-webp/bus-front-icon.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
     }
   ]
 }

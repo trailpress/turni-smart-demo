@@ -202,19 +202,8 @@ select:focus-visible {
   display: block;
   overflow: hidden;
   color: #ffffff;
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.header-driver strong {
-  display: block;
-  overflow: hidden;
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.7rem;
-  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1607,9 +1596,10 @@ select:focus-visible {
 
 .route-line {
   position: relative;
-  width: 100%;
+  width: calc(100% - 28px);
   height: 4px;
-  align-self: center;
+  align-self: start;
+  justify-self: center;
   margin-top: 22px;
   min-width: 72px;
   border-radius: 999px;
@@ -1630,11 +1620,11 @@ select:focus-visible {
 }
 
 .route-line::before {
-  left: 0;
+  left: 6px;
 }
 
 .route-line::after {
-  right: 0;
+  right: 6px;
 }
 
 .shift-calendar-zone {
@@ -2683,8 +2673,7 @@ select:focus-visible {
     padding: 10px;
   }
 
-  .header-driver span,
-  .header-driver strong {
+  .header-driver span {
     white-space: normal;
   }
 
@@ -2779,7 +2768,7 @@ select:focus-visible {
   }
 
   .route-line {
-    width: 100%;
+    width: calc(100% - 24px);
   }
 
   .shift-card__main {
@@ -2890,8 +2879,8 @@ select:focus-visible {
   }
 
   .route-line {
-    width: auto;
-    margin-top: 28px;
+    width: calc(100% - 20px);
+    margin-top: 22px;
   }
 
   .ballot-modal__legend div {

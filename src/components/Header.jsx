@@ -35,7 +35,6 @@ export function Header({ pdfLoaded = false, period, person }) {
 
       <div className="header-driver">
         <span>{person || 'Carica la Preconoscenza per iniziare'}</span>
-        <strong>Turni GTT · Deposito Gerbido</strong>
       </div>
 
       <div className="period-card" aria-label="Periodo attivo">
