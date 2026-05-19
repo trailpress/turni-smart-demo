@@ -127,7 +127,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
               ) : (
                 <span className="shift-meta-chip shift-meta-chip--rest">
                   <AssetIcon name="rest" size={24} />
-                  Giornata libera
+                  {shift.code || shift.title}
                 </span>
               )}
             </div>
@@ -152,9 +152,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
               Inserisci turno
             </button>
           </div>
-        ) : (
-          <p className="shift-special-note">{shift.description || shift.note || 'Giornata senza turno'}</p>
-        )}
+        ) : null}
         {calendarActions ? <CalendarActions actions={calendarActions(dayData, [])} compact shareText={shareText} /> : null}
         {isBallot && isBallotInfoOpen ? (
           <div className="ballot-modal" role="dialog" aria-modal="true" aria-label="Dettagli ballottaggio">
@@ -231,7 +229,6 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
                       Mostra sviluppo turno
                     </button>
                   ) : null}
-                  <p className="shift-category-text">Categoria: {category?.label || 'Turno lavorativo'}</p>
                 </div>
                 <div className="shift-badge-row" aria-label="Classificazione turno">
                   {dayData?.isGerbidoLine ? <span className="shift-badge shift-badge--line">Gerbido</span> : null}

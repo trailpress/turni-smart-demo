@@ -553,12 +553,6 @@ export default function App() {
         .filter(Boolean)
         .join(' · ')
     : '';
-  const successMessage = pdfLoaded
-    ? `Preconoscenza caricata: ${preconoscenzaSummary.totalDays} giorni, ${preconoscenzaSummary.totalShifts} turni, ${preconoscenzaSummary.restDays} riposi, ${preconoscenzaSummary.ballots} ballottaggi.`
-    : '';
-  const orariSuccessMessage = orariInfo
-    ? `Orari Deposito caricati: ${orariInfo.totalTurns} turni, ${orariInfo.splitTurns} spezzati.`
-    : '';
   const debugInfo = useMemo(() => {
     const firstShift = homeSelection.day?.t === 'turno' ? homeSelection.day : Object.values(days).find((day) => day?.t === 'turno');
     const searchedKey = firstShift ? normalizeShiftKey(firstShift.l, firstShift.n) : '';
@@ -841,13 +835,11 @@ export default function App() {
             onClearPreconoscenza={clearPreconoscenza}
             orariError={orariError}
             orariLoading={orariLoading}
-            orariSuccessMessage={orariSuccessMessage}
             pdfInfo={pdfInfo}
             preconoscenzaSummary={preconoscenzaSummary}
             loading={loading}
             onOrariUpload={handleOrariUpload}
             onPreconoscenzaUpload={handlePreconoscenzaUpload}
-            successMessage={successMessage}
           />
         ) : null}
 
@@ -962,7 +954,7 @@ export default function App() {
               <section className="month-archive" aria-labelledby="month-archive-title">
                 <div className="month-archive__title">
                   <h2 id="month-archive-title">Archivio mese</h2>
-                  <p>Scorri il calendario: i turni salvati di {MONTH_NAMES[viewMonth]} {viewYear} sono già applicati ai giorni.</p>
+                  <p>{MONTH_NAMES[viewMonth]} {viewYear}</p>
                 </div>
                 <div className="month-archive__docs">
                   {['preconoscenza', 'orari'].map((type) => {

@@ -11,10 +11,8 @@ export function UploadPanel({
   onPreconoscenzaUpload,
   orariError,
   orariLoading,
-  orariSuccessMessage,
   pdfInfo,
   preconoscenzaSummary,
-  successMessage,
 }) {
   const preconoscenzaInputRef = useRef(null);
   const orariInputRef = useRef(null);

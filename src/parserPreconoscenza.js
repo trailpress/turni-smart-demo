@@ -2,11 +2,11 @@ import { isGerbidoLine as checkGerbidoLine, normalizeLineCode } from './constant
 import { isEveningShift as officialEveningShift } from './constants/shiftClassification.js';
 
 export const SPECIAL_CODES = {
-  RP: { label: 'RIPOSO', description: 'Giornata libera' },
+  RP: { label: 'RIPOSO', description: '' },
   RIS: { label: 'BALLOTTAGGIO', description: 'Turno da assegnare' },
-  FS: { label: 'FESTA SOPPRESSA', description: 'Giornata libera' },
-  SL: { label: 'SOSTA LUNGA', description: 'Giornata libera' },
-  MP: { label: 'MANCATA PREST.', description: 'Giornata libera' },
+  FS: { label: 'FESTA SOPPRESSA', description: '' },
+  SL: { label: 'SOSTA LUNGA', description: '' },
+  MP: { label: 'MANCATA PREST.', description: '' },
 };
 
 export const REST_CODES = {
