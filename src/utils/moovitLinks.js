@@ -54,5 +54,28 @@ export function buildMoovitTarget(shift, dayData) {
 export function openMoovitTarget(target) {
   if (!target?.webUrl) return;
 
-  window.location.href = target.webUrl;
+  if (!target.appUrl) {
+    window.location.href = target.webUrl;
+    return;
+  }
+
+  let appOpened = false;
+  const markAppOpened = () => {
+    appOpened = true;
+  };
+
+  window.addEventListener('pagehide', markAppOpened, { once: true });
+  window.addEventListener('blur', markAppOpened, { once: true });
+  document.addEventListener('visibilitychange', markAppOpened, { once: true });
+
+  window.location.href = target.appUrl;
+
+  window.setTimeout(() => {
+    window.removeEventListener('pagehide', markAppOpened);
+    window.removeEventListener('blur', markAppOpened);
+    document.removeEventListener('visibilitychange', markAppOpened);
+    if (!appOpened && !document.hidden) {
+      window.location.href = target.webUrl;
+    }
+  }, 1200);
 }
