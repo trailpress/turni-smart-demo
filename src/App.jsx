@@ -706,6 +706,35 @@ export default function App() {
     }
   }
 
+  function getMonthHistoryEntry(type, year, monthIndex) {
+    return history
+      .filter((entry) => entry.type === type && entry.year === year && entry.month === monthIndex + 1)
+      .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))[0];
+  }
+
+  function openCalendarMonth(year, monthIndex) {
+    if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) return;
+
+    const normalizedDate = new Date(year, monthIndex, 1);
+    const normalizedYear = normalizedDate.getFullYear();
+    const normalizedMonth = normalizedDate.getMonth();
+    const archivedPreconoscenza = getMonthHistoryEntry('preconoscenza', normalizedYear, normalizedMonth);
+
+    if (archivedPreconoscenza) {
+      const stored = loadPreconoscenzaByKey(archivedPreconoscenza.key);
+      if (stored) {
+        applyPreconoscenza(stored, { save: false });
+        return;
+      }
+    }
+
+    setViewMonth(normalizedMonth);
+    setViewYear(normalizedYear);
+    setSelectedDate(normalizedDate);
+    setSearchResults([]);
+    setSearchMessage('');
+  }
+
   function loadDemo() {
     const demo = createDemoPreconoscenza();
     applyPreconoscenza(demo);
@@ -773,8 +802,7 @@ export default function App() {
 
   function changeMonth(delta) {
     const next = new Date(viewYear, viewMonth + delta, 1);
-    setViewMonth(next.getMonth());
-    setViewYear(next.getFullYear());
+    openCalendarMonth(next.getFullYear(), next.getMonth());
   }
 
   const rangeItems = useMemo(() => findDaysBetween(rangeFrom, rangeTo), [days, rangeFrom, rangeTo, hideRests, onlyWorkShifts]);
@@ -904,7 +932,7 @@ export default function App() {
               <div className="month-controls dc">
                 <label>
                   Mese
-                  <select value={viewMonth} onChange={(event) => setViewMonth(Number(event.target.value))}>
+                  <select value={viewMonth} onChange={(event) => openCalendarMonth(viewYear, Number(event.target.value))}>
                     {MONTH_NAMES.map((month, index) => (
                       <option key={month} value={index}>
                         {month}
@@ -914,7 +942,7 @@ export default function App() {
                 </label>
                 <label>
                   Anno
-                  <input onChange={(event) => setViewYear(Number(event.target.value))} type="number" value={viewYear} />
+                  <input onChange={(event) => openCalendarMonth(Number(event.target.value), viewMonth)} type="number" value={viewYear} />
                 </label>
                 <label>
                   Ordine
