@@ -3,6 +3,7 @@ import { formatMinutes, minutesBetween } from '../utils/timeUtils.js';
 import { getDevSegments } from '../parserOrari.js';
 import { getLineDisplayName } from '../constants/depotGerbido.js';
 import { BALLOTTAGGI } from '../constants/shiftClassification.js';
+import { buildMoovitTarget, openMoovitTarget } from '../utils/moovitLinks.js';
 import { AssetIcon, Icon } from './Icon.jsx';
 
 const DIRECTION_LABELS = {
@@ -203,6 +204,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
   const showEveningBadge = isEvening && category?.badge !== 'Serale';
   const categoryIconName = getCategoryIconName(category, { ...shift, isEvening, isShortRest, isSplit });
   const shareText = buildShareText(shift, segments);
+  const moovitTarget = buildMoovitTarget(shift, dayData);
 
   return (
     <article className={canFlipDevelopment ? 'shift-card shift-card--flip dc' : 'shift-card dc'}>
@@ -264,7 +266,7 @@ export function ShiftCard({ calendarActions, date, developments = {}, enrichment
             </div>
 
             <div className="shift-calendar-zone">
-              {calendarActions ? <CalendarActions actions={calendarActions(dayData, segments)} shareText={shareText} /> : null}
+              {calendarActions ? <CalendarActions actions={calendarActions(dayData, segments)} moovitTarget={moovitTarget} shareText={shareText} /> : null}
             </div>
           </div>
 
@@ -341,7 +343,7 @@ function DevelopmentPanel({ expanded = false, hasSegments, isSplit, segments, sp
   );
 }
 
-function CalendarActions({ actions, compact = false, shareText = '' }) {
+function CalendarActions({ actions, compact = false, moovitTarget = null, shareText = '' }) {
   const [copied, setCopied] = useState(false);
   if (!actions) return null;
 
@@ -371,6 +373,10 @@ function CalendarActions({ actions, compact = false, shareText = '' }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer');
   }
 
+  function openMoovit() {
+    openMoovitTarget(moovitTarget);
+  }
+
   return (
     <div className={compact ? 'calendar-actions calendar-actions--compact calendar-actions--single' : 'calendar-actions calendar-actions--single'}>
       <button className="inline-action" onClick={actions.add} type="button">
@@ -378,6 +384,12 @@ function CalendarActions({ actions, compact = false, shareText = '' }) {
         {compact ? 'Aggiungi turno' : 'Aggiungi al calendario'}
       </button>
       <div className="share-actions">
+        {moovitTarget ? (
+          <button className="inline-action inline-action--moovit" onClick={openMoovit} type="button">
+            <Icon name="live" size={18} />
+            Moovit live
+          </button>
+        ) : null}
         <button className="inline-action inline-action--whatsapp" onClick={sendWhatsapp} type="button">
           <Icon name="whatsapp" size={18} />
           WhatsApp
