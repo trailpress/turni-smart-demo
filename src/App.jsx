@@ -12,7 +12,7 @@ import {
 import { computeStats, enrichShiftDays, getNextWorkingShift } from './analytics.js';
 import { buildBallotICS, buildICS, openCalendarICS } from './calendarExport.js';
 import { createDemoPreconoscenza, DEMO_DEVELOPMENTS } from './demoData.js';
-import { buildBackup, deleteHistoryEntry, getHistory, loadOrariByKey, loadPreferences, loadPreconoscenzaByKey, orariKey, restoreBackup, saveOrari, savePreferences, savePreconoscenza } from './storage.js';
+import { buildBackup, getHistory, loadOrariByKey, loadPreferences, loadPreconoscenzaByKey, orariKey, restoreBackup, saveOrari, savePreferences, savePreconoscenza } from './storage.js';
 import { buildCsv, downloadTextFile } from './exportUtils.js';
 import { getDevSegments, normalizeShiftKey, parseOrari, summarizeDevelopments } from './parserOrari.js';
 import { parseNaturalDate, toIsoDate } from './utils/dateUtils.js';
@@ -692,20 +692,6 @@ export default function App() {
     }
   }
 
-  function loadHistoryEntry(entry) {
-    if (entry.type === 'orari') {
-      const stored = loadOrariByKey(entry.key);
-      if (stored && Object.keys(stored).length) applyOrari(stored, { ...pdfInfo, fileName: entry.label }, { save: false });
-      return;
-    }
-
-    const stored = loadPreconoscenzaByKey(entry.key);
-    if (stored) {
-      applyPreconoscenza(stored, { save: false });
-      setActiveTab('Mese');
-    }
-  }
-
   function getMonthHistoryEntry(type, year, monthIndex) {
     return history
       .filter((entry) => entry.type === type && entry.year === year && entry.month === monthIndex + 1)
@@ -973,37 +959,18 @@ export default function App() {
                   Esporta mese
                 </button>
               </div>
-              <section className="month-archive dc" aria-labelledby="month-archive-title">
-                <div>
+              <section className="month-archive" aria-labelledby="month-archive-title">
+                <div className="month-archive__title">
                   <h2 id="month-archive-title">Archivio mese</h2>
-                  <p>{MONTH_NAMES[viewMonth]} {viewYear}: documenti salvati per questo calendario.</p>
+                  <p>Scorri il calendario: i turni salvati di {MONTH_NAMES[viewMonth]} {viewYear} sono già applicati ai giorni.</p>
                 </div>
                 <div className="month-archive__docs">
                   {['preconoscenza', 'orari'].map((type) => {
                     const entry = monthArchive.find((item) => item.type === type);
                     return (
                       <article className={entry ? 'month-archive__doc is-ready' : 'month-archive__doc'} key={type}>
-                        <div>
-                          <strong>{historyDocumentLabel(type)}</strong>
-                          <span>{entry ? historySavedLabel(entry) : 'Non archiviati per questo mese'}</span>
-                        </div>
-                        {entry ? (
-                          <div className="month-archive__actions">
-                            <button onClick={() => loadHistoryEntry(entry)} type="button">
-                              Apri
-                            </button>
-                            <button
-                              className="danger-action"
-                              onClick={() => {
-                                deleteHistoryEntry(entry.key);
-                                refreshHistory();
-                              }}
-                              type="button"
-                            >
-                              Rimuovi
-                            </button>
-                          </div>
-                        ) : null}
+                        <strong>{historyDocumentLabel(type)}</strong>
+                        <span>{entry ? `Salvati · ${historySavedLabel(entry)}` : 'Non salvati per questo mese'}</span>
                       </article>
                     );
                   })}

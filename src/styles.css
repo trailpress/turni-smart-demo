@@ -1183,10 +1183,13 @@ select:focus-visible {
 
 .month-archive {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--s3);
-  border-left: 4px solid var(--green);
+  gap: var(--s2);
+  border: 1px solid rgba(76, 149, 197, 0.26);
+  border-radius: var(--radius-lg);
+  background: rgba(6, 22, 37, 0.62);
+  padding: 12px;
 }
 
 .month-archive h2,
@@ -1196,31 +1199,33 @@ select:focus-visible {
 
 .month-archive h2 {
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .month-archive p {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 760;
   line-height: 1.35;
 }
 
 .month-archive__docs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .month-archive__doc {
-  display: grid;
-  gap: 10px;
-  min-height: 84px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
   border: 1px solid rgba(76, 149, 197, 0.26);
-  border-radius: var(--radius);
-  background: rgba(8, 27, 44, 0.78);
-  padding: 12px;
+  border-radius: 999px;
+  background: rgba(8, 27, 44, 0.72);
+  padding: 7px 11px;
 }
 
 .month-archive__doc.is-ready {
@@ -1231,37 +1236,16 @@ select:focus-visible {
 .month-archive__doc strong {
   display: block;
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
 .month-archive__doc span {
   display: block;
-  margin-top: 3px;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 780;
-}
-
-.month-archive__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.month-archive__actions button {
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(26, 63, 93, 0.74);
-  color: #e6f4ff;
-  padding: 0 12px;
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.month-archive__actions .danger-action {
-  border-color: rgba(255, 99, 99, 0.45);
-  color: #ffb3ba;
+  white-space: nowrap;
 }
 
 .search-row input,
@@ -2864,7 +2848,12 @@ select:focus-visible {
   }
 
   .month-archive__docs {
-    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .month-archive__doc {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .route-line {
