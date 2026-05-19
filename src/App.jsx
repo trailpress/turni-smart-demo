@@ -320,6 +320,8 @@ async function extractTextPagesFromPdf(file) {
 
 export default function App() {
   const onboardingInputRef = useRef(null);
+  const monthPreconoscenzaInputRef = useRef(null);
+  const monthOrariInputRef = useRef(null);
   const savedPrefs = useMemo(() => loadPreferences(), []);
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
@@ -474,6 +476,44 @@ export default function App() {
       setDevelopments({});
       setOrariInfo(null);
       setOrariLoaded(false);
+      setOrariError(caughtError.message || 'Errore durante la lettura degli Orari Deposito.');
+    } finally {
+      setOrariLoading(false);
+      setUploadPhase('');
+    }
+  }
+
+  async function handleMonthOrariUpload(file) {
+    setOrariLoading(true);
+    setUploadPhase('Lettura Orari Linee');
+    setOrariError('');
+
+    try {
+      if (file.type && file.type !== 'application/pdf') {
+        throw new Error('Seleziona un file PDF Orari Deposito.');
+      }
+
+      const { pages, pageCount } = await extractTextPagesFromPdf(file);
+      setUploadPhase('Archivio Orari mese');
+      if (pageCount < 5) {
+        throw new Error('Questo sembra la Preconoscenza, non gli Orari Deposito.');
+      }
+
+      const parsedDevelopments = parseOrari(pages);
+      const summary = summarizeDevelopments(parsedDevelopments);
+      if (!summary.totalTurns) {
+        throw new Error('Nessun turno trovato nel PDF Orari Deposito.');
+      }
+
+      const sourceInfo = {
+        ...pdfInfo,
+        fileName: file.name,
+        dIn: new Date(viewYear, viewMonth, 1),
+        dTe: new Date(viewYear, viewMonth + 1, 0),
+      };
+      applyOrari(parsedDevelopments, sourceInfo);
+      setUploadPhase('Orari Linee archiviati');
+    } catch (caughtError) {
       setOrariError(caughtError.message || 'Errore durante la lettura degli Orari Deposito.');
     } finally {
       setOrariLoading(false);
@@ -774,6 +814,13 @@ export default function App() {
 
   const rangeItems = useMemo(() => findDaysBetween(rangeFrom, rangeTo), [days, rangeFrom, rangeTo, hideRests, onlyWorkShifts]);
   const monthDate = useMemo(() => new Date(viewYear, viewMonth, 1), [viewMonth, viewYear]);
+  const monthArchive = useMemo(
+    () => ({
+      preconoscenza: getMonthHistoryEntry('preconoscenza', viewYear, viewMonth),
+      orari: getMonthHistoryEntry('orari', viewYear, viewMonth),
+    }),
+    [history, viewMonth, viewYear],
+  );
   const monthItems = useMemo(() => {
     return Object.keys(days)
       .sort()
@@ -882,6 +929,28 @@ export default function App() {
 
           {pdfLoaded && activeTab === 'Mese' ? (
             <section className="view-panel">
+              <input
+                accept="application/pdf"
+                className="file-input"
+                onChange={(event) => {
+                  const [file] = event.target.files || [];
+                  if (file) handlePreconoscenzaUpload(file);
+                  event.target.value = '';
+                }}
+                ref={monthPreconoscenzaInputRef}
+                type="file"
+              />
+              <input
+                accept="application/pdf"
+                className="file-input"
+                onChange={(event) => {
+                  const [file] = event.target.files || [];
+                  if (file) handleMonthOrariUpload(file);
+                  event.target.value = '';
+                }}
+                ref={monthOrariInputRef}
+                type="file"
+              />
               <div className="month-controls dc">
                 <label>
                   Mese
@@ -916,15 +985,34 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
-                  Aggiungi periodo
-                </button>
-                <button className="small-button" disabled={!Object.values(days).some((day) => day?.t === 'RIS')} onClick={addBallotsToCalendar} type="button">
-                  Aggiungi ballottaggi
-                </button>
-                <button className="small-button small-button--ghost" disabled={!monthItems.length} onClick={() => exportCsv('turni-mese.csv', monthItems)} type="button">
-                  Esporta mese
-                </button>
+                <div className="calendar-archive-panel">
+                  <div>
+                    <strong>Archivio calendario</strong>
+                    <span>
+                      {MONTH_NAMES[viewMonth]} {viewYear}: {monthArchive.preconoscenza ? 'Preconoscenza salvata' : 'Preconoscenza assente'} ·{' '}
+                      {monthArchive.orari ? 'Orari Linee salvati' : 'Orari Linee assenti'}
+                    </span>
+                  </div>
+                  <div className="calendar-archive-actions">
+                    <button className="small-button" onClick={() => monthPreconoscenzaInputRef.current?.click()} type="button">
+                      Carica Preconoscenza
+                    </button>
+                    <button className="small-button small-button--ghost" onClick={() => monthOrariInputRef.current?.click()} type="button">
+                      Carica Orari Linee
+                    </button>
+                  </div>
+                </div>
+                <div className="calendar-actions">
+                  <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
+                    Aggiungi periodo
+                  </button>
+                  <button className="small-button" disabled={!Object.values(days).some((day) => day?.t === 'RIS')} onClick={addBallotsToCalendar} type="button">
+                    Aggiungi ballottaggi
+                  </button>
+                  <button className="small-button small-button--ghost" disabled={!monthItems.length} onClick={() => exportCsv('turni-mese.csv', monthItems)} type="button">
+                    Esporta mese
+                  </button>
+                </div>
               </div>
               <MonthView
                 days={days}

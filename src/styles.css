@@ -1019,6 +1019,7 @@ select:focus-visible {
 .tb {
   display: flex;
   gap: 4px;
+  width: min(100%, 520px);
   padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -1140,9 +1141,56 @@ select:focus-visible {
 }
 
 .month-filter-group {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.calendar-archive-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s2);
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(32, 181, 103, 0.42);
+  border-radius: var(--radius);
+  background: rgba(11, 64, 56, 0.58);
+}
+
+.calendar-archive-panel strong,
+.calendar-archive-panel span {
+  display: block;
+}
+
+.calendar-archive-panel strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.calendar-archive-panel span {
+  margin-top: 3px;
+  color: #c7d7e8;
+  font-size: 0.72rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.calendar-archive-actions,
+.calendar-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.calendar-archive-actions {
+  grid-template-columns: repeat(2, minmax(148px, 1fr));
+}
+
+.calendar-actions {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .filter-chip {
@@ -2765,6 +2813,12 @@ select:focus-visible {
   .month-controls label:nth-child(3),
   .month-filter-group {
     grid-column: 1 / -1;
+  }
+
+  .calendar-archive-panel,
+  .calendar-archive-actions,
+  .calendar-actions {
+    grid-template-columns: 1fr;
   }
 
   .route-line {
