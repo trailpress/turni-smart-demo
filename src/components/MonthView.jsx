@@ -20,7 +20,7 @@ function getDayKind(item) {
 
 export function MonthView({
   days: parsedDays = {},
-  hiddenFilters = { turni: false, riposi: false, ballottaggi: false, altro: false },
+  activeFilters = { turni: false, riposi: false, ballottaggi: false, altro: false },
   highlightDate = null,
   monthDate = new Date(),
   onNextMonth,
@@ -34,6 +34,7 @@ export function MonthView({
   const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   const highlighted =
     highlightDate && !Number.isNaN(new Date(highlightDate).getTime()) ? new Date(highlightDate) : null;
+  const hasActiveFilter = Object.values(activeFilters || {}).some(Boolean);
 
   function dayState(day) {
     const iso = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}-${String(
@@ -41,14 +42,15 @@ export function MonthView({
     ).padStart(2, '0')}`;
     const item = parsedDays[iso];
     const kind = getDayKind(item);
-    const isVisible = kind === 'empty' || hiddenFilters[kind] !== true;
+    const isDimmed = hasActiveFilter && kind !== 'empty' && activeFilters[kind] !== true;
 
     return {
+      kind,
       hasShift: item?.t === 'turno',
       hasRest: Boolean(item && REST_CODES[item.t]),
       hasBallot: item?.t === 'RIS',
       hasOther: Boolean(item && item.t !== 'turno' && !REST_CODES[item.t] && item.t !== 'RIS'),
-      isVisible,
+      isDimmed,
       isHighlighted:
         highlighted &&
         highlighted.getFullYear() === monthDate.getFullYear() &&
@@ -88,11 +90,10 @@ export function MonthView({
                 state.hasBallot ? 'has-ballot' : '',
                 state.hasOther ? 'has-other' : '',
                 state.isHighlighted ? 'is-highlighted' : '',
-                !state.isVisible ? 'month-day--hidden' : '',
+                state.isDimmed ? 'month-day--dimmed' : '',
               ]
                 .filter(Boolean)
               .join(' ')}
-              disabled={!state.isVisible}
               key={day}
               onClick={() => onSelectDay?.(new Date(monthDate.getFullYear(), monthDate.getMonth(), day))}
               type="button"

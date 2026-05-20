@@ -650,10 +650,12 @@ export default function App() {
 
   function shouldShowMonthDay(day) {
     if (!day) return false;
-    if (day.t === 'turno') return !monthFilters.turni;
-    if (REST_CODES[day.t]) return !monthFilters.riposi;
-    if (day.t === 'RIS') return !monthFilters.ballottaggi;
-    return !monthFilters.altro;
+    const hasActiveFilter = Object.values(monthFilters).some(Boolean);
+    if (!hasActiveFilter) return true;
+    if (day.t === 'turno') return monthFilters.turni;
+    if (REST_CODES[day.t]) return monthFilters.riposi;
+    if (day.t === 'RIS') return monthFilters.ballottaggi;
+    return monthFilters.altro;
   }
 
   function toggleMonthFilter(key) {
@@ -973,7 +975,7 @@ export default function App() {
                     <option value="desc">Dal fondo mese</option>
                   </select>
                 </label>
-                <div className="month-filter-group" aria-label="Nascondi nel calendario">
+                <div className="month-filter-group" aria-label="Evidenzia nel calendario">
                   {[
                     ['turni', 'Turni'],
                     ['riposi', 'Riposi'],
@@ -981,7 +983,7 @@ export default function App() {
                     ['altro', 'Altro'],
                   ].map(([key, label]) => (
                     <button className={monthFilters[key] ? 'filter-chip is-active' : 'filter-chip'} key={key} onClick={() => toggleMonthFilter(key)} type="button">
-                      Nascondi {label}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -1016,7 +1018,7 @@ export default function App() {
               </div>
               <MonthView
                 days={days}
-                hiddenFilters={monthFilters}
+                activeFilters={monthFilters}
                 highlightDate={nextWorkingShift?.day?.date}
                 monthDate={monthDate}
                 onNextMonth={() => changeMonth(1)}
