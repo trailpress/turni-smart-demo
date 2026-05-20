@@ -1,8 +1,8 @@
 import { Icon } from './Icon.jsx';
 
 const TAB_ICONS = {
-  Turno: 'bus',
-  Mese: 'calendar',
+  Giorno: 'bus',
+  Calendario: 'calendar',
 };
 
 export function Tabs({ tabs, activeTab, onTabChange }) {

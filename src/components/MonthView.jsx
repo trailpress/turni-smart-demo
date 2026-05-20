@@ -20,7 +20,7 @@ function getDayKind(item) {
 
 export function MonthView({
   days: parsedDays = {},
-  activeFilters = { turni: false, riposi: false, ballottaggi: false, altro: false },
+  activeFilters = { turni: false, riposi: false, ballottaggi: false },
   highlightDate = null,
   monthDate = new Date(),
   onNextMonth,
@@ -115,9 +115,6 @@ export function MonthView({
         </span>
         <span>
           <i className="legend-dot legend-dot--ballot" /> Ballott.
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--other" /> Altro
         </span>
       </div>
     </section>

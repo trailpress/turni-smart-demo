@@ -29,12 +29,11 @@ import { Icon } from './components/Icon.jsx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const TABS = ['Turno', 'Mese'];
+const TABS = ['Giorno', 'Calendario'];
 const DEFAULT_MONTH_FILTERS = {
   turni: false,
   riposi: false,
   ballottaggi: false,
-  altro: false,
 };
 const MONTH_NAMES = [
   'Gennaio',
@@ -67,6 +66,74 @@ function addDays(date, amount) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
   return next;
+}
+
+function daysBetween(from, to) {
+  const start = new Date(from);
+  const end = new Date(to);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return Math.round((end - start) / 86400000);
+}
+
+function weekdayShort(date) {
+  return new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date);
+}
+
+function buildProjectedRestDays(sourceDays, monthDate) {
+  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const hasRealMonth = Object.values(sourceDays).some((day) => {
+    const date = day?.date ? new Date(day.date) : null;
+    return date && date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
+  });
+  if (hasRealMonth) return {};
+
+  const restDays = Object.values(sourceDays)
+    .filter((day) => day?.date && REST_CODES[day.t] && day.t !== 'RIS')
+    .map((day) => ({ date: new Date(day.date), code: day.t }))
+    .sort((a, b) => a.date - b.date);
+  if (!restDays.length) return {};
+
+  const intervals = restDays
+    .slice(1)
+    .map((day, index) => daysBetween(restDays[index].date, day.date))
+    .filter((value) => value > 0 && value <= 14);
+  const pattern = intervals.length ? intervals : [7];
+  const projected = {};
+
+  function addProjected(date, patternIndex) {
+    if (date < monthStart || date > monthEnd) return;
+    const iso = toIsoDate(date);
+    projected[iso] = {
+      iso,
+      date: new Date(date),
+      g: weekdayShort(date),
+      t: restDays[Math.abs(patternIndex) % restDays.length]?.code || 'RP',
+      c: 'RP',
+      x: 'Riposo calcolato dalla sequenza caricata',
+      projected: true,
+    };
+  }
+
+  let forwardDate = new Date(restDays[0].date);
+  let forwardIndex = 0;
+  while (forwardDate <= monthEnd) {
+    addProjected(forwardDate, forwardIndex);
+    forwardDate = addDays(forwardDate, pattern[forwardIndex % pattern.length]);
+    forwardIndex += 1;
+  }
+
+  let backwardDate = new Date(restDays[0].date);
+  let backwardIndex = 0;
+  while (backwardDate >= monthStart) {
+    const interval = pattern[(backwardIndex - 1 + pattern.length) % pattern.length];
+    backwardIndex -= 1;
+    backwardDate = addDays(backwardDate, -interval);
+    addProjected(backwardDate, backwardIndex);
+  }
+
+  return projected;
 }
 
 function formatDuration(value) {
@@ -329,8 +396,9 @@ export default function App() {
   const [developments, setDevelopments] = useState({});
   const [orariInfo, setOrariInfo] = useState(null);
   const [orariLoaded, setOrariLoaded] = useState(false);
-  const initialTab = savedPrefs.activeTab === 'Home' ? 'Turno' : savedPrefs.activeTab;
-  const [activeTab, setActiveTab] = useState(initialTab && TABS.includes(initialTab) ? initialTab : 'Turno');
+  const tabAliases = { Home: 'Giorno', Turno: 'Giorno', Mese: 'Calendario' };
+  const initialTab = tabAliases[savedPrefs.activeTab] || savedPrefs.activeTab;
+  const [activeTab, setActiveTab] = useState(initialTab && TABS.includes(initialTab) ? initialTab : 'Giorno');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -559,7 +627,7 @@ export default function App() {
       refreshHistory();
     }
     setSelectedDate(nextDay.date);
-    setActiveTab('Turno');
+    setActiveTab('Giorno');
     return nextDay;
   }
 
@@ -655,7 +723,7 @@ export default function App() {
     if (day.t === 'turno') return monthFilters.turni;
     if (REST_CODES[day.t]) return monthFilters.riposi;
     if (day.t === 'RIS') return monthFilters.ballottaggi;
-    return monthFilters.altro;
+    return false;
   }
 
   function toggleMonthFilter(key) {
@@ -748,7 +816,7 @@ export default function App() {
     const demo = createDemoPreconoscenza();
     applyPreconoscenza(demo);
     applyOrari(DEMO_DEVELOPMENTS, demo);
-    setActiveTab('Mese');
+    setActiveTab('Calendario');
   }
 
   function updateAutoRestore(value) {
@@ -823,14 +891,16 @@ export default function App() {
     }),
     [history, viewMonth, viewYear],
   );
+  const projectedRestDays = useMemo(() => buildProjectedRestDays(days, monthDate), [days, monthDate]);
+  const calendarDays = useMemo(() => ({ ...projectedRestDays, ...days }), [days, projectedRestDays]);
   const monthItems = useMemo(() => {
-    return Object.keys(days)
+    return Object.keys(calendarDays)
       .sort()
-      .map((iso) => days[iso])
+      .map((iso) => calendarDays[iso])
       .filter((day) => day?.date?.getFullYear() === viewYear && day?.date?.getMonth() === viewMonth)
       .filter(shouldShowMonthDay)
       .sort((a, b) => (monthOrder === 'desc' ? b.date - a.date : a.date - b.date));
-  }, [days, monthFilters, monthOrder, viewMonth, viewYear]);
+  }, [calendarDays, monthFilters, monthOrder, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
 
   return (
@@ -874,7 +944,7 @@ export default function App() {
             <OnboardingHome error={error} loading={loading} onLoadDemo={loadDemo} onPrimaryUpload={() => onboardingInputRef.current?.click()} />
           ) : null}
 
-          {pdfLoaded && activeTab === 'Turno' ? (
+          {pdfLoaded && activeTab === 'Giorno' ? (
             <section className="view-panel">
               <form
                 className="search-panel dc"
@@ -929,7 +999,7 @@ export default function App() {
             </section>
           ) : null}
 
-          {pdfLoaded && activeTab === 'Mese' ? (
+          {pdfLoaded && activeTab === 'Calendario' ? (
             <section className="view-panel">
               <input
                 accept="application/pdf"
@@ -980,7 +1050,6 @@ export default function App() {
                     ['turni', 'Turni'],
                     ['riposi', 'Riposi'],
                     ['ballottaggi', 'Ballott.'],
-                    ['altro', 'Altro'],
                   ].map(([key, label]) => (
                     <button className={monthFilters[key] ? 'filter-chip is-active' : 'filter-chip'} key={key} onClick={() => toggleMonthFilter(key)} type="button">
                       {label}
@@ -1017,7 +1086,7 @@ export default function App() {
                 </div>
               </div>
               <MonthView
-                days={days}
+                days={calendarDays}
                 activeFilters={monthFilters}
                 highlightDate={nextWorkingShift?.day?.date}
                 monthDate={monthDate}
@@ -1025,9 +1094,9 @@ export default function App() {
                 onPrevMonth={() => changeMonth(-1)}
                 onSelectDay={(date) => {
                   setSelectedDate(date);
-                  const item = days[toIsoDate(date)];
+                  const item = calendarDays[toIsoDate(date)];
                   setSearchResults(item ? [item] : []);
-                  setActiveTab('Turno');
+                  setActiveTab('Giorno');
                 }}
               />
               <div className="result-toolbar">
