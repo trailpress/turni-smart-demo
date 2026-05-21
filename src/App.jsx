@@ -447,13 +447,15 @@ export default function App() {
     });
     setPdfLoaded(true);
     const initialDate = result.dIn || getInitialDate(result.days);
-    setSelectedDate(initialDate);
-    setRangeFrom(toIsoDate(initialDate));
-    setRangeTo(toIsoDate(result.dTe || initialDate));
-    setViewMonth(initialDate.getMonth());
-    setViewYear(initialDate.getFullYear());
-    setSearchResults([]);
-    setSearchMessage('');
+    if (!options.keepCalendarPosition) {
+      setSelectedDate(initialDate);
+      setRangeFrom(toIsoDate(initialDate));
+      setRangeTo(toIsoDate(result.dTe || initialDate));
+      setViewMonth(initialDate.getMonth());
+      setViewYear(initialDate.getFullYear());
+      setSearchResults([]);
+      setSearchMessage('');
+    }
     if (options.save !== false) {
       savePreconoscenza(result);
       refreshHistory();
@@ -800,8 +802,7 @@ export default function App() {
     if (archivedPreconoscenza) {
       const stored = loadPreconoscenzaByKey(archivedPreconoscenza.key);
       if (stored) {
-        applyPreconoscenza(stored, { save: false });
-        return;
+        applyPreconoscenza(stored, { save: false, keepCalendarPosition: true });
       }
     }
 
