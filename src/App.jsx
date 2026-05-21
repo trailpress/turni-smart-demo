@@ -1065,17 +1065,6 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <div className="calendar-actions">
-                  <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
-                    Aggiungi periodo
-                  </button>
-                  <button className="small-button" disabled={!Object.values(days).some((day) => day?.t === 'RIS')} onClick={addBallotsToCalendar} type="button">
-                    Aggiungi ballottaggi
-                  </button>
-                  <button className="small-button small-button--ghost" disabled={!monthItems.length} onClick={() => exportCsv('turni-mese.csv', monthItems)} type="button">
-                    Esporta mese
-                  </button>
-                </div>
               </div>
               <MonthView
                 days={calendarDays}
@@ -1091,6 +1080,23 @@ export default function App() {
                   setActiveTab('Giorno');
                 }}
               />
+              <section className="calendar-actions-panel dc" aria-label="Azioni calendario">
+                <div>
+                  <strong>Azioni calendario</strong>
+                  <span>Aggiungi o esporta i giorni visibili del mese selezionato.</span>
+                </div>
+                <div className="calendar-actions">
+                  <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
+                    Aggiungi periodo al calendario
+                  </button>
+                  <button className="small-button" disabled={!Object.values(days).some((day) => day?.t === 'RIS')} onClick={addBallotsToCalendar} type="button">
+                    Aggiungi ballottaggi al calendario
+                  </button>
+                  <button className="small-button small-button--ghost" disabled={!monthItems.length} onClick={() => exportCsv('turni-mese.csv', monthItems)} type="button">
+                    Esporta mese in CSV
+                  </button>
+                </div>
+              </section>
               {shouldShowMonthUpload ? (
                 <div className="calendar-archive-panel calendar-archive-panel--missing">
                   <div>

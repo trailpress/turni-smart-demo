@@ -1024,19 +1024,20 @@ select:focus-visible {
 }
 
 .tab-button {
-  min-height: 42px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(0, 190, 232, 0.34);
+  border: 1px solid rgba(0, 190, 232, 0.48);
   border-radius: var(--radius);
-  padding: 0 16px;
-  background: rgba(0, 118, 201, 0.16);
+  padding: 0 18px;
+  background: linear-gradient(180deg, #0b8df1 0%, #006dcc 100%);
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 900;
   cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 73, 132, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .tab-button__icon {
@@ -1173,6 +1174,31 @@ select:focus-visible {
 .calendar-actions {
   display: grid;
   gap: 8px;
+}
+
+.calendar-actions-panel {
+  display: grid;
+  gap: var(--s2);
+  border-left: 4px solid var(--blue);
+}
+
+.calendar-actions-panel strong,
+.calendar-actions-panel span {
+  display: block;
+}
+
+.calendar-actions-panel strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.calendar-actions-panel span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  line-height: 1.35;
 }
 
 .calendar-archive-actions {

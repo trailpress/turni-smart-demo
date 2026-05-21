@@ -1,15 +1,15 @@
 import { Icon } from './Icon.jsx';
 
 const TAB_ICONS = {
-  Giorno: 'bus',
+  Giorno: 'search',
   Calendario: 'calendar',
 };
 
 export function Tabs({ tabs, activeTab, onTabChange }) {
   const targets = tabs.filter((tab) => tab !== activeTab);
   const labels = {
-    Giorno: 'Torna al turno',
-    Calendario: 'Apri calendario',
+    Giorno: 'Che turno faccio',
+    Calendario: 'Vista mese',
   };
 
   return (
