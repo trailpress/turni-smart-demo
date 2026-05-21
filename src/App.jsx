@@ -1042,11 +1042,7 @@ export default function App() {
                 type="file"
               />
               <div className="month-controls dc">
-                <div className="panel-title-row month-controls__title">
-                  <div className="field-label">
-                    <Icon name="calendar" size={22} />
-                    Vista mese
-                  </div>
+                <div className="month-controls__switch">
                   <button className="section-switch-button" onClick={() => setActiveTab('Giorno')} type="button">
                     <Icon name="search" size={18} />
                     Che turno faccio
@@ -1073,17 +1069,6 @@ export default function App() {
                     <option value="desc">Dal fondo mese</option>
                   </select>
                 </label>
-                <div className="month-filter-group" aria-label="Evidenzia nel calendario">
-                  {[
-                    ['turni', 'Turni'],
-                    ['riposi', 'Riposi'],
-                    ['ballottaggi', 'Ballott.'],
-                  ].map(([key, label]) => (
-                    <button className={monthFilters[key] ? 'filter-chip is-active' : 'filter-chip'} key={key} onClick={() => toggleMonthFilter(key)} type="button">
-                      {label}
-                    </button>
-                  ))}
-                </div>
               </div>
               <MonthView
                 days={calendarDays}
@@ -1098,6 +1083,7 @@ export default function App() {
                   setSearchResults(item ? [item] : []);
                   setActiveTab('Giorno');
                 }}
+                onToggleFilter={toggleMonthFilter}
               />
               <section className="calendar-actions-panel dc" aria-label="Azioni calendario">
                 <div>

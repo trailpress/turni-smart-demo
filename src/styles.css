@@ -1144,8 +1144,10 @@ select:focus-visible {
   align-items: end;
 }
 
-.month-controls__title {
+.month-controls__switch {
   grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .month-filter-group {
@@ -1153,6 +1155,10 @@ select:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.month-filter-group--calendar {
+  margin-top: -2px;
 }
 
 .calendar-archive-panel {

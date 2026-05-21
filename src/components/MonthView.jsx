@@ -26,6 +26,7 @@ export function MonthView({
   onNextMonth,
   onPrevMonth,
   onSelectDay,
+  onToggleFilter,
 }) {
   const monthLength = getMonthLength(monthDate);
   const days = Array.from({ length: monthLength }, (_, index) => index + 1);
@@ -69,6 +70,22 @@ export function MonthView({
         <button onClick={onNextMonth} type="button" aria-label="Mese successivo">
           <Icon name="chevronRight" size={20} />
         </button>
+      </div>
+      <div className="month-filter-group month-filter-group--calendar" aria-label="Evidenzia nel calendario">
+        {[
+          ['turni', 'Turni'],
+          ['riposi', 'Riposi'],
+          ['ballottaggi', 'Ballott.'],
+        ].map(([key, label]) => (
+          <button
+            className={activeFilters[key] ? 'filter-chip is-active' : 'filter-chip'}
+            key={key}
+            onClick={() => onToggleFilter?.(key)}
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
       </div>
       <div className="month-grid month-grid--weekdays" aria-hidden="true">
         {weekdays.map((day) => (
