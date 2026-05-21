@@ -964,10 +964,6 @@ export default function App() {
                     <Icon name="search" size={22} />
                     Che turno faccio il...
                   </label>
-                  <button className="section-switch-button" onClick={() => setActiveTab('Calendario')} type="button">
-                    <Icon name="calendar" size={18} />
-                    Vista mese
-                  </button>
                 </div>
                 <div className="search-row">
                   <input
@@ -990,6 +986,16 @@ export default function App() {
                   </button>
                   <button onClick={searchWeek} type="button">
                     Settimana
+                  </button>
+                </div>
+                <div className="search-panel-footer">
+                  <button
+                    className="section-switch-button section-switch-button--primary"
+                    onClick={() => setActiveTab('Calendario')}
+                    type="button"
+                  >
+                    <Icon name="calendar" size={18} />
+                    Vista mese
                   </button>
                 </div>
               </form>

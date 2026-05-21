@@ -1032,6 +1032,24 @@ select:focus-visible {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
+.section-switch-button--primary {
+  width: 100%;
+  min-height: 48px;
+  border-color: rgba(116, 215, 255, 0.72);
+  background: linear-gradient(180deg, #129bf2 0%, #0879cf 100%);
+  color: #ffffff;
+  font-size: 0.92rem;
+  letter-spacing: 0;
+  box-shadow:
+    0 10px 24px rgba(0, 112, 201, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.search-panel-footer {
+  display: grid;
+  margin-top: 2px;
+}
+
 /* Navigation and forms */
 .section-heading {
   display: flex;
