@@ -41,7 +41,7 @@ function normalizeSearchText(text) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}/.\-\s]/gu, ' ')
+    .replace(/[^a-z0-9/.\-\s]/g, ' ')
     .replace(WEEKDAYS, ' ')
     .replace(/\b(il|del|giorno|data|turno)\b/g, ' ')
     .replace(/\s+/g, ' ')
