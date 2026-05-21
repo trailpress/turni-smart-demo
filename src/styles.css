@@ -1078,6 +1078,7 @@ select:focus-visible {
 
 .view-panel,
 .search-panel,
+.calendar-search-panel,
 .range-panel,
 .month-controls,
 .result-list {
@@ -1086,6 +1087,7 @@ select:focus-visible {
 }
 
 .search-panel,
+.calendar-search-panel,
 .range-panel,
 .month-controls {
   border-left: 4px solid var(--accent);
@@ -1107,6 +1109,7 @@ select:focus-visible {
 
 .empty-state h2,
 .search-panel label,
+.calendar-search-panel label,
 .range-panel label,
 .month-controls label {
   color: var(--heading);

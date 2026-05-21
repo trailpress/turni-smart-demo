@@ -407,7 +407,6 @@ export default function App() {
   const [hideRests, setHideRests] = useState(false);
   const [onlyWorkShifts, setOnlyWorkShifts] = useState(false);
   const [monthFilters, setMonthFilters] = useState(DEFAULT_MONTH_FILTERS);
-  const [monthOrder, setMonthOrder] = useState('asc');
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
@@ -907,8 +906,8 @@ export default function App() {
       .map((iso) => calendarDays[iso])
       .filter((day) => day?.date?.getFullYear() === viewYear && day?.date?.getMonth() === viewMonth)
       .filter(shouldShowMonthDay)
-      .sort((a, b) => (monthOrder === 'desc' ? b.date - a.date : a.date - b.date));
-  }, [calendarDays, monthFilters, monthOrder, viewMonth, viewYear]);
+      .sort((a, b) => a.date - b.date);
+  }, [calendarDays, monthFilters, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
 
   return (
@@ -1041,39 +1040,31 @@ export default function App() {
                 ref={monthOrariInputRef}
                 type="file"
               />
-              <div className="month-controls dc">
-                <div className="month-controls__switch">
-                  <div className="month-controls__heading">
-                    <Icon name="calendar" size={18} />
-                    <span>Calendario</span>
-                  </div>
-                  <button className="section-switch-button section-switch-button--compact" onClick={() => setActiveTab('Giorno')} type="button">
-                    <Icon name="search" size={18} />
-                    Cerca turno
+              <form
+                className="calendar-search-panel dc"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  runSearch();
+                  setActiveTab('Giorno');
+                }}
+              >
+                <label className="field-label" htmlFor="calendar-turn-search">
+                  <Icon name="search" size={22} />
+                  Che turno faccio il...
+                </label>
+                <div className="search-row">
+                  <input
+                    id="calendar-turn-search"
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="oggi, domani, 05/03, 5 marzo"
+                    type="text"
+                    value={searchQuery}
+                  />
+                  <button className="small-button" type="submit">
+                    Mostra turno
                   </button>
                 </div>
-                <label>
-                  Mese
-                  <select value={viewMonth} onChange={(event) => openCalendarMonth(viewYear, Number(event.target.value))}>
-                    {MONTH_NAMES.map((month, index) => (
-                      <option key={month} value={index}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Anno
-                  <input onChange={(event) => openCalendarMonth(Number(event.target.value), viewMonth)} type="number" value={viewYear} />
-                </label>
-                <label>
-                  Ordine
-                  <select value={monthOrder} onChange={(event) => setMonthOrder(event.target.value)}>
-                    <option value="asc">Dal primo giorno</option>
-                    <option value="desc">Dal fondo mese</option>
-                  </select>
-                </label>
-              </div>
+              </form>
               <MonthView
                 days={calendarDays}
                 activeFilters={monthFilters}
