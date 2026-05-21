@@ -22,7 +22,6 @@ import { UploadPanel } from './components/UploadPanel.jsx';
 import { ShiftCard } from './components/ShiftCard.jsx';
 import { MonthView } from './components/MonthView.jsx';
 import { StatsPanel } from './components/StatsPanel.jsx';
-import { Tabs } from './components/Tabs.jsx';
 import { AdvancedTools } from './components/AdvancedTools.jsx';
 import { OnboardingHome } from './components/OnboardingHome.jsx';
 import { Icon } from './components/Icon.jsx';
@@ -947,8 +946,6 @@ export default function App() {
         ) : null}
 
         <section className="content-panel">
-          {pdfLoaded ? <Tabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} /> : null}
-
           {!pdfLoaded ? (
             <OnboardingHome error={error} loading={loading} onLoadDemo={loadDemo} onPrimaryUpload={() => onboardingInputRef.current?.click()} />
           ) : null}
@@ -962,10 +959,16 @@ export default function App() {
                   runSearch();
                 }}
               >
-                <label className="field-label" htmlFor="turn-search">
-                  <Icon name="search" size={22} />
-                  Che turno faccio il...
-                </label>
+                <div className="panel-title-row">
+                  <label className="field-label" htmlFor="turn-search">
+                    <Icon name="search" size={22} />
+                    Che turno faccio il...
+                  </label>
+                  <button className="section-switch-button" onClick={() => setActiveTab('Calendario')} type="button">
+                    <Icon name="calendar" size={18} />
+                    Vista mese
+                  </button>
+                </div>
                 <div className="search-row">
                   <input
                     id="turn-search"
@@ -1033,6 +1036,16 @@ export default function App() {
                 type="file"
               />
               <div className="month-controls dc">
+                <div className="panel-title-row month-controls__title">
+                  <div className="field-label">
+                    <Icon name="calendar" size={22} />
+                    Vista mese
+                  </div>
+                  <button className="section-switch-button" onClick={() => setActiveTab('Giorno')} type="button">
+                    <Icon name="search" size={18} />
+                    Che turno faccio
+                  </button>
+                </div>
                 <label>
                   Mese
                   <select value={viewMonth} onChange={(event) => openCalendarMonth(viewYear, Number(event.target.value))}>

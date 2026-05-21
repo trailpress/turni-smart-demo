@@ -1015,37 +1015,24 @@ select:focus-visible {
   color: #35b6ff;
 }
 
-/* Navigation and forms */
-.tb {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  width: 100%;
-}
-
-.tab-button {
-  min-height: 44px;
+.section-switch-button {
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   border: 1px solid rgba(0, 190, 232, 0.48);
   border-radius: var(--radius);
-  padding: 0 18px;
-  background: linear-gradient(180deg, #0b8df1 0%, #006dcc 100%);
+  padding: 0 12px;
+  background: rgba(0, 118, 201, 0.22);
   color: #ffffff;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(0, 73, 132, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.tab-button__icon {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-}
-
+/* Navigation and forms */
 .section-heading {
   display: flex;
   align-items: center;
@@ -1126,10 +1113,21 @@ select:focus-visible {
   gap: 9px;
 }
 
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
 .range-panel,
 .month-controls {
   grid-template-columns: minmax(118px, 1.1fr) minmax(84px, 0.7fr) minmax(122px, 1fr);
   align-items: end;
+}
+
+.month-controls__title {
+  grid-column: 1 / -1;
 }
 
 .month-filter-group {
@@ -2832,6 +2830,15 @@ select:focus-visible {
   .month-controls label:nth-child(3),
   .month-filter-group {
     grid-column: 1 / -1;
+  }
+
+  .panel-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-switch-button {
+    width: 100%;
   }
 
   .calendar-archive-panel,
