@@ -1143,7 +1143,6 @@ export default function App() {
           {pdfLoaded ? (
             <AdvancedTools
               backupMessage={backupMessage}
-              debugInfo={debugInfo}
               onExportBackup={exportBackup}
               onRestoreBackup={restoreBackupFile}
               onToggleAutoRestore={updateAutoRestore}

@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 
 export function AdvancedTools({
   backupMessage,
-  debugInfo,
   onExportBackup,
   onRestoreBackup,
   onToggleAutoRestore,
@@ -36,7 +35,7 @@ export function AdvancedTools({
       <button className="advanced-tools__summary" onClick={() => toggle('tools')} type="button" aria-expanded={openPanel === 'tools'}>
         <span>
           <strong id="advanced-title">Strumenti avanzati</strong>
-          <small>Backup, preferenze e diagnosi</small>
+          <small>Backup e preferenze</small>
         </span>
         <span aria-hidden="true">{openPanel === 'tools' ? '−' : '+'}</span>
       </button>
@@ -65,57 +64,6 @@ export function AdvancedTools({
               </div>
               {backupMessage ? <p className="muted-text">{backupMessage}</p> : null}
             </section>
-
-            {debugInfo?.hasOrari ? (
-              <section className="advanced-block advanced-block--wide">
-                <h3>Diagnosi sviluppo turni</h3>
-                <p className="muted-text">
-                  Questa sezione controlla il collegamento tra Preconoscenza e Orari Linee. I segmenti mostrati in alto sono solo quelli del turno in evidenza.
-                </p>
-                <div className="diagnostic-grid">
-                  <span>Turni Orari estratti</span>
-                  <strong>{debugInfo.keyCount}</strong>
-                  <span>Turni Preconoscenza collegati</span>
-                  <strong>{debugInfo.associations}</strong>
-                  <span>Turno in evidenza</span>
-                  <strong>{debugInfo.searchedKey || '-'}</strong>
-                  <span>Finestra Preconoscenza</span>
-                  <strong>{debugInfo.expectedWindow || '-'}</strong>
-                  <span>Segmenti del turno in evidenza</span>
-                  <strong>{debugInfo.foundSegments}</strong>
-                </div>
-                {debugInfo.firstSegments?.length ? (
-                  <div className="diagnostic-segments">
-                    <strong>Dettaglio turno in evidenza</strong>
-                    {debugInfo.firstSegments.map((segment, index) => (
-                      <p key={`${segment.start}-${segment.end}-${index}`}>
-                        {index + 1}. {segment.start} {segment.loc_s} {segment.dir || '-'} {segment.end} {segment.loc_e} · vett. {segment.turnoVettura || segment.vett || '-'}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="muted-text">Nessun segmento trovato per il turno evidenziato.</p>
-                )}
-                {debugInfo.checkedDevelopments?.length ? (
-                  <div className="diagnostic-list">
-                    <strong>Turni collegati nel periodo</strong>
-                    {debugInfo.checkedDevelopments.map((item) => (
-                      <p key={`${item.iso}-${item.searchedKey}`}>
-                        <span>{item.label}</span>
-                        <span>{item.searchedKey}</span>
-                        <span>{item.segmentCount} seg.</span>
-                        <small>
-                          {item.first?.start || '--:--'} {item.first?.loc_s || '-'} → {item.last?.end || '--:--'} {item.last?.loc_e || '-'}
-                        </small>
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                {debugInfo.missingDevelopmentCount ? (
-                  <p className="muted-text">{debugInfo.missingDevelopmentCount} turni della Preconoscenza non hanno ancora uno sviluppo collegato.</p>
-                ) : null}
-              </section>
-            ) : null}
           </div>
         </div>
       ) : null}
