@@ -1043,9 +1043,13 @@ export default function App() {
               />
               <div className="month-controls dc">
                 <div className="month-controls__switch">
-                  <button className="section-switch-button" onClick={() => setActiveTab('Giorno')} type="button">
+                  <div className="month-controls__heading">
+                    <Icon name="calendar" size={18} />
+                    <span>Calendario</span>
+                  </div>
+                  <button className="section-switch-button section-switch-button--compact" onClick={() => setActiveTab('Giorno')} type="button">
                     <Icon name="search" size={18} />
-                    Che turno faccio
+                    Cerca turno
                   </button>
                 </div>
                 <label>

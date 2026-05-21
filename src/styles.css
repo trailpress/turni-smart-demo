@@ -1050,6 +1050,15 @@ select:focus-visible {
   margin-top: 2px;
 }
 
+.section-switch-button--compact {
+  min-height: 34px;
+  border-color: rgba(116, 215, 255, 0.5);
+  padding: 0 11px;
+  background: rgba(7, 24, 39, 0.64);
+  color: var(--text);
+  font-size: 0.74rem;
+}
+
 /* Navigation and forms */
 .section-heading {
   display: flex;
@@ -1147,7 +1156,25 @@ select:focus-visible {
 .month-controls__switch {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  min-height: 38px;
+  border-bottom: 1px solid rgba(92, 140, 177, 0.28);
+  padding-bottom: var(--s2);
+}
+
+.month-controls__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.month-controls__heading svg {
+  color: var(--accent);
 }
 
 .month-filter-group {
@@ -2863,6 +2890,16 @@ select:focus-visible {
 
   .section-switch-button {
     width: 100%;
+  }
+
+  .month-controls__switch {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .month-controls__switch .section-switch-button--compact {
+    width: auto;
+    flex: 0 0 auto;
   }
 
   .calendar-archive-panel,
