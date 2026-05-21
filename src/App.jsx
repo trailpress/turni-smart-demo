@@ -838,14 +838,24 @@ export default function App() {
   }
 
   function runSearch(query = searchQuery) {
-    const parsed = parseNaturalDate(query, pdfInfo?.dIn?.getFullYear() || selectedDate.getFullYear());
+    let parsed = null;
+    try {
+      parsed = parseNaturalDate(query, pdfInfo?.dIn?.getFullYear() || selectedDate.getFullYear());
+    } catch {
+      parsed = null;
+    }
     if (!parsed) {
       setSearchResults([]);
-      setSearchMessage('Data non riconosciuta.');
+      setSearchMessage('Data non riconosciuta. Prova con oggi, domani, 18/05, 18-05-2026 o 18 maggio.');
       return;
     }
 
-    const dates = Array.isArray(parsed) ? parsed : [parsed];
+    const dates = (Array.isArray(parsed) ? parsed : [parsed]).filter((date) => date instanceof Date && !Number.isNaN(date.getTime()));
+    if (!dates.length) {
+      setSearchResults([]);
+      setSearchMessage('Data non riconosciuta. Prova con oggi, domani, 18/05, 18-05-2026 o 18 maggio.');
+      return;
+    }
     const results = dates.map((date) => days[toIsoDate(date)]).filter(Boolean);
     setSelectedDate(dates[0]);
     setSearchResults(results);
