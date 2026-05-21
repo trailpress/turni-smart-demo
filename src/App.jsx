@@ -891,6 +891,14 @@ export default function App() {
     }),
     [history, viewMonth, viewYear],
   );
+  const missingMonthDocuments = useMemo(
+    () => ({
+      preconoscenza: !monthArchive.preconoscenza,
+      orari: !monthArchive.orari,
+    }),
+    [monthArchive],
+  );
+  const shouldShowMonthUpload = missingMonthDocuments.preconoscenza || missingMonthDocuments.orari;
   const projectedRestDays = useMemo(() => buildProjectedRestDays(days, monthDate), [days, monthDate]);
   const calendarDays = useMemo(() => ({ ...projectedRestDays, ...days }), [days, projectedRestDays]);
   const monthItems = useMemo(() => {
@@ -1082,23 +1090,29 @@ export default function App() {
                   setActiveTab('Giorno');
                 }}
               />
-              <div className="calendar-archive-panel">
-                <div>
-                  <strong>Archivio calendario</strong>
-                  <span>
-                    {MONTH_NAMES[viewMonth]} {viewYear}: {monthArchive.preconoscenza ? 'Preconoscenza salvata' : 'Preconoscenza assente'} ·{' '}
-                    {monthArchive.orari ? 'Orari Linee salvati' : 'Orari Linee assenti'}
-                  </span>
+              {shouldShowMonthUpload ? (
+                <div className="calendar-archive-panel calendar-archive-panel--missing">
+                  <div>
+                    <strong>Completa questo mese</strong>
+                    <span>
+                      {MONTH_NAMES[viewMonth]} {viewYear}: {missingMonthDocuments.preconoscenza ? 'manca Preconoscenza' : 'Preconoscenza salvata'} ·{' '}
+                      {missingMonthDocuments.orari ? 'mancano Orari Linee' : 'Orari Linee salvati'}
+                    </span>
+                  </div>
+                  <div className="calendar-archive-actions">
+                    {missingMonthDocuments.preconoscenza ? (
+                      <button className="small-button" onClick={() => monthPreconoscenzaInputRef.current?.click()} type="button">
+                        Carica Preconoscenza
+                      </button>
+                    ) : null}
+                    {missingMonthDocuments.orari ? (
+                      <button className="small-button small-button--ghost" onClick={() => monthOrariInputRef.current?.click()} type="button">
+                        Carica Orari Linee
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="calendar-archive-actions">
-                  <button className="small-button" onClick={() => monthPreconoscenzaInputRef.current?.click()} type="button">
-                    Carica Preconoscenza
-                  </button>
-                  <button className="small-button small-button--ghost" onClick={() => monthOrariInputRef.current?.click()} type="button">
-                    Carica Orari Linee
-                  </button>
-                </div>
-              </div>
+              ) : null}
               <div className="result-toolbar">
                 <span>{monthItems.length} giorni nel dettaglio mese</span>
               </div>
