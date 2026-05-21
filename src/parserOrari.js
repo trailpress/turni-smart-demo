@@ -776,12 +776,18 @@ export function getDevSegments(developments, line, shiftNumber, date, preShift =
   const sortedCandidates = sortSegments(candidates);
   if (coversPreShift(sortedCandidates, preShift) || shouldKeepFullDevelopment(sortedCandidates, preShift)) return sortedCandidates;
 
+  const exactPath = findExactShiftPath(developments, line, date, preShift);
+  if (exactPath.length) return sortSegments(exactPath);
+
   const crossServiceSameTurn = allSegments.length ? pickRun(allSegments, preShift) : [];
   const sortedCrossServiceSameTurn = sortSegments(crossServiceSameTurn);
   if (coversPreShift(sortedCrossServiceSameTurn, preShift)) return sortedCrossServiceSameTurn;
 
-  const exactPath = findExactShiftPath(developments, line, date, preShift);
-  if (exactPath.length) return sortSegments(exactPath);
+  const completed = completeShiftFromWindow(developments, line, date, preShift, sortedCandidates);
+  if (coversPreShift(completed, preShift) || completed.length > sortedCandidates.length) return sortSegments(completed);
+
+  const fallback = findFallbackSegments(developments, line, shiftNumber, date, preShift);
+  if (fallback.length) return sortSegments(fallback);
 
   if (sortedCandidates.length) return sortedCandidates;
   return buildCommunicatedSegment(preShift);
