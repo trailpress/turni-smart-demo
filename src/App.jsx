@@ -1056,23 +1056,6 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <div className="calendar-archive-panel">
-                  <div>
-                    <strong>Archivio calendario</strong>
-                    <span>
-                      {MONTH_NAMES[viewMonth]} {viewYear}: {monthArchive.preconoscenza ? 'Preconoscenza salvata' : 'Preconoscenza assente'} ·{' '}
-                      {monthArchive.orari ? 'Orari Linee salvati' : 'Orari Linee assenti'}
-                    </span>
-                  </div>
-                  <div className="calendar-archive-actions">
-                    <button className="small-button" onClick={() => monthPreconoscenzaInputRef.current?.click()} type="button">
-                      Carica Preconoscenza
-                    </button>
-                    <button className="small-button small-button--ghost" onClick={() => monthOrariInputRef.current?.click()} type="button">
-                      Carica Orari Linee
-                    </button>
-                  </div>
-                </div>
                 <div className="calendar-actions">
                   <button className="small-button" disabled={!monthItems.length} onClick={() => exportEntries('turni-mese.ics', monthItems)} type="button">
                     Aggiungi periodo
@@ -1099,6 +1082,23 @@ export default function App() {
                   setActiveTab('Giorno');
                 }}
               />
+              <div className="calendar-archive-panel">
+                <div>
+                  <strong>Archivio calendario</strong>
+                  <span>
+                    {MONTH_NAMES[viewMonth]} {viewYear}: {monthArchive.preconoscenza ? 'Preconoscenza salvata' : 'Preconoscenza assente'} ·{' '}
+                    {monthArchive.orari ? 'Orari Linee salvati' : 'Orari Linee assenti'}
+                  </span>
+                </div>
+                <div className="calendar-archive-actions">
+                  <button className="small-button" onClick={() => monthPreconoscenzaInputRef.current?.click()} type="button">
+                    Carica Preconoscenza
+                  </button>
+                  <button className="small-button small-button--ghost" onClick={() => monthOrariInputRef.current?.click()} type="button">
+                    Carica Orari Linee
+                  </button>
+                </div>
+              </div>
               <div className="result-toolbar">
                 <span>{monthItems.length} giorni nel dettaglio mese</span>
               </div>
