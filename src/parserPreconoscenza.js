@@ -1,5 +1,6 @@
 import { isGerbidoLine as checkGerbidoLine, normalizeLineCode } from './constants/depotGerbido.js';
 import { isEveningShift as officialEveningShift } from './constants/shiftClassification.js';
+import { parseNaturalDate } from './utils/dateUtils.js';
 
 export const SPECIAL_CODES = {
   RP: { label: 'RIPOSO', description: '' },
@@ -18,6 +19,32 @@ export const REST_CODES = {
 
 const SHIFT_LINE_RE = /(\d{2}\/\d{2}\/\d{4})\s+(DOM|LUN|MAR|MER|GIO|VEN|SAB)\s+(.*)/;
 const CONTINUATION_RE = /^(?:[A-Z0-9/()]+\s*\/\s*)?\d{1,3}?\s*\d{4}\s+[A-Z]{2,4}(?:\s+[AR-])?\s+\d{4}\s+[A-Z]{2,4}/i;
+const MONTH_INDEX = {
+  gennaio: 0,
+  gen: 0,
+  febbraio: 1,
+  feb: 1,
+  marzo: 2,
+  mar: 2,
+  aprile: 3,
+  apr: 3,
+  maggio: 4,
+  mag: 4,
+  giugno: 5,
+  giu: 5,
+  luglio: 6,
+  lug: 6,
+  agosto: 7,
+  ago: 7,
+  settembre: 8,
+  set: 8,
+  ottobre: 9,
+  ott: 9,
+  novembre: 10,
+  nov: 10,
+  dicembre: 11,
+  dic: 11,
+};
 
 export function parseDMY(value) {
   const [day, month, year] = value.split('/').map(Number);
@@ -125,7 +152,11 @@ function normalizeCommunicatedTokens(text) {
   const rawTokens = String(text || '')
     .trim()
     .toUpperCase()
+    .replace(/[→➡➜]/g, ' ')
+    .replace(/[–—]/g, '-')
+    .replace(/([A-Z0-9/()]+)\s*-\s*(\d{3,4})/g, '$1 $2')
     .split(/\s+/)
+    .map((token) => token.replace(/[,:;]+$/g, ''))
     .filter(Boolean);
   const tokens = [];
 
@@ -153,16 +184,68 @@ function compactToClock(value) {
   return raw.length === 4 ? `${raw.slice(0, 2)}:${raw.slice(2)}` : '';
 }
 
-function parseManualDevelopment(text, date, fallbackDay = null) {
+function getWeekdayCode(date) {
+  return ['DOM', 'LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB'][date.getDay()] || '';
+}
+
+function getCommunicatedService(text, date) {
+  const upper = String(text || '').toUpperCase();
+  if (/\b(SAB|SABATO)\b/.test(upper)) return 'SABATO';
+  if (/\b(DOM|DOMENICA|FEST|FESTIVO|FESTIVI)\b/.test(upper)) return 'FESTIVO';
+  if (date?.getDay?.() === 0) return 'FESTIVO';
+  if (date?.getDay?.() === 6) return 'SABATO';
+  return 'LUN - VEN';
+}
+
+function findFlexibleDate(text, fallbackDate = null) {
+  const raw = String(text || '');
+  const numeric = raw.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b/);
+  if (numeric) {
+    const year = Number(numeric[3].length === 2 ? `20${numeric[3]}` : numeric[3]);
+    const date = new Date(year, Number(numeric[2]) - 1, Number(numeric[1]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const named = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .match(/\b(\d{1,2})\s+(gennaio|gen|febbraio|feb|marzo|mar|aprile|apr|maggio|mag|giugno|giu|luglio|lug|agosto|ago|settembre|set|ottobre|ott|novembre|nov|dicembre|dic)(?:\s+(\d{2,4}))?\b/);
+  if (named && MONTH_INDEX[named[2]] !== undefined) {
+    const year = Number(named[3] ? (named[3].length === 2 ? `20${named[3]}` : named[3]) : fallbackDate?.getFullYear?.() || new Date().getFullYear());
+    const date = new Date(year, MONTH_INDEX[named[2]], Number(named[1]));
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  const natural = parseNaturalDate(raw, fallbackDate?.getFullYear?.() || new Date().getFullYear());
+  if (natural instanceof Date && !Number.isNaN(natural.getTime())) return natural;
+  return fallbackDate ? new Date(fallbackDate) : null;
+}
+
+function stripDateWords(text) {
+  return String(text || '')
+    .replace(/\b(lunedi|lunedì|lun|martedi|martedì|mar|mercoledi|mercoledì|mer|giovedi|giovedì|gio|venerdi|venerdì|ven|sabato|sab|domenica|dom)\b/gi, ' ')
+    .replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/g, ' ')
+    .replace(/\b\d{1,2}\s+(gennaio|gen|febbraio|feb|marzo|mar|aprile|apr|maggio|mag|giugno|giu|luglio|lug|agosto|ago|settembre|set|ottobre|ott|novembre|nov|dicembre|dic)(?:\s+\d{2,4})?\b/gi, ' ')
+    .replace(/\b(oggi|domani|dopodomani|ieri|festivo|festivi)\b/gi, ' ');
+}
+
+function parseManualDevelopment(text, date, fallbackDay = null, service = '', weekday = '') {
   const tokens = normalizeCommunicatedTokens(text);
   const segments = [];
   let line = fallbackDay?.l || '';
-  let firstVehicle = '';
+  let shiftNumber = fallbackDay?.t === 'turno' ? fallbackDay.n : '';
+
+  const explicitShift = tokens.join(' ').match(/\bLINEA\s+([A-Z0-9()]+)\s+(?:TURNO\s+)?(\d{1,3})\b/);
+  if (explicitShift && normalizeLineCode(explicitShift[1])) {
+    line = explicitShift[1];
+    shiftNumber ||= explicitShift[2];
+  }
 
   for (let index = 0; index <= tokens.length - 4; index += 1) {
     const lineVehicle = tokens[index].match(/^([A-Z0-9/()]+)\/(\d+)$/);
     const hasLineVehicle = Boolean(lineVehicle);
-    const startsWithTime = /^\d{4}$/.test(tokens[index]);
+    const startsWithTime = Boolean(compactToClock(tokens[index]));
     if (!hasLineVehicle && !startsWithTime) continue;
     if (startsWithTime && !hasLineVehicle) {
       const previous = segments[segments.length - 1];
@@ -176,12 +259,12 @@ function parseManualDevelopment(text, date, fallbackDay = null) {
     const hasDirection = /^[AR-]$/.test(tokens[directionIndex]);
     const endIndex = hasDirection ? directionIndex + 1 : directionIndex;
     const endPlaceIndex = hasDirection ? directionIndex + 2 : directionIndex + 1;
-    if (!/^\d{4}$/.test(tokens[startIndex]) || !/^[A-Z]{2,4}$/.test(tokens[placeIndex])) continue;
-    if (!/^\d{4}$/.test(tokens[endIndex]) || !/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
+    if (!compactToClock(tokens[startIndex]) || !/^[A-Z]{2,4}$/.test(tokens[placeIndex])) continue;
+    if (!compactToClock(tokens[endIndex]) || !/^[A-Z]{2,4}$/.test(tokens[endPlaceIndex])) continue;
 
     if (hasLineVehicle) {
       line = lineVehicle[1];
-      firstVehicle ||= lineVehicle[2];
+      shiftNumber ||= lineVehicle[2];
     }
 
     const nextSegment = {
@@ -194,7 +277,7 @@ function parseManualDevelopment(text, date, fallbackDay = null) {
       dir: hasDirection && tokens[directionIndex] !== '-' ? tokens[directionIndex] : '',
       end: compactToClock(tokens[endIndex]),
       loc_e: tokens[endPlaceIndex],
-      gt: '',
+      gt: service,
       ver: '',
       run_id: 1,
       source: 'manual',
@@ -215,13 +298,13 @@ function parseManualDevelopment(text, date, fallbackDay = null) {
   return {
     iso: toIso(date),
     date,
-    g: fallbackDay?.g || '',
+    g: weekday || fallbackDay?.g || getWeekdayCode(date),
     t: 'turno',
     l: line,
     linea: line,
     lineaNorm: normalizeLineCode(line),
     isGerbidoLine: checkGerbidoLine(line),
-    n: fallbackDay?.n && fallbackDay.t === 'turno' ? fallbackDay.n : firstVehicle || fallbackDay?.n || '-',
+    n: shiftNumber || '-',
     c: fallbackDay?.c || 'MAN',
     i: first.start.replace(':', ''),
     li: first.loc_s,
@@ -240,22 +323,25 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
   if (!raw) return null;
 
   const normalized = raw.replace(/\r/g, '\n');
-  const dateMatch = normalized.match(/(\d{2})[./](\d{2})[./](\d{4})/);
-  const date = dateMatch
-    ? new Date(Number(dateMatch[3]), Number(dateMatch[2]) - 1, Number(dateMatch[1]))
-    : fallbackDate
-      ? new Date(fallbackDate)
-      : null;
+  const hasDateInText = Boolean(
+    normalized.match(/\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b/) ||
+      normalized.match(/\b\d{1,2}\s+(gennaio|gen|febbraio|feb|marzo|mar|aprile|apr|maggio|mag|giugno|giu|luglio|lug|agosto|ago|settembre|set|ottobre|ott|novembre|nov|dicembre|dic)(?:\s+\d{2,4})?\b/i) ||
+      normalized.match(/\b(oggi|domani|dopodomani|ieri)\b/i),
+  );
+  const date = findFlexibleDate(normalized, fallbackDate);
   if (!date || Number.isNaN(date.getTime())) return null;
+  const service = getCommunicatedService(normalized, date);
+  const weekday = hasDateInText ? getWeekdayCode(date) : fallbackDay?.g || getWeekdayCode(date);
+  const body = stripDateWords(normalized);
 
-  const tokens = normalized
-    .replace(/(\d{2})[./](\d{2})[./](\d{4})/, ' ')
+  const tokens = body
+    .replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/, ' ')
     .split(/\s+/)
-    .map((token) => token.trim().toUpperCase())
+    .map((token) => token.trim().toUpperCase().replace(/[,:;]+$/g, ''))
     .filter(Boolean);
 
   const geIndex = tokens.findIndex((token) => token === 'GE');
-  if (geIndex < 3) return parseManualDevelopment(normalized, date, fallbackDay);
+  if (geIndex < 3) return parseManualDevelopment(body, date, fallbackDay, service, weekday);
 
   const line = tokens[geIndex - 2];
   const number = tokens[geIndex - 1];
@@ -266,8 +352,9 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
   const directions = [];
 
   after.forEach((token) => {
-    if (/^\d{4}$/.test(token)) {
-      times.push(token);
+    const clock = compactToClock(token);
+    if (clock) {
+      times.push(clock.replace(':', ''));
     } else if (/^[A-Z]{2,4}$/.test(token)) {
       places.push(token);
       directions.push('');
@@ -276,12 +363,14 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
     }
   });
 
-  if (!line || !number || !times[0] || !places[0] || !times[1] || !places[1]) return null;
+  if (!line || !number || !times[0] || !places[0] || !times[1] || !places[1]) {
+    return parseManualDevelopment(body, date, fallbackDay, service, weekday);
+  }
 
   return {
     iso: toIso(date),
     date,
-    g: '',
+    g: weekday,
     t: 'turno',
     l: line,
     linea: line,
@@ -297,6 +386,7 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
     de: directions[1] || '',
     d: times[2] || '',
     communicated: true,
+    gt: service,
   };
 }
 

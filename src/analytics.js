@@ -30,7 +30,9 @@ export function enrichShiftDays(days = {}, developments = {}) {
       const day = days[iso];
       if (!day || day.t !== 'turno') return { iso, day, segments: [], isSplit: false, isEvening: false, isShortRest: false };
 
-      const segments = getDevSegments(developments, day.l, day.n, shiftDate(day), day);
+      const segments = Array.isArray(day.manualSegments) && day.manualSegments.length
+        ? day.manualSegments
+        : getDevSegments(developments, day.l, day.n, shiftDate(day), day);
       const category = getShiftCategory(day.n);
       return {
         iso,
