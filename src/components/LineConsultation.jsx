@@ -164,7 +164,7 @@ export function LineConsultation({ developments = {} }) {
       </div>
 
       <div className="line-consultation__content">
-        <div className="line-shift-list" aria-label={`Turni ${activeLine.label}`}>
+        <div className="line-shift-list" key={`${activeLine.line}-${selectedService}`} aria-label={`Turni ${activeLine.label}`}>
           {visibleShifts.map((item) => (
             <button
               className={item.key === activeShift?.key ? 'line-shift-button is-active' : 'line-shift-button'}
@@ -186,7 +186,7 @@ export function LineConsultation({ developments = {} }) {
           </div>
           <div className="line-development-steps">
             {activeShift.segments.map((segment, index) => (
-              <div className="line-development-step" key={`${segment.start}-${segment.end}-${index}`}>
+              <div className="line-development-step" key={`${segment.start}-${segment.end}-${index}`} style={{ '--step-index': index }}>
                 <strong>{index + 1}</strong>
                 <div>
                   <span>{segment.start} - {segment.end}</span>

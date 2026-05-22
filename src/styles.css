@@ -2423,6 +2423,14 @@ select:focus-visible {
   color: #ffffff;
   font: inherit;
   font-weight: 900;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.line-consultation__controls select:focus {
+  border-color: rgba(53, 182, 255, 0.82);
+  box-shadow: 0 0 0 3px rgba(53, 182, 255, 0.14);
 }
 
 .line-service-filter {
@@ -2446,7 +2454,13 @@ select:focus-visible {
   transition:
     background 180ms ease,
     border-color 180ms ease,
-    opacity 180ms ease;
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.line-service-chip:not(:disabled):hover,
+.line-service-chip.is-active {
+  transform: translateY(-1px);
 }
 
 .line-service-chip small {
@@ -2484,6 +2498,7 @@ select:focus-visible {
   gap: 8px;
   overflow: auto;
   padding-right: 4px;
+  animation: list-soft-in 260ms ease both;
 }
 
 .line-shift-button {
@@ -2502,7 +2517,9 @@ select:focus-visible {
   transition:
     background 180ms ease,
     border-color 180ms ease,
-    transform 180ms ease;
+    transform 180ms ease,
+    opacity 180ms ease;
+  animation: list-item-in 240ms ease both;
 }
 
 .line-shift-button:hover,
@@ -2530,7 +2547,7 @@ select:focus-visible {
   border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgba(13, 43, 68, 0.9), rgba(6, 22, 38, 0.9));
   padding: 15px;
-  animation: soft-fade 220ms ease both;
+  animation: detail-soft-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .line-development-card--empty {
@@ -2563,6 +2580,8 @@ select:focus-visible {
   border-radius: var(--radius);
   background: rgba(4, 17, 29, 0.55);
   padding: 10px;
+  animation: segment-soft-in 240ms ease both;
+  animation-delay: calc(var(--step-index, 0) * 42ms);
 }
 
 .line-development-step strong {
@@ -2604,6 +2623,43 @@ select:focus-visible {
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+}
+
+@keyframes list-soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes list-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes detail-soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.992);
+  }
+}
+
+@keyframes segment-soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line-shift-list,
+  .line-shift-button,
+  .line-development-card,
+  .line-development-step {
+    animation: none;
   }
 }
 
