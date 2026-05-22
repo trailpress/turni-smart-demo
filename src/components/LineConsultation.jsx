@@ -168,8 +168,7 @@ export function LineConsultation({ developments = {} }) {
   const visibleShifts = activeLine.shifts.filter((item) => selectedService === 'all' || item.service === selectedService);
   const activeShift = visibleShifts.find((item) => item.key === selectedShiftKey) || visibleShifts[0];
 
-  function handleLineChange(event) {
-    const line = event.target.value;
+  function handleLineSelect(line) {
     const nextLine = lines.find((item) => item.line === line) || lines[0];
     const nextShifts = nextLine?.shifts.filter((item) => selectedService === 'all' || item.service === selectedService) || [];
     setSelectedLine(line);
@@ -195,76 +194,86 @@ export function LineConsultation({ developments = {} }) {
         <span>{lines.length} linee disponibili</span>
       </div>
 
-      <div className="line-consultation__controls">
-        <label>
-          Linea
-          <select value={activeLine.line} onChange={handleLineChange}>
-            {lines.map((line) => (
-              <option key={line.line} value={line.line}>
-                {line.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="line-service-filter" aria-label="Tipo giornata">
-          {SERVICE_FILTERS.map(([key, label]) => (
-            <button
-              className={selectedService === key ? 'line-service-chip is-active' : 'line-service-chip'}
-              disabled={!serviceCounts[key]}
-              key={key}
-              onClick={() => handleServiceChange(key)}
-              type="button"
-            >
-              <span>{label}</span>
-              <small>{serviceCounts[key] || 0}</small>
-            </button>
-          ))}
-        </div>
+      <div className="line-grid" aria-label="Linee disponibili">
+        {lines.map((item) => (
+          <button
+            className={item.line === activeLine.line ? 'line-grid-button is-active' : 'line-grid-button'}
+            key={item.line}
+            onClick={() => handleLineSelect(item.line)}
+            type="button"
+          >
+            <strong>{item.line}</strong>
+            <span>{item.shifts.length}</span>
+          </button>
+        ))}
       </div>
 
-      <div className="line-consultation__content">
-        <div className="line-shift-list" key={`${activeLine.line}-${selectedService}`} aria-label={`Turni ${activeLine.label}`}>
-          {visibleShifts.map((item) => (
-            <button
-              className={item.key === activeShift?.key ? 'line-shift-button is-active' : 'line-shift-button'}
-              key={item.key}
-              onClick={() => setSelectedShiftKey(item.key)}
-              type="button"
-            >
-              <strong>Turno {item.shift}</strong>
-              <span>{item.serviceLabel} · {item.segments.length} seg.</span>
-            </button>
-          ))}
-        </div>
-
-        {activeShift ? (
-        <article className="line-development-card" key={activeShift.key}>
-          <div className="line-development-card__title">
-            <span>{activeLine.label} · {activeShift.serviceLabel}</span>
-            <h3>Turno {activeShift.shift}</h3>
+      <div className="line-drilldown" key={activeLine.line}>
+        <div className="line-drilldown__bar">
+          <div>
+            <span>Linea selezionata</span>
+            <strong>{activeLine.label}</strong>
           </div>
-          <div className="line-development-steps">
-            {activeShift.segments.map((segment, index) => (
-              <div className="line-development-step" key={`${segment.start}-${segment.end}-${index}`} style={{ '--step-index': index }}>
-                <strong>{index + 1}</strong>
-                <div>
-                  <span>{segment.start} - {segment.end}</span>
-                  <p>{formatRoute(segment)}</p>
-                </div>
-                <em>Vett. {segment.turnoVettura || segment.vett || '-'}</em>
-              </div>
+          <div className="line-service-filter" aria-label="Tipo giornata">
+            {SERVICE_FILTERS.map(([key, label]) => (
+              <button
+                className={selectedService === key ? 'line-service-chip is-active' : 'line-service-chip'}
+                disabled={!serviceCounts[key]}
+                key={key}
+                onClick={() => handleServiceChange(key)}
+                type="button"
+              >
+                <span>{label}</span>
+                <small>{serviceCounts[key] || 0}</small>
+              </button>
             ))}
           </div>
-        </article>
-        ) : (
-          <article className="line-development-card line-development-card--empty">
+        </div>
+
+        <div className="line-consultation__content">
+          <div className="line-shift-list" key={`${activeLine.line}-${selectedService}`} aria-label={`Turni ${activeLine.label}`}>
+            {visibleShifts.map((item) => (
+              <button
+                className={item.key === activeShift?.key ? 'line-shift-button is-active' : 'line-shift-button'}
+                key={item.key}
+                onClick={() => setSelectedShiftKey(item.key)}
+                type="button"
+              >
+                <strong>Turno {item.shift}</strong>
+                <span>{item.serviceLabel} · {item.segments.length} seg.</span>
+              </button>
+            ))}
+          </div>
+
+          {activeShift ? (
+          <article className="line-development-card" key={activeShift.key}>
             <div className="line-development-card__title">
-              <span>{activeLine.label}</span>
-              <h3>Nessun turno per questo filtro</h3>
+              <span>{activeLine.label} · {activeShift.serviceLabel}</span>
+              <h3>Turno {activeShift.shift}</h3>
             </div>
-            <p className="muted-text">Scegli un altro tipo giornata per consultare gli sviluppi disponibili.</p>
+            <div className="line-development-steps">
+              {activeShift.segments.map((segment, index) => (
+                <div className="line-development-step" key={`${segment.start}-${segment.end}-${index}`} style={{ '--step-index': index }}>
+                  <strong>{index + 1}</strong>
+                  <div>
+                    <span>{segment.start} - {segment.end}</span>
+                    <p>{formatRoute(segment)}</p>
+                  </div>
+                  <em>Vett. {segment.turnoVettura || segment.vett || '-'}</em>
+                </div>
+              ))}
+            </div>
           </article>
-        )}
+          ) : (
+            <article className="line-development-card line-development-card--empty">
+              <div className="line-development-card__title">
+                <span>{activeLine.label}</span>
+                <h3>Nessun turno per questo filtro</h3>
+              </div>
+              <p className="muted-text">Scegli un altro tipo giornata per consultare gli sviluppi disponibili.</p>
+            </article>
+          )}
+        </div>
       </div>
     </section>
   );

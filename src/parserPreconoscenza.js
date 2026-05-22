@@ -318,6 +318,83 @@ function parseManualDevelopment(text, date, fallbackDay = null, service = '', we
   };
 }
 
+function normalizeDirectionWord(value = '') {
+  const text = String(value || '').trim().toUpperCase();
+  if (/^(A|AND|ANDATA)$/.test(text)) return 'A';
+  if (/^(R|RIT|RITORNO)$/.test(text)) return 'R';
+  return '';
+}
+
+function parseTerseTurn(text, date, fallbackDay = null, service = '', weekday = '') {
+  const body = String(text || '').toUpperCase();
+  const turnLine = body.match(/\bT?\s*(\d{1,3})\s*\/\s*([A-Z0-9()]{1,4})\b/);
+  if (!turnLine) return null;
+
+  const first = turnLine[1];
+  const second = turnLine[2];
+  const firstNumber = Number.parseInt(first, 10);
+  const secondNumber = Number.parseInt(second, 10);
+  const firstLooksLikeShift = firstNumber >= 100 && (!Number.isNaN(secondNumber) && secondNumber < 100);
+  const line = firstLooksLikeShift ? second : first;
+  const shiftNumber = firstLooksLikeShift ? first : second;
+  const lineNorm = normalizeLineCode(line);
+  if (!lineNorm || !shiftNumber) return null;
+
+  const timeBody = body.slice(0, turnLine.index) + body.slice(turnLine.index + turnLine[0].length);
+  const timeMatches = [...timeBody.matchAll(/\b(?:(\d{1,2})[:.](\d{2})|(\d{4}))\s*([A-ZÀ-Ù]{1,12})?/g)]
+    .map((match) => {
+      const compact = match[3] || `${match[1].padStart(2, '0')}${match[2]}`;
+      return {
+        time: `${compact.slice(0, 2)}:${compact.slice(2)}`,
+        direction: normalizeDirectionWord(match[4]),
+      };
+    })
+    .filter((item) => item.direction || item.time);
+
+  if (timeMatches.length < 2) return null;
+  const firstTime = timeMatches[0];
+  const lastTime = timeMatches[timeMatches.length - 1];
+  const startDirection = firstTime.direction || '';
+  const endDirection = lastTime.direction || '';
+  const segment = {
+    ln: line,
+    lineaNorm: lineNorm,
+    vett: shiftNumber,
+    turnoVettura: shiftNumber,
+    start: firstTime.time,
+    loc_s: startDirection === 'A' ? 'AND' : startDirection === 'R' ? 'RIT' : '-',
+    dir: startDirection,
+    end: lastTime.time,
+    loc_e: endDirection === 'A' ? 'AND' : endDirection === 'R' ? 'RIT' : '-',
+    gt: service,
+    ver: '',
+    run_id: 1,
+    source: 'manual-terse',
+  };
+
+  return {
+    iso: toIso(date),
+    date,
+    g: weekday || fallbackDay?.g || getWeekdayCode(date),
+    t: 'turno',
+    l: line,
+    linea: line,
+    lineaNorm: lineNorm,
+    isGerbidoLine: checkGerbidoLine(line),
+    n: shiftNumber,
+    c: fallbackDay?.c || 'MAN',
+    i: firstTime.time.replace(':', ''),
+    li: segment.loc_s,
+    di: startDirection,
+    e: lastTime.time.replace(':', ''),
+    le: segment.loc_e,
+    de: endDirection,
+    d: '',
+    communicated: true,
+    manualSegments: [segment],
+  };
+}
+
 export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = null) {
   const raw = String(text || '').trim();
   if (!raw) return null;
@@ -341,7 +418,9 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
     .filter(Boolean);
 
   const geIndex = tokens.findIndex((token) => token === 'GE');
-  if (geIndex < 3) return parseManualDevelopment(body, date, fallbackDay, service, weekday);
+  if (geIndex < 3) {
+    return parseTerseTurn(body, date, fallbackDay, service, weekday) || parseManualDevelopment(body, date, fallbackDay, service, weekday);
+  }
 
   const line = tokens[geIndex - 2];
   const number = tokens[geIndex - 1];
@@ -364,7 +443,7 @@ export function parseCommunicatedShift(text, fallbackDate = null, fallbackDay = 
   });
 
   if (!line || !number || !times[0] || !places[0] || !times[1] || !places[1]) {
-    return parseManualDevelopment(body, date, fallbackDay, service, weekday);
+    return parseTerseTurn(body, date, fallbackDay, service, weekday) || parseManualDevelopment(body, date, fallbackDay, service, weekday);
   }
 
   return {
