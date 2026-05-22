@@ -58,6 +58,14 @@ function getServiceLabel(value = '') {
   return 'Feriali';
 }
 
+function getRunKey(segment = {}) {
+  const service = getServiceType(segment.gt);
+  const gt = String(segment.gt || service).trim().toUpperCase();
+  const version = String(segment.ver || '').trim().toUpperCase();
+  const run = segment.run_id === undefined ? '1' : String(segment.run_id);
+  return `${service}|${gt}|${version}|${run}`;
+}
+
 function buildLineIndex(developments = {}) {
   const byLine = new Map();
 
@@ -67,17 +75,28 @@ function buildLineIndex(developments = {}) {
     const line = segments[0]?.lineaNorm || parts.line;
     if (!line || !parts.shift) return;
 
-    const entry = {
-      key,
-      line,
-      shift: parts.shift,
-      service: getServiceType(segments[0]?.gt),
-      serviceLabel: getServiceLabel(segments[0]?.gt),
-      segments: [...segments].sort((a, b) => String(a.start || '').localeCompare(String(b.start || ''))),
-    };
-
     const current = byLine.get(line) || [];
-    current.push(entry);
+    const grouped = segments.reduce((groups, segment) => {
+      const runKey = getRunKey(segment);
+      groups[runKey] = groups[runKey] || [];
+      groups[runKey].push(segment);
+      return groups;
+    }, {});
+
+    Object.entries(grouped).forEach(([runKey, runSegments]) => {
+      const first = runSegments[0] || {};
+      current.push({
+        key: `${key}|${runKey}`,
+        sourceKey: key,
+        line,
+        shift: parts.shift,
+        service: getServiceType(first.gt),
+        serviceLabel: getServiceLabel(first.gt),
+        gt: first.gt || '',
+        ver: first.ver || '',
+        segments: [...runSegments].sort((a, b) => String(a.start || '').localeCompare(String(b.start || ''))),
+      });
+    });
     byLine.set(line, current);
   });
 
@@ -85,7 +104,7 @@ function buildLineIndex(developments = {}) {
     .map(([line, shifts]) => ({
       line,
       label: getLineDisplayName(line),
-      shifts: shifts.sort((a, b) => sortNumericText(a.shift, b.shift)),
+      shifts: shifts.sort((a, b) => sortNumericText(a.shift, b.shift) || a.serviceLabel.localeCompare(b.serviceLabel, 'it')),
     }))
     .sort((a, b) => sortNumericText(a.line, b.line));
 }
@@ -181,7 +200,7 @@ export function LineConsultation({ developments = {} }) {
         {activeShift ? (
         <article className="line-development-card" key={activeShift.key}>
           <div className="line-development-card__title">
-            <span>{activeLine.label}</span>
+            <span>{activeLine.label} · {activeShift.serviceLabel}</span>
             <h3>Turno {activeShift.shift}</h3>
           </div>
           <div className="line-development-steps">
