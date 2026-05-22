@@ -23,6 +23,7 @@ import { ShiftCard } from './components/ShiftCard.jsx';
 import { MonthView } from './components/MonthView.jsx';
 import { StatsPanel } from './components/StatsPanel.jsx';
 import { AdvancedTools } from './components/AdvancedTools.jsx';
+import { LineConsultation } from './components/LineConsultation.jsx';
 import { OnboardingHome } from './components/OnboardingHome.jsx';
 import { Icon } from './components/Icon.jsx';
 
@@ -1161,6 +1162,7 @@ export default function App() {
           ) : null}
 
           {pdfLoaded ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
+          {pdfLoaded && orariLoaded ? <LineConsultation developments={developments} /> : null}
           {pdfLoaded ? (
             <AdvancedTools
               backupMessage={backupMessage}
