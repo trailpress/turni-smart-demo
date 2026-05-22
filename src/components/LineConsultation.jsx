@@ -157,28 +157,25 @@ export function LineConsultation({ developments = {} }) {
 
   if (!lines.length) return null;
 
-  const activeLine = lines.find((item) => item.line === selectedLine) || lines[0];
-  const serviceCounts = activeLine.shifts.reduce(
+  const activeLine = lines.find((item) => item.line === selectedLine) || null;
+  const serviceCounts = (activeLine?.shifts || []).reduce(
     (counts, item) => ({
       ...counts,
       [item.service]: (counts[item.service] || 0) + 1,
     }),
-    { all: activeLine.shifts.length },
+    { all: activeLine?.shifts.length || 0 },
   );
-  const visibleShifts = activeLine.shifts.filter((item) => selectedService === 'all' || item.service === selectedService);
-  const activeShift = visibleShifts.find((item) => item.key === selectedShiftKey) || visibleShifts[0];
+  const visibleShifts = activeLine?.shifts.filter((item) => selectedService === 'all' || item.service === selectedService) || [];
+  const activeShift = visibleShifts.find((item) => item.key === selectedShiftKey) || null;
 
   function handleLineSelect(line) {
-    const nextLine = lines.find((item) => item.line === line) || lines[0];
-    const nextShifts = nextLine?.shifts.filter((item) => selectedService === 'all' || item.service === selectedService) || [];
     setSelectedLine(line);
-    setSelectedShiftKey((nextShifts[0] || nextLine?.shifts[0])?.key || '');
+    setSelectedShiftKey('');
   }
 
   function handleServiceChange(service) {
-    const nextShifts = activeLine.shifts.filter((item) => service === 'all' || item.service === service);
     setSelectedService(service);
-    setSelectedShiftKey(nextShifts[0]?.key || '');
+    setSelectedShiftKey('');
   }
 
   return (
@@ -197,7 +194,7 @@ export function LineConsultation({ developments = {} }) {
       <div className="line-grid" aria-label="Linee disponibili">
         {lines.map((item) => (
           <button
-            className={item.line === activeLine.line ? 'line-grid-button is-active' : 'line-grid-button'}
+            className={item.line === activeLine?.line ? 'line-grid-button is-active' : 'line-grid-button'}
             key={item.line}
             onClick={() => handleLineSelect(item.line)}
             type="button"
@@ -208,6 +205,7 @@ export function LineConsultation({ developments = {} }) {
         ))}
       </div>
 
+      {activeLine ? (
       <div className="line-drilldown" key={activeLine.line}>
         <div className="line-drilldown__bar">
           <div>
@@ -268,13 +266,21 @@ export function LineConsultation({ developments = {} }) {
             <article className="line-development-card line-development-card--empty">
               <div className="line-development-card__title">
                 <span>{activeLine.label}</span>
-                <h3>Nessun turno per questo filtro</h3>
-              </div>
-              <p className="muted-text">Scegli un altro tipo giornata per consultare gli sviluppi disponibili.</p>
+              <h3>Seleziona un turno</h3>
+            </div>
+              <p className="muted-text">
+                La lista mostra i turni disponibili per la linea e il tipo giornata selezionati.
+              </p>
             </article>
           )}
         </div>
       </div>
+      ) : (
+        <div className="line-empty-state">
+          <Icon name="bus" size={22} />
+          <span>Seleziona una linea per vedere i turni disponibili.</span>
+        </div>
+      )}
     </section>
   );
 }
