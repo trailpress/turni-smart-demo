@@ -25,7 +25,7 @@ import { StatsPanel } from './components/StatsPanel.jsx';
 import { AdvancedTools } from './components/AdvancedTools.jsx';
 import { LineConsultation } from './components/LineConsultation.jsx';
 import { OnboardingHome } from './components/OnboardingHome.jsx';
-import { Icon } from './components/Icon.jsx';
+import { AssetIcon, Icon } from './components/Icon.jsx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -418,6 +418,7 @@ export default function App() {
   const [history, setHistory] = useState(() => getHistory());
   const [preferences, setPreferences] = useState(() => ({ autoRestore: true, ...savedPrefs }));
   const [backupMessage, setBackupMessage] = useState('');
+  const [activeUtilityPanel, setActiveUtilityPanel] = useState('');
 
   useEffect(() => {
     savePreferences({ ...preferences, activeTab });
@@ -1161,9 +1162,9 @@ export default function App() {
             </section>
           ) : null}
 
-          {pdfLoaded ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
-          {pdfLoaded && orariLoaded ? <LineConsultation developments={developments} /> : null}
-          {pdfLoaded ? (
+          {pdfLoaded && activeUtilityPanel === 'stats' ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
+          {pdfLoaded && orariLoaded && activeUtilityPanel === 'lines' ? <LineConsultation developments={developments} /> : null}
+          {pdfLoaded && activeUtilityPanel === 'tools' ? (
             <AdvancedTools
               backupMessage={backupMessage}
               onExportBackup={exportBackup}
@@ -1171,6 +1172,35 @@ export default function App() {
               onToggleAutoRestore={updateAutoRestore}
               preferences={preferences}
             />
+          ) : null}
+          {pdfLoaded ? (
+            <nav className="utility-dock" aria-label="Sezioni rapide">
+              <button
+                className={activeUtilityPanel === 'lines' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                disabled={!orariLoaded}
+                onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
+                type="button"
+              >
+                <AssetIcon name="busMark" size={34} />
+                <span>Linee</span>
+              </button>
+              <button
+                className={activeUtilityPanel === 'stats' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                onClick={() => setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'))}
+                type="button"
+              >
+                <AssetIcon name="stats" size={34} />
+                <span>Statistiche</span>
+              </button>
+              <button
+                className={activeUtilityPanel === 'tools' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                onClick={() => setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'))}
+                type="button"
+              >
+                <AssetIcon name="route" size={34} />
+                <span>Strumenti</span>
+              </button>
+            </nav>
           ) : null}
         </section>
       </main>
