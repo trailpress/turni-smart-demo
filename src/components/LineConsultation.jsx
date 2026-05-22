@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { getLineDisplayName } from '../constants/depotGerbido.js';
+import { timeToMinutes } from '../utils/timeUtils.js';
 import { Icon } from './Icon.jsx';
 
 const DIRECTION_LABELS = {
@@ -58,12 +59,50 @@ function getServiceLabel(value = '') {
   return 'Feriali';
 }
 
-function getRunKey(segment = {}) {
+function getServiceKey(segment = {}) {
   const service = getServiceType(segment.gt);
   const gt = String(segment.gt || service).trim().toUpperCase();
   const version = String(segment.ver || '').trim().toUpperCase();
-  const run = segment.run_id === undefined ? '1' : String(segment.run_id);
-  return `${service}|${gt}|${version}|${run}`;
+  return `${service}|${gt}|${version}`;
+}
+
+function getSegmentIdentity(segment = {}) {
+  return [
+    segment.ln,
+    segment.vett,
+    segment.start,
+    segment.loc_s,
+    segment.dir,
+    segment.end,
+    segment.loc_e,
+    segment.gt,
+    segment.ver,
+  ]
+    .map((value) => String(value || '').trim().toUpperCase())
+    .join('|');
+}
+
+function uniqueSegments(segments = []) {
+  const seen = new Set();
+  return segments.filter((segment) => {
+    const key = getSegmentIdentity(segment);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function sortSegmentsByDuty(segments = []) {
+  return segments
+    .slice()
+    .map((segment, index) => {
+      let start = timeToMinutes(segment.start || '00:00');
+      let end = timeToMinutes(segment.end || '00:00');
+      if (end < start) end += 1440;
+      return { segment, index, start, end };
+    })
+    .sort((a, b) => a.start - b.start || a.end - b.end || a.index - b.index)
+    .map((item) => item.segment);
 }
 
 function buildLineIndex(developments = {}) {
@@ -76,17 +115,18 @@ function buildLineIndex(developments = {}) {
     if (!line || !parts.shift) return;
 
     const current = byLine.get(line) || [];
-    const grouped = segments.reduce((groups, segment) => {
-      const runKey = getRunKey(segment);
-      groups[runKey] = groups[runKey] || [];
-      groups[runKey].push(segment);
+    const groupedByService = segments.reduce((groups, segment) => {
+      const serviceKey = getServiceKey(segment);
+      groups[serviceKey] = groups[serviceKey] || [];
+      groups[serviceKey].push(segment);
       return groups;
     }, {});
 
-    Object.entries(grouped).forEach(([runKey, runSegments]) => {
-      const first = runSegments[0] || {};
+    Object.entries(groupedByService).forEach(([serviceKey, serviceSegments]) => {
+      const fullSegments = sortSegmentsByDuty(uniqueSegments(serviceSegments));
+      const first = fullSegments[0] || {};
       current.push({
-        key: `${key}|${runKey}`,
+        key: `${key}|${serviceKey}`,
         sourceKey: key,
         line,
         shift: parts.shift,
@@ -94,7 +134,7 @@ function buildLineIndex(developments = {}) {
         serviceLabel: getServiceLabel(first.gt),
         gt: first.gt || '',
         ver: first.ver || '',
-        segments: [...runSegments].sort((a, b) => String(a.start || '').localeCompare(String(b.start || ''))),
+        segments: fullSegments,
       });
     });
     byLine.set(line, current);
