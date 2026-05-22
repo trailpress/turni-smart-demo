@@ -886,6 +886,16 @@ export default function App() {
     setSearchMessage(results.length ? '' : 'Nessun turno trovato nella settimana.');
   }
 
+  function goToQuickSearch(label, offset = 0) {
+    quickSearch(label, offset);
+    setActiveTab('Giorno');
+  }
+
+  function goToWeekSearch() {
+    searchWeek();
+    setActiveTab('Giorno');
+  }
+
   function changeMonth(delta) {
     const next = new Date(viewYear, viewMonth + delta, 1);
     openCalendarMonth(next.getFullYear(), next.getMonth());
@@ -1072,6 +1082,17 @@ export default function App() {
                   />
                   <button className="small-button" type="submit">
                     Mostra turno
+                  </button>
+                </div>
+                <div className="quick-actions">
+                  <button onClick={() => goToQuickSearch('oggi', 0)} type="button">
+                    Oggi
+                  </button>
+                  <button onClick={() => goToQuickSearch('domani', 1)} type="button">
+                    Domani
+                  </button>
+                  <button onClick={goToWeekSearch} type="button">
+                    Settimana
                   </button>
                 </div>
               </form>
