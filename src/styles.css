@@ -107,7 +107,7 @@ select:focus-visible {
   display: grid;
   gap: var(--s3);
   min-width: 0;
-  padding-bottom: 92px;
+  padding-bottom: 148px;
 }
 
 .sb,
@@ -2696,7 +2696,7 @@ select:focus-visible {
   z-index: 20;
   bottom: 10px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   border: 1px solid rgba(76, 149, 197, 0.42);
   border-radius: 18px;
@@ -2709,7 +2709,7 @@ select:focus-visible {
 
 .utility-dock__button {
   display: grid;
-  min-height: 66px;
+  min-height: 58px;
   place-items: center;
   gap: 4px;
   border: 1px solid rgba(76, 149, 197, 0.36);
@@ -2717,7 +2717,7 @@ select:focus-visible {
   background: rgba(14, 43, 68, 0.78);
   color: #dcecff;
   cursor: pointer;
-  font-size: 0.73rem;
+  font-size: 0.68rem;
   font-weight: 950;
   transition:
     background 180ms ease,
@@ -2725,6 +2725,18 @@ select:focus-visible {
     box-shadow 180ms ease,
     opacity 180ms ease,
     transform 180ms ease;
+}
+
+.utility-dock__button svg {
+  color: #8dd8ff;
+}
+
+.utility-dock__button--quick {
+  background: rgba(8, 69, 111, 0.74);
+}
+
+.utility-dock__button--quick svg {
+  color: var(--yellow);
 }
 
 .utility-dock__button span {

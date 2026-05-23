@@ -1173,8 +1173,41 @@ export default function App() {
                 }}
                 type="button"
               >
-                <AssetIcon name="busMark" size={30} />
+                <Icon name="clock" size={28} />
                 <span>Turno</span>
+              </button>
+              <button
+                className="utility-dock__button utility-dock__button--quick"
+                onClick={() => {
+                  quickSearch('oggi', 0);
+                  setActiveUtilityPanel('');
+                }}
+                type="button"
+              >
+                <Icon name="calendar" size={28} />
+                <span>Oggi</span>
+              </button>
+              <button
+                className="utility-dock__button utility-dock__button--quick"
+                onClick={() => {
+                  quickSearch('domani', 1);
+                  setActiveUtilityPanel('');
+                }}
+                type="button"
+              >
+                <Icon name="chevronRight" size={28} />
+                <span>Domani</span>
+              </button>
+              <button
+                className="utility-dock__button utility-dock__button--quick"
+                onClick={() => {
+                  searchWeek();
+                  setActiveUtilityPanel('');
+                }}
+                type="button"
+              >
+                <Icon name="calendar" size={28} />
+                <span>Settimana</span>
               </button>
               <button
                 className={activeTab === 'Calendario' && !activeUtilityPanel ? 'utility-dock__button is-active' : 'utility-dock__button'}
@@ -1193,7 +1226,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
                 type="button"
               >
-                <AssetIcon name="busMark" size={30} />
+                <AssetIcon name="route" size={30} />
                 <span>Linee</span>
               </button>
               <button
