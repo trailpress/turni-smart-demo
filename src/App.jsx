@@ -1166,7 +1166,7 @@ export default function App() {
           {pdfLoaded ? (
             <nav className="utility-dock" aria-label="Sezioni rapide">
               <button
-                className={activeTab === 'Giorno' && !activeUtilityPanel ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                className={activeTab === 'Giorno' && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--turn is-active' : 'utility-dock__button utility-dock__button--turn'}
                 onClick={() => {
                   setActiveTab('Giorno');
                   setActiveUtilityPanel('');
@@ -1177,18 +1177,18 @@ export default function App() {
                 <span>Turno</span>
               </button>
               <button
-                className="utility-dock__button utility-dock__button--quick"
+                className="utility-dock__button utility-dock__button--today"
                 onClick={() => {
                   quickSearch('oggi', 0);
                   setActiveUtilityPanel('');
                 }}
                 type="button"
               >
-                <Icon name="calendar" size={28} />
+                <Icon name="mapPin" size={28} />
                 <span>Oggi</span>
               </button>
               <button
-                className="utility-dock__button utility-dock__button--quick"
+                className="utility-dock__button utility-dock__button--tomorrow"
                 onClick={() => {
                   quickSearch('domani', 1);
                   setActiveUtilityPanel('');
@@ -1199,18 +1199,18 @@ export default function App() {
                 <span>Domani</span>
               </button>
               <button
-                className="utility-dock__button utility-dock__button--quick"
+                className="utility-dock__button utility-dock__button--week"
                 onClick={() => {
                   searchWeek();
                   setActiveUtilityPanel('');
                 }}
                 type="button"
               >
-                <Icon name="calendar" size={28} />
+                <Icon name="route" size={28} />
                 <span>Settimana</span>
               </button>
               <button
-                className={activeTab === 'Calendario' && !activeUtilityPanel ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                className={activeTab === 'Calendario' && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--calendar is-active' : 'utility-dock__button utility-dock__button--calendar'}
                 onClick={() => {
                   setActiveTab('Calendario');
                   setActiveUtilityPanel('');
@@ -1221,16 +1221,16 @@ export default function App() {
                 <span>Calendario</span>
               </button>
               <button
-                className={activeUtilityPanel === 'lines' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                className={activeUtilityPanel === 'lines' ? 'utility-dock__button utility-dock__button--lines is-active' : 'utility-dock__button utility-dock__button--lines'}
                 disabled={!orariLoaded}
                 onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
                 type="button"
               >
-                <AssetIcon name="route" size={30} />
+                <AssetIcon name="busMark" size={30} />
                 <span>Linee</span>
               </button>
               <button
-                className={activeUtilityPanel === 'stats' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                className={activeUtilityPanel === 'stats' ? 'utility-dock__button utility-dock__button--stats is-active' : 'utility-dock__button utility-dock__button--stats'}
                 onClick={() => setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'))}
                 type="button"
               >
@@ -1238,11 +1238,11 @@ export default function App() {
                 <span>Statistiche</span>
               </button>
               <button
-                className={activeUtilityPanel === 'tools' ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                className={activeUtilityPanel === 'tools' ? 'utility-dock__button utility-dock__button--tools is-active' : 'utility-dock__button utility-dock__button--tools'}
                 onClick={() => setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'))}
                 type="button"
               >
-                <AssetIcon name="route" size={30} />
+                <Icon name="document" size={28} />
                 <span>Strumenti</span>
               </button>
             </nav>

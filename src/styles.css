@@ -1770,27 +1770,30 @@ select:focus-visible {
   flex: 0 1 auto;
   width: auto;
   max-width: 100%;
-  min-height: 38px;
-  padding: 6px 10px 6px 7px;
-  border: 1px solid rgba(141, 216, 255, 0.14);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(28, 65, 96, 0.7), rgba(15, 42, 66, 0.68));
-  color: #d9ecff;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
   font-size: 0.78rem;
   font-weight: 850;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 .shift-meta-chip .asset-icon {
-  width: 25px;
-  height: 25px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.22));
 }
 
+.shift-meta-chip svg {
+  color: #8dd8ff;
+}
+
 .shift-meta-chip--category {
-  border-color: rgba(141, 216, 255, 0.22);
-  background: linear-gradient(180deg, rgba(18, 69, 105, 0.82), rgba(13, 43, 68, 0.78));
+  color: #d9ecff;
 }
 
 .shift-meta-chip--rest {
@@ -2727,23 +2730,43 @@ select:focus-visible {
     transform 180ms ease;
 }
 
-.utility-dock__button svg {
-  color: #8dd8ff;
-}
-
-.utility-dock__button--quick {
-  background: rgba(8, 69, 111, 0.74);
-}
-
-.utility-dock__button--quick svg {
-  color: var(--yellow);
-}
-
 .utility-dock__button span {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.utility-dock__button--turn svg {
+  color: #8dd8ff;
+}
+
+.utility-dock__button--today svg {
+  color: #ffd100;
+}
+
+.utility-dock__button--tomorrow svg {
+  color: #30c769;
+}
+
+.utility-dock__button--week svg {
+  color: #f59e0b;
+}
+
+.utility-dock__button--calendar .asset-icon {
+  filter: saturate(1.08);
+}
+
+.utility-dock__button--lines .asset-icon {
+  filter: saturate(1.12) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.24));
+}
+
+.utility-dock__button--stats .asset-icon {
+  filter: hue-rotate(14deg) saturate(1.08);
+}
+
+.utility-dock__button--tools svg {
+  color: #c084fc;
 }
 
 .utility-dock__button:not(:disabled):hover,
