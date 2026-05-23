@@ -2696,7 +2696,7 @@ select:focus-visible {
   z-index: 20;
   bottom: 10px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   border: 1px solid rgba(76, 149, 197, 0.42);
   border-radius: 18px;
@@ -2725,6 +2725,13 @@ select:focus-visible {
     box-shadow 180ms ease,
     opacity 180ms ease,
     transform 180ms ease;
+}
+
+.utility-dock__button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .utility-dock__button:not(:disabled):hover,

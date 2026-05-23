@@ -1009,16 +1009,6 @@ export default function App() {
                     Settimana
                   </button>
                 </div>
-                <div className="search-panel-footer">
-                  <button
-                    className="section-switch-button section-switch-button--primary"
-                    onClick={() => setActiveTab('Calendario')}
-                    type="button"
-                  >
-                    <Icon name="calendar" size={18} />
-                    Vista mese
-                  </button>
-                </div>
               </form>
 
               <div className="result-list">
@@ -1176,12 +1166,34 @@ export default function App() {
           {pdfLoaded ? (
             <nav className="utility-dock" aria-label="Sezioni rapide">
               <button
+                className={activeTab === 'Giorno' && !activeUtilityPanel ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                onClick={() => {
+                  setActiveTab('Giorno');
+                  setActiveUtilityPanel('');
+                }}
+                type="button"
+              >
+                <AssetIcon name="busMark" size={30} />
+                <span>Turno</span>
+              </button>
+              <button
+                className={activeTab === 'Calendario' && !activeUtilityPanel ? 'utility-dock__button is-active' : 'utility-dock__button'}
+                onClick={() => {
+                  setActiveTab('Calendario');
+                  setActiveUtilityPanel('');
+                }}
+                type="button"
+              >
+                <AssetIcon name="calendar" size={30} />
+                <span>Calendario</span>
+              </button>
+              <button
                 className={activeUtilityPanel === 'lines' ? 'utility-dock__button is-active' : 'utility-dock__button'}
                 disabled={!orariLoaded}
                 onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
                 type="button"
               >
-                <AssetIcon name="busMark" size={34} />
+                <AssetIcon name="busMark" size={30} />
                 <span>Linee</span>
               </button>
               <button
@@ -1189,7 +1201,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'))}
                 type="button"
               >
-                <AssetIcon name="stats" size={34} />
+                <AssetIcon name="stats" size={30} />
                 <span>Statistiche</span>
               </button>
               <button
@@ -1197,7 +1209,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'))}
                 type="button"
               >
-                <AssetIcon name="route" size={34} />
+                <AssetIcon name="route" size={30} />
                 <span>Strumenti</span>
               </button>
             </nav>
