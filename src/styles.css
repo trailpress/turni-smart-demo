@@ -2707,7 +2707,8 @@ select:focus-visible {
   animation: line-panel-slide-left 540ms cubic-bezier(0.16, 0.9, 0.18, 1) both;
 }
 
-.utility-panel-anchor--lines {
+.utility-panel-anchor,
+.search-panel {
   scroll-margin-top: 16px;
 }
 
@@ -2824,7 +2825,7 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-.utility-dock__button--turn svg {
+.utility-dock__button--search svg {
   color: #8dd8ff;
 }
 

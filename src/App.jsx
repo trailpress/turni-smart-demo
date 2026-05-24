@@ -496,7 +496,10 @@ export default function App() {
   const monthPreconoscenzaInputRef = useRef(null);
   const monthOrariInputRef = useRef(null);
   const calendarPanelRef = useRef(null);
+  const searchPanelRef = useRef(null);
   const linePanelRef = useRef(null);
+  const statsPanelRef = useRef(null);
+  const toolsPanelRef = useRef(null);
   const savedPrefs = useMemo(() => loadPreferences(), []);
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
@@ -541,11 +544,24 @@ export default function App() {
   }, [activeTab, calendarPulse]);
 
   useEffect(() => {
-    if (activeUtilityPanel !== 'lines') return;
+    const panelRefs = {
+      lines: linePanelRef,
+      stats: statsPanelRef,
+      tools: toolsPanelRef,
+    };
+    const targetRef = panelRefs[activeUtilityPanel];
+    if (!targetRef) return;
     window.requestAnimationFrame(() => {
-      linePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, [activeUtilityPanel]);
+
+  useEffect(() => {
+    if (activeTab !== 'Giorno' || activeUtilityPanel) return;
+    window.requestAnimationFrame(() => {
+      searchPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [activeTab, activeUtilityPanel, searchResults]);
 
   useEffect(() => {
     if (!preferences.autoRestore || pdfLoaded) return;
@@ -943,6 +959,11 @@ export default function App() {
     setCalendarPulse((current) => current + 1);
   }
 
+  function showDaySearch() {
+    setActiveTab('Giorno');
+    setActiveUtilityPanel('');
+  }
+
   function loadDemo() {
     const demo = createDemoPreconoscenza();
     applyPreconoscenza(demo);
@@ -1020,12 +1041,12 @@ export default function App() {
 
   function goToQuickSearch(label, offset = 0) {
     quickSearch(label, offset);
-    setActiveTab('Giorno');
+    showDaySearch();
   }
 
   function goToWeekSearch() {
     searchWeek();
-    setActiveTab('Giorno');
+    showDaySearch();
   }
 
   function changeMonth(delta) {
@@ -1109,6 +1130,7 @@ export default function App() {
                   event.preventDefault();
                   runSearch();
                 }}
+                ref={searchPanelRef}
               >
                 <div className="panel-title-row">
                   <label className="field-label" htmlFor="turn-search">
@@ -1298,39 +1320,42 @@ export default function App() {
             </section>
           ) : null}
 
-          {pdfLoaded && activeUtilityPanel === 'stats' ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
+          {pdfLoaded && activeUtilityPanel === 'stats' ? (
+            <div className="utility-panel-anchor utility-panel-anchor--stats" ref={statsPanelRef}>
+              <StatsPanel stats={stats} title="Statistiche periodo" />
+            </div>
+          ) : null}
           {pdfLoaded && orariLoaded && activeUtilityPanel === 'lines' ? (
             <div className="utility-panel-anchor utility-panel-anchor--lines" ref={linePanelRef}>
               <LineConsultation developments={developments} />
             </div>
           ) : null}
           {pdfLoaded && activeUtilityPanel === 'tools' ? (
-            <AdvancedTools
-              backupMessage={backupMessage}
-              onExportBackup={exportBackup}
-              onRestoreBackup={restoreBackupFile}
-              onToggleAutoRestore={updateAutoRestore}
-              preferences={preferences}
-            />
+            <div className="utility-panel-anchor utility-panel-anchor--tools" ref={toolsPanelRef}>
+              <AdvancedTools
+                backupMessage={backupMessage}
+                onExportBackup={exportBackup}
+                onRestoreBackup={restoreBackupFile}
+                onToggleAutoRestore={updateAutoRestore}
+                preferences={preferences}
+              />
+            </div>
           ) : null}
           {pdfLoaded ? (
             <nav className="utility-dock" aria-label="Sezioni rapide">
               <button
-                className={activeTab === 'Giorno' && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--turn is-active' : 'utility-dock__button utility-dock__button--turn'}
-                onClick={() => {
-                  setActiveTab('Giorno');
-                  setActiveUtilityPanel('');
-                }}
+                className={activeTab === 'Giorno' && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--search is-active' : 'utility-dock__button utility-dock__button--search'}
+                onClick={showDaySearch}
                 type="button"
               >
-                <Icon name="clock" size={24} />
-                <span>Turno</span>
+                <Icon name="search" size={24} />
+                <span>Cerca</span>
               </button>
               <button
                 className="utility-dock__button utility-dock__button--today"
                 onClick={() => {
                   quickSearch('oggi', 0);
-                  setActiveUtilityPanel('');
+                  showDaySearch();
                 }}
                 type="button"
               >
@@ -1341,7 +1366,7 @@ export default function App() {
                 className="utility-dock__button utility-dock__button--tomorrow"
                 onClick={() => {
                   quickSearch('domani', 1);
-                  setActiveUtilityPanel('');
+                  showDaySearch();
                 }}
                 type="button"
               >
@@ -1352,7 +1377,7 @@ export default function App() {
                 className="utility-dock__button utility-dock__button--week"
                 onClick={() => {
                   searchWeek();
-                  setActiveUtilityPanel('');
+                  showDaySearch();
                 }}
                 type="button"
               >
@@ -1378,7 +1403,10 @@ export default function App() {
               <button
                 className={activeUtilityPanel === 'lines' ? 'utility-dock__button utility-dock__button--lines is-active' : 'utility-dock__button utility-dock__button--lines'}
                 disabled={!orariLoaded}
-                onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
+                onClick={() => {
+                  setActiveTab('Giorno');
+                  setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'));
+                }}
                 type="button"
               >
                 <AssetIcon name="busMark" size={24} />
@@ -1386,7 +1414,10 @@ export default function App() {
               </button>
               <button
                 className={activeUtilityPanel === 'stats' ? 'utility-dock__button utility-dock__button--stats is-active' : 'utility-dock__button utility-dock__button--stats'}
-                onClick={() => setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'))}
+                onClick={() => {
+                  setActiveTab('Giorno');
+                  setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'));
+                }}
                 type="button"
               >
                 <AssetIcon name="stats" size={24} />
@@ -1394,7 +1425,10 @@ export default function App() {
               </button>
               <button
                 className={activeUtilityPanel === 'tools' ? 'utility-dock__button utility-dock__button--tools is-active' : 'utility-dock__button utility-dock__button--tools'}
-                onClick={() => setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'))}
+                onClick={() => {
+                  setActiveTab('Giorno');
+                  setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'));
+                }}
                 type="button"
               >
                 <Icon name="document" size={24} />
