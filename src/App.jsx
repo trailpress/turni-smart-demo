@@ -108,80 +108,6 @@ function buildProjectedRest(date, code) {
   };
 }
 
-function inferDailyRestCycle(sourceDays) {
-  const entries = Object.values(sourceDays)
-    .map((day) => {
-      const date = day?.date ? normalizeDateOnly(day.date) : null;
-      if (!date) return null;
-      return { date, code: restCodeForDay(day) };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.date - b.date);
-
-  if (entries.length < 14 || entries.filter((entry) => entry.code).length < 2) return null;
-
-  const start = entries[0].date;
-  const end = entries[entries.length - 1].date;
-  const span = daysBetween(start, end) + 1;
-  if (span < 14) return null;
-
-  const byOffset = new Map();
-  entries.forEach((entry) => {
-    byOffset.set(daysBetween(start, entry.date), entry.code);
-  });
-
-  let best = null;
-  const maxCycle = Math.min(42, span - 1);
-  for (let cycle = 7; cycle <= maxCycle; cycle += 1) {
-    let compared = 0;
-    let mismatches = 0;
-    let restMatches = 0;
-    let score = 0;
-
-    for (let offset = 0; offset + cycle < span; offset += 1) {
-      if (!byOffset.has(offset) || !byOffset.has(offset + cycle)) continue;
-      const current = byOffset.get(offset);
-      const next = byOffset.get(offset + cycle);
-      const currentIsRest = Boolean(current);
-      const nextIsRest = Boolean(next);
-
-      compared += 1;
-      if (currentIsRest && nextIsRest) {
-        restMatches += 1;
-        score += current === next ? 5 : 3;
-      } else if (!currentIsRest && !nextIsRest) {
-        score += 1;
-      } else {
-        mismatches += 1;
-        score -= 6;
-      }
-    }
-
-    if (compared < 7 || restMatches < 1) continue;
-    const mismatchRatio = mismatches / compared;
-    const candidate = { cycle, compared, mismatchRatio, score };
-    if (
-      !best ||
-      candidate.score > best.score ||
-      (candidate.score === best.score && candidate.mismatchRatio < best.mismatchRatio) ||
-      (candidate.score === best.score && candidate.mismatchRatio === best.mismatchRatio && candidate.cycle < best.cycle)
-    ) {
-      best = candidate;
-    }
-  }
-
-  if (!best || best.mismatchRatio > 0.22) return null;
-
-  return {
-    start,
-    cycle: best.cycle,
-    codeForDate(date) {
-      const offset = positiveModulo(daysBetween(start, date), best.cycle);
-      return byOffset.get(offset) || '';
-    },
-  };
-}
-
 function buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd) {
   const restDays = Object.values(sourceDays)
     .map((day) => {
@@ -237,16 +163,7 @@ function buildProjectedRestDays(sourceDays, monthDate) {
   });
   if (hasRealMonth) return {};
 
-  const cycle = inferDailyRestCycle(sourceDays);
-  if (!cycle) return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
-
-  const projected = {};
-  for (let day = new Date(monthStart); day <= monthEnd; day = addDays(day, 1)) {
-    const code = cycle.codeForDate(day);
-    if (code) projected[toIsoDate(day)] = buildProjectedRest(day, code);
-  }
-
-  return projected;
+  return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
 }
 
 function formatDuration(value) {
