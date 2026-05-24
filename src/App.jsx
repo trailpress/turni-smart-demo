@@ -16,6 +16,7 @@ import { buildBackup, getHistory, loadOrariByKey, loadPreferences, loadPreconosc
 import { buildCsv, downloadTextFile } from './exportUtils.js';
 import { getDevSegments, normalizeShiftKey, parseOrari, summarizeDevelopments } from './parserOrari.js';
 import { parseNaturalDate, toIsoDate } from './utils/dateUtils.js';
+import { DEFAULT_REST_CODE, getOfficialRestEntries } from './constants/restCodes2026.js';
 import { BALLOTTAGGI, getShiftCategory } from './constants/shiftClassification.js';
 import { Header } from './components/Header.jsx';
 import { UploadPanel } from './components/UploadPanel.jsx';
@@ -95,7 +96,7 @@ function restCodeForDay(day) {
   return day?.t && REST_CODES[day.t] && day.t !== 'RIS' ? day.t : '';
 }
 
-function buildProjectedRest(date, code) {
+function buildProjectedRest(date, code, note = 'Riposo calcolato dalla sequenza caricata') {
   const iso = toIsoDate(date);
   return {
     iso,
@@ -103,9 +104,24 @@ function buildProjectedRest(date, code) {
     g: weekdayShort(date),
     t: code || 'RP',
     c: 'RP',
-    x: 'Riposo calcolato dalla sequenza caricata',
+    x: note,
     projected: true,
   };
+}
+
+function buildOfficialRestDays(monthDate, restCode = DEFAULT_REST_CODE) {
+  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const projected = {};
+
+  getOfficialRestEntries(monthDate.getFullYear(), restCode).forEach(([iso, code]) => {
+    if (!REST_CODES[code]) return;
+    const date = normalizeDateOnly(`${iso}T00:00:00`);
+    if (!date || date < monthStart || date > monthEnd) return;
+    projected[iso] = buildProjectedRest(date, code, `Riposo da Cod. Rip. ${restCode}`);
+  });
+
+  return projected;
 }
 
 function inferRestRotation(sourceDays) {
@@ -215,6 +231,9 @@ function buildProjectedRestDays(sourceDays, monthDate) {
     return date && date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
   });
   if (hasRealMonth) return {};
+
+  const officialRestDays = buildOfficialRestDays(monthDate);
+  if (Object.keys(officialRestDays).length) return officialRestDays;
 
   const rotation = inferRestRotation(sourceDays);
   if (!rotation) return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
