@@ -108,6 +108,59 @@ function buildProjectedRest(date, code) {
   };
 }
 
+function inferRestRotation(sourceDays) {
+  const entries = Object.values(sourceDays)
+    .map((day) => {
+      const date = day?.date ? normalizeDateOnly(day.date) : null;
+      if (!date) return null;
+      return { date, code: restCodeForDay(day) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date - b.date);
+
+  const restEntries = entries.filter((entry) => entry.code);
+  if (entries.length < 20 || restEntries.length < 3) return null;
+
+  const start = entries[0].date;
+  const scoredCycles = [35, 42, 28, 30, 36, 40].map((cycle) => {
+    const residues = new Map();
+    restEntries.forEach((entry) => {
+      const residue = positiveModulo(daysBetween(start, entry.date), cycle);
+      if (!residues.has(residue)) residues.set(residue, entry.code);
+    });
+
+    let falseRests = 0;
+    entries.forEach((entry) => {
+      const residue = positiveModulo(daysBetween(start, entry.date), cycle);
+      if (residues.has(residue) && !entry.code) falseRests += 1;
+    });
+
+    const expectedRestRatio = residues.size / cycle;
+    const observedRestRatio = restEntries.length / entries.length;
+    const densityPenalty = Math.abs(expectedRestRatio - observedRestRatio);
+
+    return { cycle, residues, falseRests, densityPenalty };
+  });
+
+  const [best] = scoredCycles.sort((a, b) => {
+    if (a.falseRests !== b.falseRests) return a.falseRests - b.falseRests;
+    if (a.densityPenalty !== b.densityPenalty) return a.densityPenalty - b.densityPenalty;
+    if (a.cycle === 35) return -1;
+    if (b.cycle === 35) return 1;
+    return a.cycle - b.cycle;
+  });
+
+  if (!best || best.falseRests > Math.max(1, Math.floor(entries.length * 0.08))) return null;
+
+  return {
+    start,
+    codeForDate(date) {
+      const residue = positiveModulo(daysBetween(start, date), best.cycle);
+      return best.residues.get(residue) || '';
+    },
+  };
+}
+
 function buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd) {
   const restDays = Object.values(sourceDays)
     .map((day) => {
@@ -163,7 +216,16 @@ function buildProjectedRestDays(sourceDays, monthDate) {
   });
   if (hasRealMonth) return {};
 
-  return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
+  const rotation = inferRestRotation(sourceDays);
+  if (!rotation) return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
+
+  const projected = {};
+  for (let day = new Date(monthStart); day <= monthEnd; day = addDays(day, 1)) {
+    const code = rotation.codeForDate(day);
+    if (code) projected[toIsoDate(day)] = buildProjectedRest(day, code);
+  }
+
+  return projected;
 }
 
 function formatDuration(value) {
