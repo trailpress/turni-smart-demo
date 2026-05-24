@@ -80,19 +80,118 @@ function weekdayShort(date) {
   return new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date);
 }
 
-function buildProjectedRestDays(sourceDays, monthDate) {
-  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-  const hasRealMonth = Object.values(sourceDays).some((day) => {
-    const date = day?.date ? new Date(day.date) : null;
-    return date && date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
-  });
-  if (hasRealMonth) return {};
+function normalizeDateOnly(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
 
-  const restDays = Object.values(sourceDays)
-    .filter((day) => day?.date && REST_CODES[day.t] && day.t !== 'RIS')
-    .map((day) => ({ date: new Date(day.date), code: day.t }))
+function positiveModulo(value, modulo) {
+  return ((value % modulo) + modulo) % modulo;
+}
+
+function restCodeForDay(day) {
+  return day?.t && REST_CODES[day.t] && day.t !== 'RIS' ? day.t : '';
+}
+
+function buildProjectedRest(date, code) {
+  const iso = toIsoDate(date);
+  return {
+    iso,
+    date: new Date(date),
+    g: weekdayShort(date),
+    t: code || 'RP',
+    c: 'RP',
+    x: 'Riposo calcolato dalla sequenza caricata',
+    projected: true,
+  };
+}
+
+function inferDailyRestCycle(sourceDays) {
+  const entries = Object.values(sourceDays)
+    .map((day) => {
+      const date = day?.date ? normalizeDateOnly(day.date) : null;
+      if (!date) return null;
+      return { date, code: restCodeForDay(day) };
+    })
+    .filter(Boolean)
     .sort((a, b) => a.date - b.date);
+
+  if (entries.length < 14 || entries.filter((entry) => entry.code).length < 2) return null;
+
+  const start = entries[0].date;
+  const end = entries[entries.length - 1].date;
+  const span = daysBetween(start, end) + 1;
+  if (span < 14) return null;
+
+  const byOffset = new Map();
+  entries.forEach((entry) => {
+    byOffset.set(daysBetween(start, entry.date), entry.code);
+  });
+
+  let best = null;
+  const maxCycle = Math.min(42, span - 1);
+  for (let cycle = 7; cycle <= maxCycle; cycle += 1) {
+    let compared = 0;
+    let mismatches = 0;
+    let restMatches = 0;
+    let score = 0;
+
+    for (let offset = 0; offset + cycle < span; offset += 1) {
+      if (!byOffset.has(offset) || !byOffset.has(offset + cycle)) continue;
+      const current = byOffset.get(offset);
+      const next = byOffset.get(offset + cycle);
+      const currentIsRest = Boolean(current);
+      const nextIsRest = Boolean(next);
+
+      compared += 1;
+      if (currentIsRest && nextIsRest) {
+        restMatches += 1;
+        score += current === next ? 5 : 3;
+      } else if (!currentIsRest && !nextIsRest) {
+        score += 1;
+      } else {
+        mismatches += 1;
+        score -= 6;
+      }
+    }
+
+    if (compared < 7 || restMatches < 1) continue;
+    const mismatchRatio = mismatches / compared;
+    const candidate = { cycle, compared, mismatchRatio, score };
+    if (
+      !best ||
+      candidate.score > best.score ||
+      (candidate.score === best.score && candidate.mismatchRatio < best.mismatchRatio) ||
+      (candidate.score === best.score && candidate.mismatchRatio === best.mismatchRatio && candidate.cycle < best.cycle)
+    ) {
+      best = candidate;
+    }
+  }
+
+  if (!best || best.mismatchRatio > 0.22) return null;
+
+  return {
+    start,
+    cycle: best.cycle,
+    codeForDate(date) {
+      const offset = positiveModulo(daysBetween(start, date), best.cycle);
+      return byOffset.get(offset) || '';
+    },
+  };
+}
+
+function buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd) {
+  const restDays = Object.values(sourceDays)
+    .map((day) => {
+      const date = day?.date ? normalizeDateOnly(day.date) : null;
+      const code = restCodeForDay(day);
+      return date && code ? { date, code } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date - b.date);
+
   if (!restDays.length) return {};
 
   const intervals = restDays
@@ -102,35 +201,49 @@ function buildProjectedRestDays(sourceDays, monthDate) {
   const pattern = intervals.length ? intervals : [7];
   const projected = {};
 
-  function addProjected(date, patternIndex) {
+  function addProjected(date, code) {
     if (date < monthStart || date > monthEnd) return;
-    const iso = toIsoDate(date);
-    projected[iso] = {
-      iso,
-      date: new Date(date),
-      g: weekdayShort(date),
-      t: restDays[Math.abs(patternIndex) % restDays.length]?.code || 'RP',
-      c: 'RP',
-      x: 'Riposo calcolato dalla sequenza caricata',
-      projected: true,
-    };
+    projected[toIsoDate(date)] = buildProjectedRest(date, code);
   }
 
   let forwardDate = new Date(restDays[0].date);
   let forwardIndex = 0;
   while (forwardDate <= monthEnd) {
-    addProjected(forwardDate, forwardIndex);
-    forwardDate = addDays(forwardDate, pattern[forwardIndex % pattern.length]);
+    const code = restDays[positiveModulo(forwardIndex, restDays.length)]?.code || 'RP';
+    addProjected(forwardDate, code);
+    forwardDate = addDays(forwardDate, pattern[positiveModulo(forwardIndex, pattern.length)]);
     forwardIndex += 1;
   }
 
   let backwardDate = new Date(restDays[0].date);
   let backwardIndex = 0;
   while (backwardDate >= monthStart) {
-    const interval = pattern[(backwardIndex - 1 + pattern.length) % pattern.length];
     backwardIndex -= 1;
+    const interval = pattern[positiveModulo(backwardIndex, pattern.length)];
     backwardDate = addDays(backwardDate, -interval);
-    addProjected(backwardDate, backwardIndex);
+    const code = restDays[positiveModulo(backwardIndex, restDays.length)]?.code || 'RP';
+    addProjected(backwardDate, code);
+  }
+
+  return projected;
+}
+
+function buildProjectedRestDays(sourceDays, monthDate) {
+  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const hasRealMonth = Object.values(sourceDays).some((day) => {
+    const date = day?.date ? normalizeDateOnly(day.date) : null;
+    return date && date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
+  });
+  if (hasRealMonth) return {};
+
+  const cycle = inferDailyRestCycle(sourceDays);
+  if (!cycle) return buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd);
+
+  const projected = {};
+  for (let day = new Date(monthStart); day <= monthEnd; day = addDays(day, 1)) {
+    const code = cycle.codeForDate(day);
+    if (code) projected[toIsoDate(day)] = buildProjectedRest(day, code);
   }
 
   return projected;
