@@ -226,11 +226,6 @@ function buildIntervalProjectedRestDays(sourceDays, monthStart, monthEnd) {
 function buildProjectedRestDays(sourceDays, monthDate) {
   const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-  const hasRealMonth = Object.values(sourceDays).some((day) => {
-    const date = day?.date ? normalizeDateOnly(day.date) : null;
-    return date && date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth();
-  });
-  if (hasRealMonth) return {};
 
   const officialRestDays = buildOfficialRestDays(monthDate);
   if (Object.keys(officialRestDays).length) return officialRestDays;

@@ -93,7 +93,77 @@ const REST_CODE_SCHEDULES_2026 = {
   [DEFAULT_REST_CODE]: REST_CODE_2_2026,
 };
 
+function parseIsoDate(iso) {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function toIsoDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function daysBetween(from, to) {
+  return Math.round((parseIsoDate(toIsoDate(to)) - parseIsoDate(toIsoDate(from))) / 86400000);
+}
+
+function positiveModulo(value, modulo) {
+  return ((value % modulo) + modulo) % modulo;
+}
+
+function getBaseRestSequence(restCode) {
+  const entries = REST_CODE_SCHEDULES_2026[String(restCode)] || [];
+  return entries.filter(([, code]) => code !== 'TA');
+}
+
+function buildRotation(restCode) {
+  const base = getBaseRestSequence(restCode).map(([iso, code]) => ({ date: parseIsoDate(iso), code }));
+  const intervals = base.slice(1).map((entry, index) => daysBetween(base[index].date, entry.date));
+  return { base, intervals };
+}
+
 export function getOfficialRestEntries(year, restCode = DEFAULT_REST_CODE) {
-  if (Number(year) !== 2026) return [];
-  return REST_CODE_SCHEDULES_2026[String(restCode)] || [];
+  const targetYear = Number(year);
+  if (!Number.isFinite(targetYear)) return [];
+
+  const { base, intervals } = buildRotation(restCode);
+  if (!base.length || !intervals.length) return [];
+
+  const targetStart = new Date(targetYear, 0, 1);
+  const targetEnd = new Date(targetYear, 11, 31);
+
+  if (targetYear === 2026) {
+    return base
+      .filter((entry) => entry.date >= targetStart && entry.date <= targetEnd)
+      .map((entry) => [toIsoDate(entry.date), entry.code]);
+  }
+
+  const generated = [];
+  let date = new Date(base[0].date);
+  let index = 0;
+
+  if (targetYear > 2026) {
+    while (date <= targetEnd) {
+      if (date >= targetStart) generated.push([toIsoDate(date), base[positiveModulo(index, base.length)].code]);
+      date = addDays(date, intervals[positiveModulo(index, intervals.length)]);
+      index += 1;
+    }
+    return generated;
+  }
+
+  date = new Date(base[0].date);
+  index = 0;
+  while (date >= targetStart) {
+    if (date <= targetEnd) generated.push([toIsoDate(date), base[positiveModulo(index, base.length)].code]);
+    index -= 1;
+    const interval = intervals[positiveModulo(index, intervals.length)];
+    date = addDays(date, -interval);
+  }
+
+  return generated.sort(([a], [b]) => a.localeCompare(b));
 }
