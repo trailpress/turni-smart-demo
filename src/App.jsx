@@ -502,6 +502,7 @@ export default function App() {
   const onboardingInputRef = useRef(null);
   const monthPreconoscenzaInputRef = useRef(null);
   const monthOrariInputRef = useRef(null);
+  const calendarPanelRef = useRef(null);
   const savedPrefs = useMemo(() => loadPreferences(), []);
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
@@ -532,10 +533,18 @@ export default function App() {
   const [preferences, setPreferences] = useState(() => ({ autoRestore: true, ...savedPrefs }));
   const [backupMessage, setBackupMessage] = useState('');
   const [activeUtilityPanel, setActiveUtilityPanel] = useState('');
+  const [calendarPulse, setCalendarPulse] = useState(0);
 
   useEffect(() => {
     savePreferences({ ...preferences, activeTab });
   }, [activeTab, preferences]);
+
+  useEffect(() => {
+    if (activeTab !== 'Calendario') return;
+    window.requestAnimationFrame(() => {
+      calendarPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [activeTab, calendarPulse]);
 
   useEffect(() => {
     if (!preferences.autoRestore || pdfLoaded) return;
@@ -926,11 +935,18 @@ export default function App() {
     setSearchMessage('');
   }
 
+  function showCalendar(nextFilters = null) {
+    if (nextFilters) setMonthFilters(nextFilters);
+    setActiveTab('Calendario');
+    setActiveUtilityPanel('');
+    setCalendarPulse((current) => current + 1);
+  }
+
   function loadDemo() {
     const demo = createDemoPreconoscenza();
     applyPreconoscenza(demo);
     applyOrari(DEMO_DEVELOPMENTS, demo);
-    setActiveTab('Calendario');
+    showCalendar();
   }
 
   function updateAutoRestore(value) {
@@ -1142,7 +1158,23 @@ export default function App() {
           ) : null}
 
           {pdfLoaded && activeTab === 'Calendario' ? (
-            <section className="view-panel">
+            <section className="view-panel view-panel--calendar" key={calendarPulse} ref={calendarPanelRef}>
+              <div className="calendar-focus-header">
+                <div>
+                  <span>Vista calendario</span>
+                  <strong>{MONTH_NAMES[viewMonth]} {viewYear}</strong>
+                </div>
+                <button
+                  className="small-button small-button--ghost"
+                  onClick={() => {
+                    setActiveTab('Giorno');
+                    setActiveUtilityPanel('');
+                  }}
+                  type="button"
+                >
+                  Nascondi calendario
+                </button>
+              </div>
               <input
                 accept="application/pdf"
                 className="file-input"
@@ -1286,7 +1318,7 @@ export default function App() {
                 }}
                 type="button"
               >
-                <Icon name="clock" size={28} />
+                <Icon name="clock" size={24} />
                 <span>Turno</span>
               </button>
               <button
@@ -1297,7 +1329,7 @@ export default function App() {
                 }}
                 type="button"
               >
-                <Icon name="mapPin" size={28} />
+                <Icon name="mapPin" size={24} />
                 <span>Oggi</span>
               </button>
               <button
@@ -1308,7 +1340,7 @@ export default function App() {
                 }}
                 type="button"
               >
-                <Icon name="chevronRight" size={28} />
+                <Icon name="chevronRight" size={24} />
                 <span>Domani</span>
               </button>
               <button
@@ -1319,19 +1351,24 @@ export default function App() {
                 }}
                 type="button"
               >
-                <Icon name="route" size={28} />
+                <Icon name="route" size={24} />
                 <span>Settimana</span>
               </button>
               <button
-                className={activeTab === 'Calendario' && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--calendar is-active' : 'utility-dock__button utility-dock__button--calendar'}
-                onClick={() => {
-                  setActiveTab('Calendario');
-                  setActiveUtilityPanel('');
-                }}
+                className={activeTab === 'Calendario' && !Object.values(monthFilters).some(Boolean) && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--calendar is-active' : 'utility-dock__button utility-dock__button--calendar'}
+                onClick={() => showCalendar(DEFAULT_MONTH_FILTERS)}
                 type="button"
               >
-                <AssetIcon name="calendar" size={30} />
+                <AssetIcon name="calendar" size={24} />
                 <span>Calendario</span>
+              </button>
+              <button
+                className={activeTab === 'Calendario' && monthFilters.riposi && !activeUtilityPanel ? 'utility-dock__button utility-dock__button--rests is-active' : 'utility-dock__button utility-dock__button--rests'}
+                onClick={() => showCalendar({ turni: false, riposi: true, ballottaggi: false })}
+                type="button"
+              >
+                <AssetIcon name="rest" size={24} />
+                <span>Riposi</span>
               </button>
               <button
                 className={activeUtilityPanel === 'lines' ? 'utility-dock__button utility-dock__button--lines is-active' : 'utility-dock__button utility-dock__button--lines'}
@@ -1339,7 +1376,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'lines' ? '' : 'lines'))}
                 type="button"
               >
-                <AssetIcon name="busMark" size={30} />
+                <AssetIcon name="busMark" size={24} />
                 <span>Linee</span>
               </button>
               <button
@@ -1347,7 +1384,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'stats' ? '' : 'stats'))}
                 type="button"
               >
-                <AssetIcon name="stats" size={30} />
+                <AssetIcon name="stats" size={24} />
                 <span>Statistiche</span>
               </button>
               <button
@@ -1355,7 +1392,7 @@ export default function App() {
                 onClick={() => setActiveUtilityPanel((current) => (current === 'tools' ? '' : 'tools'))}
                 type="button"
               >
-                <Icon name="document" size={28} />
+                <Icon name="document" size={24} />
                 <span>Strumenti</span>
               </button>
             </nav>
