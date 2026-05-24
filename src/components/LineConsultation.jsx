@@ -166,7 +166,8 @@ export function LineConsultation({ developments = {} }) {
     { all: activeLine?.shifts.length || 0 },
   );
   const visibleShifts = activeLine?.shifts.filter((item) => selectedService === 'all' || item.service === selectedService) || [];
-  const activeShift = visibleShifts.find((item) => item.key === selectedShiftKey) || null;
+  const activeShift = activeLine?.shifts.find((item) => item.key === selectedShiftKey) || null;
+  const view = activeShift ? 'development' : activeLine ? 'shifts' : 'lines';
 
   function handleLineSelect(line) {
     setSelectedLine(line);
@@ -178,73 +179,92 @@ export function LineConsultation({ developments = {} }) {
     setSelectedShiftKey('');
   }
 
+  function goBack() {
+    if (activeShift) {
+      setSelectedShiftKey('');
+      return;
+    }
+    if (activeLine) {
+      setSelectedLine('');
+      setSelectedService('all');
+    }
+  }
+
   return (
-    <section className="line-consultation dc" aria-labelledby="line-consultation-title">
+    <section className={`line-consultation line-consultation--${view} dc`} aria-labelledby="line-consultation-title">
       <div className="line-consultation__header">
+        {view !== 'lines' ? (
+          <button className="line-back-button" onClick={goBack} type="button" aria-label="Torna indietro">
+            <Icon name="chevronLeft" size={22} />
+          </button>
+        ) : null}
         <div>
           <span className="section-kicker">
             <Icon name="bus" size={18} />
             Orari Linee
           </span>
-          <h2 id="line-consultation-title">Consulta linee e turni</h2>
+          <h2 id="line-consultation-title">
+            {activeShift ? `Turno ${activeShift.shift}` : activeLine ? activeLine.label : 'Consulta linee e turni'}
+          </h2>
         </div>
-        <span>{lines.length} linee disponibili</span>
+        <span>
+          {activeShift ? `${activeShift.segments.length} segmenti` : activeLine ? `${visibleShifts.length} turni` : `${lines.length} linee disponibili`}
+        </span>
       </div>
 
-      <div className="line-grid" aria-label="Linee disponibili">
-        {lines.map((item) => (
-          <button
-            className={item.line === activeLine?.line ? 'line-grid-button is-active' : 'line-grid-button'}
-            key={item.line}
-            onClick={() => handleLineSelect(item.line)}
-            type="button"
-          >
-            <strong>{item.line}</strong>
-            <span>{item.shifts.length}</span>
-          </button>
-        ))}
-      </div>
-
-      {activeLine ? (
-      <div className="line-drilldown" key={activeLine.line}>
-        <div className="line-drilldown__bar">
-          <div>
-            <span>Linea selezionata</span>
-            <strong>{activeLine.label}</strong>
+      <div className="line-flow" key={view}>
+        {view === 'lines' ? (
+          <div className="line-flow-panel line-flow-panel--lines" aria-label="Linee disponibili">
+            <div className="line-grid">
+              {lines.map((item) => (
+                <button
+                  className="line-grid-button"
+                  key={item.line}
+                  onClick={() => handleLineSelect(item.line)}
+                  type="button"
+                >
+                  <strong>{item.line}</strong>
+                  <span>{item.shifts.length}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="line-service-filter" aria-label="Tipo giornata">
-            {SERVICE_FILTERS.map(([key, label]) => (
-              <button
-                className={selectedService === key ? 'line-service-chip is-active' : 'line-service-chip'}
-                disabled={!serviceCounts[key]}
-                key={key}
-                onClick={() => handleServiceChange(key)}
-                type="button"
-              >
-                <span>{label}</span>
-                <small>{serviceCounts[key] || 0}</small>
-              </button>
-            ))}
-          </div>
-        </div>
+        ) : null}
 
-        <div className="line-consultation__content">
-          <div className="line-shift-list" key={`${activeLine.line}-${selectedService}`} aria-label={`Turni ${activeLine.label}`}>
-            {visibleShifts.map((item) => (
-              <button
-                className={item.key === activeShift?.key ? 'line-shift-button is-active' : 'line-shift-button'}
-                key={item.key}
-                onClick={() => setSelectedShiftKey(item.key)}
-                type="button"
-              >
-                <strong>Turno {item.shift}</strong>
-                <span>{item.serviceLabel} · {item.segments.length} seg.</span>
-              </button>
-            ))}
+        {view === 'shifts' ? (
+          <div className="line-flow-panel line-flow-panel--shifts" aria-label={`Turni ${activeLine.label}`}>
+            <div className="line-service-filter" aria-label="Tipo giornata">
+              {SERVICE_FILTERS.map(([key, label]) => (
+                <button
+                  className={selectedService === key ? 'line-service-chip is-active' : 'line-service-chip'}
+                  disabled={!serviceCounts[key]}
+                  key={key}
+                  onClick={() => handleServiceChange(key)}
+                  type="button"
+                >
+                  <span>{label}</span>
+                  <small>{serviceCounts[key] || 0}</small>
+                </button>
+              ))}
+            </div>
+            <div className="line-shift-list" key={`${activeLine.line}-${selectedService}`}>
+              {visibleShifts.map((item) => (
+                <button
+                  className="line-shift-button"
+                  key={item.key}
+                  onClick={() => setSelectedShiftKey(item.key)}
+                  type="button"
+                >
+                  <strong>Turno {item.shift}</strong>
+                  <span>{item.serviceLabel} · {item.segments.length} seg.</span>
+                </button>
+              ))}
+            </div>
           </div>
+        ) : null}
 
-          {activeShift ? (
-          <article className="line-development-card" key={activeShift.key}>
+        {view === 'development' ? (
+          <article className="line-flow-panel line-development-card" key={activeShift.key}>
             <div className="line-development-card__title">
               <span>{activeLine.label} · {activeShift.serviceLabel}</span>
               <h3>Turno {activeShift.shift}</h3>
@@ -262,25 +282,8 @@ export function LineConsultation({ developments = {} }) {
               ))}
             </div>
           </article>
-          ) : (
-            <article className="line-development-card line-development-card--empty">
-              <div className="line-development-card__title">
-                <span>{activeLine.label}</span>
-              <h3>Seleziona un turno</h3>
-            </div>
-              <p className="muted-text">
-                La lista mostra i turni disponibili per la linea e il tipo giornata selezionati.
-              </p>
-            </article>
-          )}
-        </div>
+        ) : null}
       </div>
-      ) : (
-        <div className="line-empty-state">
-          <Icon name="bus" size={22} />
-          <span>Seleziona una linea per vedere i turni disponibili.</span>
-        </div>
-      )}
     </section>
   );
 }

@@ -2409,10 +2409,40 @@ select:focus-visible {
 }
 
 .line-consultation__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s3);
+  gap: var(--s2);
+}
+
+.line-consultation--lines .line-consultation__header {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.line-consultation__header > div {
+  min-width: 0;
+}
+
+.line-back-button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(76, 149, 197, 0.42);
+  border-radius: 14px;
+  background: rgba(7, 24, 39, 0.78);
+  color: var(--cyan);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.line-back-button:hover {
+  border-color: rgba(53, 182, 255, 0.82);
+  background: rgba(0, 118, 201, 0.28);
+  transform: translateX(-2px);
 }
 
 .section-kicker {
@@ -2449,7 +2479,7 @@ select:focus-visible {
 
 .line-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 6px;
   border: 1px solid rgba(76, 149, 197, 0.3);
   border-radius: var(--radius);
@@ -2497,10 +2527,22 @@ select:focus-visible {
   transform: translateY(-1px);
 }
 
-.line-drilldown {
+.line-flow {
+  overflow: hidden;
+}
+
+.line-flow-panel {
   display: grid;
   gap: var(--s3);
-  animation: line-slide-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: line-panel-slide-left 340ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+}
+
+.line-flow-panel--shifts {
+  align-content: start;
+}
+
+.line-flow-panel--lines {
+  animation-name: line-panel-soft-in;
 }
 
 .line-empty-state {
@@ -2549,6 +2591,10 @@ select:focus-visible {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  border: 1px solid rgba(76, 149, 197, 0.32);
+  border-radius: var(--radius);
+  background: rgba(7, 24, 39, 0.58);
+  padding: 8px;
 }
 
 .line-service-chip {
@@ -2604,13 +2650,10 @@ select:focus-visible {
 }
 
 .line-shift-list {
-  max-height: 410px;
   display: grid;
   align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 8px;
-  overflow: auto;
-  padding-right: 4px;
-  animation: list-soft-in 260ms ease both;
 }
 
 .line-shift-button {
@@ -2659,7 +2702,7 @@ select:focus-visible {
   border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgba(13, 43, 68, 0.9), rgba(6, 22, 38, 0.9));
   padding: 15px;
-  animation: detail-soft-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: line-panel-slide-left 340ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
 }
 
 .line-development-card--empty {
@@ -2884,10 +2927,27 @@ select:focus-visible {
   }
 }
 
-@keyframes line-slide-in {
+@keyframes line-panel-slide-left {
   from {
     opacity: 0;
-    transform: translateX(18px);
+    transform: translateX(44px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes line-panel-soft-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -2896,7 +2956,7 @@ select:focus-visible {
   .line-shift-button,
   .line-development-card,
   .line-development-step,
-  .line-drilldown {
+  .line-flow-panel {
     animation: none;
   }
 }
@@ -3396,6 +3456,10 @@ select:focus-visible {
 
   .line-consultation__header {
     display: grid;
+  }
+
+  .line-back-button {
+    justify-self: start;
   }
 
   .line-consultation__header > span {
