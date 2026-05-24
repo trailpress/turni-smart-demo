@@ -496,6 +496,7 @@ export default function App() {
   const monthPreconoscenzaInputRef = useRef(null);
   const monthOrariInputRef = useRef(null);
   const calendarPanelRef = useRef(null);
+  const linePanelRef = useRef(null);
   const savedPrefs = useMemo(() => loadPreferences(), []);
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
@@ -538,6 +539,13 @@ export default function App() {
       calendarPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, [activeTab, calendarPulse]);
+
+  useEffect(() => {
+    if (activeUtilityPanel !== 'lines') return;
+    window.requestAnimationFrame(() => {
+      linePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [activeUtilityPanel]);
 
   useEffect(() => {
     if (!preferences.autoRestore || pdfLoaded) return;
@@ -1291,7 +1299,11 @@ export default function App() {
           ) : null}
 
           {pdfLoaded && activeUtilityPanel === 'stats' ? <StatsPanel stats={stats} title="Statistiche periodo" /> : null}
-          {pdfLoaded && orariLoaded && activeUtilityPanel === 'lines' ? <LineConsultation developments={developments} /> : null}
+          {pdfLoaded && orariLoaded && activeUtilityPanel === 'lines' ? (
+            <div className="utility-panel-anchor utility-panel-anchor--lines" ref={linePanelRef}>
+              <LineConsultation developments={developments} />
+            </div>
+          ) : null}
           {pdfLoaded && activeUtilityPanel === 'tools' ? (
             <AdvancedTools
               backupMessage={backupMessage}

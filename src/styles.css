@@ -2529,12 +2529,14 @@ select:focus-visible {
 
 .line-flow {
   overflow: hidden;
+  border-radius: var(--radius);
 }
 
 .line-flow-panel {
   display: grid;
   gap: var(--s3);
-  animation: line-panel-slide-left 340ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  will-change: transform, opacity;
+  animation: line-panel-slide-left 540ms cubic-bezier(0.16, 0.9, 0.18, 1) both;
 }
 
 .line-flow-panel--shifts {
@@ -2542,7 +2544,7 @@ select:focus-visible {
 }
 
 .line-flow-panel--lines {
-  animation-name: line-panel-soft-in;
+  animation: line-panel-enter 420ms cubic-bezier(0.16, 0.9, 0.18, 1) both;
 }
 
 .line-empty-state {
@@ -2702,7 +2704,11 @@ select:focus-visible {
   border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgba(13, 43, 68, 0.9), rgba(6, 22, 38, 0.9));
   padding: 15px;
-  animation: line-panel-slide-left 340ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  animation: line-panel-slide-left 540ms cubic-bezier(0.16, 0.9, 0.18, 1) both;
+}
+
+.utility-panel-anchor--lines {
+  scroll-margin-top: 16px;
 }
 
 .line-development-card--empty {
@@ -2930,7 +2936,7 @@ select:focus-visible {
 @keyframes line-panel-slide-left {
   from {
     opacity: 0;
-    transform: translateX(44px);
+    transform: translateX(82%);
   }
 
   to {
@@ -2939,10 +2945,10 @@ select:focus-visible {
   }
 }
 
-@keyframes line-panel-soft-in {
+@keyframes line-panel-enter {
   from {
     opacity: 0;
-    transform: translateX(14px);
+    transform: translateX(28%);
   }
 
   to {
