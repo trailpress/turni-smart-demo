@@ -103,7 +103,7 @@ export function UploadPanel({
 
       {hasPreconoscenza || hasOrari ? <div className={hasOrari ? 'upload-document is-loaded' : 'upload-document'}>
         <span className="upload-doc-icon" aria-hidden="true">
-          <AssetIcon name="route" size={34} />
+          <AssetIcon name="busMark" size={34} />
         </span>
         <div className="upload-document__body">
           <div className="upload-document__title">

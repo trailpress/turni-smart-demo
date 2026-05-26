@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { getLineDisplayName } from '../constants/depotGerbido.js';
 import { timeToMinutes } from '../utils/timeUtils.js';
-import { Icon } from './Icon.jsx';
+import { AssetIcon, Icon } from './Icon.jsx';
 
 const DIRECTION_LABELS = {
   A: 'Andata',
@@ -200,7 +200,7 @@ export function LineConsultation({ developments = {} }) {
         ) : null}
         <div>
           <span className="section-kicker">
-            <Icon name="bus" size={18} />
+            <AssetIcon name="busMark" size={22} />
             Orari Linee
           </span>
           <h2 id="line-consultation-title">
