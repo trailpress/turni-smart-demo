@@ -3,7 +3,6 @@ import { Icon } from './Icon.jsx';
 
 const monthFormatter = new Intl.DateTimeFormat('it-IT', {
   month: 'long',
-  year: 'numeric',
 });
 
 function getMonthLength(date) {
@@ -29,10 +28,16 @@ export function MonthView({
   onToggleFilter,
 }) {
   const monthLength = getMonthLength(monthDate);
+  const previousMonthDate = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1);
+  const previousMonthLength = getMonthLength(previousMonthDate);
   const days = Array.from({ length: monthLength }, (_, index) => index + 1);
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).getDay();
   const leadingEmptyDays = firstDay === 0 ? 6 : firstDay - 1;
-  const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const previousMonthDays = Array.from(
+    { length: leadingEmptyDays },
+    (_, index) => previousMonthLength - leadingEmptyDays + index + 1,
+  );
+  const weekdays = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
   const highlighted =
     highlightDate && !Number.isNaN(new Date(highlightDate).getTime()) ? new Date(highlightDate) : null;
   const hasActiveFilter = Object.values(activeFilters || {}).some(Boolean);
@@ -66,16 +71,21 @@ export function MonthView({
         <button onClick={onPrevMonth} type="button" aria-label="Mese precedente">
           <Icon name="chevronLeft" size={20} />
         </button>
-        <h2 id="month-title">{monthFormatter.format(monthDate)}</h2>
+        <h2 id="month-title">
+          <span>{monthFormatter.format(monthDate)}</span>
+          <small>{monthDate.getFullYear()}</small>
+        </h2>
         <button onClick={onNextMonth} type="button" aria-label="Mese successivo">
           <Icon name="chevronRight" size={20} />
         </button>
       </div>
       <div className="month-filter-group month-filter-group--calendar" aria-label="Evidenzia nel calendario">
+        <button className="filter-chip filter-chip--today" onClick={() => onSelectDay?.(new Date())} type="button">
+          Turno di oggi
+        </button>
         {[
           ['turni', 'Turni'],
-          ['riposi', 'Riposi'],
-          ['ballottaggi', 'Ballott.'],
+          ['riposi', 'Orari'],
         ].map(([key, label]) => (
           <button
             className={activeFilters[key] ? 'filter-chip is-active' : 'filter-chip'}
@@ -93,8 +103,10 @@ export function MonthView({
         ))}
       </div>
       <div className="month-grid" aria-label="Vista mese preconoscenza">
-        {Array.from({ length: leadingEmptyDays }, (_, index) => (
-          <span className="month-day month-day--empty" key={`empty-${index}`} aria-hidden="true" />
+        {previousMonthDays.map((day) => (
+          <span className="month-day month-day--outside" key={`previous-${day}`} aria-hidden="true">
+            {day}
+          </span>
         ))}
         {days.map((day) => {
           const state = dayState(day);

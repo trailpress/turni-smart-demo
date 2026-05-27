@@ -1314,6 +1314,7 @@ select:focus-visible {
 
 .month-filter-group--calendar {
   margin-top: -2px;
+  grid-template-columns: minmax(120px, 1.2fr) repeat(2, minmax(88px, 0.8fr));
 }
 
 .calendar-archive-panel {
@@ -1389,20 +1390,51 @@ select:focus-visible {
 
 .filter-chip {
   min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(7, 24, 39, 0.88);
-  color: #b9c8da;
+  border: 1px solid rgba(8, 45, 99, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1d2e54;
   font-size: 0.78rem;
   font-weight: 900;
+  box-shadow: 0 5px 12px rgba(13, 33, 64, 0.08);
   cursor: pointer;
 }
 
 .filter-chip.is-active {
-  border-color: rgba(0, 190, 232, 0.72);
-  background: rgba(0, 118, 201, 0.62);
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-color: rgba(8, 45, 99, 0.24);
+  background: #ffffff;
+  color: #1d2e54;
+  box-shadow: inset 0 0 0 1px rgba(8, 45, 99, 0.08), 0 5px 12px rgba(13, 33, 64, 0.08);
+}
+
+.filter-chip.is-active::after {
+  content: "✓";
+  margin-left: 4px;
+  color: #111a4d;
+}
+
+.filter-chip--today {
+  color: #111a4d;
+}
+
+.filter-chip--today::after,
+.month-filter-group--calendar .filter-chip:nth-child(2)::before,
+.month-filter-group--calendar .filter-chip:nth-child(3)::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-left: 6px;
+  border-radius: 999px;
+  vertical-align: -1px;
+}
+
+.month-filter-group--calendar .filter-chip:nth-child(2)::before {
+  background: #1758d8;
+}
+
+.month-filter-group--calendar .filter-chip:nth-child(3)::before {
+  background: #1f9d72;
 }
 
 .range-panel .small-button,
@@ -3220,116 +3252,159 @@ select:focus-visible {
 }
 
 /* Month */
+.month-view {
+  width: min(430px, 100%);
+  justify-self: center;
+  border: 1px solid rgba(0, 93, 170, 0.12);
+  border-radius: 28px;
+  background: #ffffff;
+  color: #0d2140;
+  box-shadow: 0 18px 42px rgba(11, 35, 66, 0.16);
+}
+
 .month-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
   align-items: center;
-  justify-content: center;
-  gap: var(--s3);
-  margin-bottom: var(--s3);
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .month-heading button {
-  min-width: 38px;
-  min-height: 36px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--heading);
-  font-size: 1.2rem;
-  font-weight: 900;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #0d2140;
+  box-shadow: 0 8px 18px rgba(11, 35, 66, 0.08);
   cursor: pointer;
 }
 
 .month-heading h2 {
-  min-width: 148px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
   text-align: center;
-  font-size: 1.02rem;
+  color: #111a4d;
+}
+
+.month-heading h2 span {
+  font-size: 1.42rem;
+  line-height: 1;
+  font-weight: 950;
+  text-transform: capitalize;
+}
+
+.month-heading h2 small {
+  color: #343a46;
+  font-size: 1rem;
+  font-weight: 780;
 }
 
 .month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
+  gap: 8px;
 }
 
 .month-grid--weekdays {
-  margin-bottom: var(--s2);
+  margin: 18px 0 10px;
 }
 
 .month-grid--weekdays span {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 900;
+  color: #171b24;
+  font-size: 0.86rem;
+  font-weight: 950;
   text-align: center;
 }
 
+.month-grid--weekdays span:nth-child(6),
+.month-grid--weekdays span:nth-child(7) {
+  color: #c8222e;
+}
+
 .month-day {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--radius);
-  background: var(--panel-2);
-  color: var(--text);
-  font-size: 0.88rem;
-  font-weight: 760;
+  position: relative;
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: #f1f3f6;
+  color: #272d36;
+  font-size: 1.05rem;
+  font-weight: 860;
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.08),
+    0 5px 9px rgba(13, 33, 64, 0.08);
   cursor: pointer;
 }
 
-.month-day--empty {
-  visibility: hidden;
+.month-day--outside {
+  background: transparent;
+  color: #6e747d;
+  box-shadow: none;
   pointer-events: none;
 }
 
 .month-day--dimmed {
   opacity: 0.28;
-  filter: grayscale(1);
-  background: rgba(88, 101, 116, 0.5);
-  border-color: rgba(163, 174, 188, 0.32);
-  color: rgba(255, 255, 255, 0.72);
+  filter: grayscale(0.8);
 }
 
 .month-day.has-shift {
-  border-color: var(--blue);
-  background: var(--blue);
+  background: #082d63;
   color: #fff;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .month-day.has-rest {
-  border-color: var(--green);
-  background: var(--green);
-  color: #fff;
-  font-weight: 900;
+  background: #ffd22e;
+  color: #092347;
+  font-weight: 950;
 }
 
 .month-day.has-ballot {
-  border-color: var(--red);
-  background: var(--red);
+  background: #df1f2d;
   color: #fff;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .month-day.has-other {
-  border-color: var(--orange);
-  background: var(--orange);
+  background: #f97316;
   color: #fff;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .month-day.is-highlighted {
-  box-shadow: 0 0 0 2px #00897b, 0 0 0 4px rgba(0, 137, 123, 0.2);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.08),
+    0 0 0 4px rgba(8, 45, 99, 0.14);
+}
+
+.month-day.is-highlighted::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f26a21;
 }
 
 .month-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 10px;
-  margin-top: var(--s3);
-  color: var(--muted);
+  margin-top: 18px;
+  color: #68717d;
   font-size: 0.73rem;
-  font-weight: 760;
+  font-weight: 850;
 }
 
 .month-legend span {
@@ -3351,15 +3426,15 @@ select:focus-visible {
 }
 
 .legend-dot--shift {
-  background: var(--blue);
+  background: #082d63;
 }
 
 .legend-dot--rest {
-  background: var(--green);
+  background: #ffd22e;
 }
 
 .legend-dot--ballot {
-  background: var(--red);
+  background: #df1f2d;
 }
 
 .legend-dot--other {
