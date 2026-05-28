@@ -1,0 +1,24 @@
+{
+  "name": "Turni Smart GTT",
+  "short_name": "Turni Smart",
+  "description": "Gestione semplice e intelligente dei turni.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#061422",
+  "theme_color": "#003366",
+  "icons": [
+    {
+      "src": "assets-webp/bus-front-icon.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets-webp/bus-front-icon.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}
