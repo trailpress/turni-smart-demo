@@ -85,7 +85,7 @@ export function MonthView({
         </button>
         {[
           ['turni', 'Turni'],
-          ['riposi', 'Orari'],
+          ['riposi', 'Riposi'],
         ].map(([key, label]) => (
           <button
             className={activeFilters[key] ? 'filter-chip is-active' : 'filter-chip'}
