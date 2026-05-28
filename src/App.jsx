@@ -328,7 +328,6 @@ function buildStats(days, developments) {
     { label: 'Ballottaggi', value: String(stats.ballots) },
     { label: 'Spezzati', value: String(stats.splitShifts) },
     { label: 'Serali', value: String(stats.eveningShifts) },
-    { label: 'Riposi brevi', value: String(stats.shortRests) },
     { label: 'Durata media', value: stats.averageShiftDuration.label },
     { label: 'Giorno lungo', value: stats.longestDay?.label || '-' },
   ];
