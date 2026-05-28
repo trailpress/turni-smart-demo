@@ -11,7 +11,6 @@ import {
 } from './parserPreconoscenza.js';
 import { computeStats, enrichShiftDays, getNextWorkingShift } from './analytics.js';
 import { buildBallotICS, buildICS, openCalendarICS } from './calendarExport.js';
-import { createDemoPreconoscenza, DEMO_DEVELOPMENTS } from './demoData.js';
 import { buildBackup, getHistory, loadOrariByKey, loadPreferences, loadPreconoscenzaByKey, orariKey, restoreBackup, saveOrari, savePreferences, savePreconoscenza } from './storage.js';
 import { buildCsv, downloadTextFile } from './exportUtils.js';
 import { getDevSegments, normalizeShiftKey, parseOrari, summarizeDevelopments } from './parserOrari.js';
@@ -26,6 +25,7 @@ import { StatsPanel } from './components/StatsPanel.jsx';
 import { AdvancedTools } from './components/AdvancedTools.jsx';
 import { LineConsultation } from './components/LineConsultation.jsx';
 import { OnboardingHome } from './components/OnboardingHome.jsx';
+import { DemoLanding } from './components/DemoLanding.jsx';
 import { AssetIcon, Icon } from './components/Icon.jsx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -35,6 +35,16 @@ const DEFAULT_MONTH_FILTERS = {
   turni: false,
   riposi: false,
   ballottaggi: false,
+};
+const DEMO_FILES = {
+  preconoscenza: {
+    path: 'demo/Maggio%202026.pdf',
+    name: 'Maggio 2026.pdf',
+  },
+  orari: {
+    path: 'demo/Orari%20Gerbido%20Maggio%20%2726.pdf',
+    name: "Orari Gerbido Maggio '26.pdf",
+  },
 };
 const MONTH_NAMES = [
   'Gennaio',
@@ -491,6 +501,15 @@ async function extractTextPagesFromPdf(file) {
   return { pages, pageCount: pdf.numPages };
 }
 
+async function fetchDemoPdf({ path, name }) {
+  const response = await fetch(`${import.meta.env.BASE_URL}${path}`);
+  if (!response.ok) {
+    throw new Error(`File demo non disponibile: ${name}`);
+  }
+  const blob = await response.blob();
+  return new File([blob], name, { type: 'application/pdf' });
+}
+
 export default function App() {
   const onboardingInputRef = useRef(null);
   const monthPreconoscenzaInputRef = useRef(null);
@@ -531,6 +550,8 @@ export default function App() {
   const [backupMessage, setBackupMessage] = useState('');
   const [activeUtilityPanel, setActiveUtilityPanel] = useState('');
   const [calendarPulse, setCalendarPulse] = useState(0);
+  const [showLanding, setShowLanding] = useState(true);
+  const [manualEntry, setManualEntry] = useState(false);
 
   useEffect(() => {
     savePreferences({ ...preferences, activeTab });
@@ -564,12 +585,12 @@ export default function App() {
   }, [activeTab, activeUtilityPanel, searchResults]);
 
   useEffect(() => {
-    if (!preferences.autoRestore || pdfLoaded) return;
+    if (showLanding || manualEntry || !preferences.autoRestore || pdfLoaded) return;
     const [latest] = getHistory().filter((entry) => entry.type === 'preconoscenza');
     if (!latest) return;
     const stored = loadPreconoscenzaByKey(latest.key);
     if (stored) applyPreconoscenza(stored, { save: false });
-  }, []);
+  }, [manualEntry, showLanding]);
 
   function refreshHistory() {
     setHistory(getHistory());
@@ -964,11 +985,67 @@ export default function App() {
     setActiveUtilityPanel('');
   }
 
-  function loadDemo() {
-    const demo = createDemoPreconoscenza();
-    applyPreconoscenza(demo);
-    applyOrari(DEMO_DEVELOPMENTS, demo);
-    showCalendar();
+  async function loadDemo() {
+    setLoading(true);
+    setUploadPhase('Lettura demo Maggio 2026');
+    setError('');
+    setOrariError('');
+
+    try {
+      const preconoscenzaFile = await fetchDemoPdf(DEMO_FILES.preconoscenza);
+      const { pages: preconoscenzaPages, pageCount: preconoscenzaPageCount } = await extractTextPagesFromPdf(preconoscenzaFile);
+      setUploadPhase('Analisi turni demo');
+      if (preconoscenzaPageCount > 20) {
+        throw new Error(`Questo sembra gli Orari Linee (${preconoscenzaPageCount} pag.), non la Preconoscenza.`);
+      }
+
+      const preconoscenzaResult = parsePreconoscenza(preconoscenzaPages.join('\n'));
+      if (!Object.keys(preconoscenzaResult.days).length) {
+        throw new Error('Nessun turno trovato nel PDF Preconoscenza demo.');
+      }
+      const demoPreconoscenza = { ...preconoscenzaResult, fileName: preconoscenzaFile.name };
+      applyPreconoscenza(demoPreconoscenza, { loadOrari: false });
+
+      const orariFile = await fetchDemoPdf(DEMO_FILES.orari);
+      const { pages: orariPages, pageCount: orariPageCount } = await extractTextPagesFromPdf(orariFile);
+      setUploadPhase('Ricostruzione sviluppi turno demo');
+      if (orariPageCount < 5) {
+        throw new Error('Questo sembra la Preconoscenza, non gli Orari Deposito.');
+      }
+
+      const parsedDevelopments = parseOrari(orariPages);
+      const summary = summarizeDevelopments(parsedDevelopments);
+      if (!summary.totalTurns) {
+        throw new Error('Nessun turno trovato nel PDF Orari Deposito demo.');
+      }
+
+      applyOrari(parsedDevelopments, { ...demoPreconoscenza, fileName: orariFile.name });
+      setUploadPhase('Demo caricata');
+      showCalendar();
+    } catch (caughtError) {
+      setPdfLoaded(false);
+      setPdfInfo(null);
+      setDays({});
+      setDevelopments({});
+      setOrariInfo(null);
+      setOrariLoaded(false);
+      setError(caughtError.message || 'Errore durante il caricamento della demo.');
+    } finally {
+      setLoading(false);
+      setUploadPhase('');
+    }
+  }
+
+  function openDemoFromLanding() {
+    setShowLanding(false);
+    window.requestAnimationFrame(() => {
+      loadDemo();
+    });
+  }
+
+  function openManualFromLanding() {
+    setManualEntry(true);
+    setShowLanding(false);
   }
 
   function updateAutoRestore(value) {
@@ -1082,6 +1159,10 @@ export default function App() {
       .sort((a, b) => a.date - b.date);
   }, [calendarDays, monthFilters, viewMonth, viewYear]);
   const nextWorkingShift = useMemo(() => (pdfLoaded ? getNextWorkingShift(days, developments, new Date()) : null), [days, developments, pdfLoaded]);
+
+  if (showLanding) {
+    return <DemoLanding loading={loading} onManualUpload={openManualFromLanding} onOpenDemo={openDemoFromLanding} />;
+  }
 
   return (
     <div className="app-shell">

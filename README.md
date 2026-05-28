@@ -1,19 +1,46 @@
-## Turni Smart - GTT
+# Turni Smart - Demo
 
-Web app per la gestione dei turni GTT, deposito Gerbido.
+Versione demo parallela della webapp Turni Smart, configurata con dati precaricati per mostrare il funzionamento dell'app senza modificare il progetto originale.
 
-## Funzionalita
+- Il repository originale non viene modificato.
+- Questa versione serve solo per dimostrazione.
+- La logica e la UI della webapp sono mantenute coerenti con l'app originale.
+- E' stata aggiunta solo una landing page iniziale per presentare meglio la demo.
+- La demo puo' usare PDF precaricati.
+- L'utente puo' comunque caricare manualmente altri file, se previsto dall'app.
 
-- Preconoscenza: carica il PDF mensile e consulta i turni per data
-- Orari Linee: carica il PDF del deposito per lo sviluppo completo dei turni
-- Calendario mensile: vista a griglia con tap per dettaglio
-- Ballottaggio: incolla il turno assegnato direttamente nella card
-- Condivisione: calendario, WhatsApp e copia turno
-- Storico: i documenti caricati restano memorizzati nel browser
+## Dati demo
 
-## Deploy
+I PDF demo sono inclusi in `public/demo/`:
+
+- `Maggio 2026.pdf`
+- `Orari Gerbido Maggio '26.pdf`
+
+Il pulsante `Apri demo` carica questi file con gli stessi parser usati dall'app per l'upload manuale. Nel PDF Preconoscenza demo il nominativo e il codice personale sono stati anonimizzati.
+
+## Sviluppo locale
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
 
 ```bash
 npm run build
+```
+
+## Deploy GitHub Pages
+
+La build e' configurata per il path pubblico:
+
+```text
+/turni-smart-demo/
+```
+
+Per pubblicare:
+
+```bash
 npm run deploy
 ```
